@@ -73,7 +73,7 @@ else if (command === 'showships' && message.member.roles.cache.some(r => r.name 
 
 //Command to list what ships a certain owner has !whatships "owner"
 else if (command === 'whatships' && message.member.roles.cache.some(r => r.name === "Member")) {
-  const otherUser = commandArgs;
+  const otherUser = commandArgs.toLowerCase();
   const shipList = await Ships.findAll({where: {username: otherUser}})
   const userString = shipList.map(t => t.shipname).join(', ') || `${otherUser} doesn't own anything.`;
   return message.channel.send(`${otherUser} owns: ${userString}`);
@@ -81,7 +81,7 @@ else if (command === 'whatships' && message.member.roles.cache.some(r => r.name 
 
 //Command to list owners of specific ships !showowners "ship"
 else if (command === 'showowners' && message.member.roles.cache.some(r => r.name === "Member")) {
-  const shipName = commandArgs;
+  const shipName = commandArgs.toLowerCase();
   const ownerList = await Ships.findAll({
     where: {
       shipname: shipName
@@ -100,7 +100,7 @@ else if (command === "help" && message.member.roles.cache.some(r => r.name === "
 //Command to remove all ships of a user !removeall "user#XXXX"
 
 else if (command === "removeall" && message.member.roles.cache.some(r => r.name === "Management")) {
-  const deletedUser = commandArgs;
+  const deletedUser = commandArgs.toLowerCase();
 	await Ships.destroy({where: {username: deletedUser}});
 	return message.channel.send(`User ${deletedUser} has had his fleet deleted.`);
 }
