@@ -1,9 +1,11 @@
-const botconfig = require("./botconfig.json");
 const Discord = require('discord.js');
 const Sequelize = require('sequelize');
+const token = require('./botconfig.json');
 
 const client = new Discord.Client();
 const PREFIX = '!';
+
+client.login(token);
 
 const sequelize = new Sequelize('database', 'user', 'password', {
 	host: 'localhost',
@@ -117,5 +119,3 @@ else if (command === 'removeship' && message.member.roles.cache.some(r => r.name
 		}
 	}
 });
-
-client.login('NzEyMDk1MjM4MTA5MjY1OTMw.XsMkkA.6vr85khG0y-DpL-AY7OldA-P_zM');
