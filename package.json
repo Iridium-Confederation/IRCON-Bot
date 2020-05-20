@@ -1,0 +1,17 @@
+{
+  "name": "ircon",
+  "version": "1.0.0",
+  "description": "Ship Database for the Iridium Confederation",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Brady Spencer",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^12.2.0",
+    "pg": "^8.2.1",
+    "sequelize": "^5.21.9",
+    "sqlite3": "^4.2.0"
+  }
+}

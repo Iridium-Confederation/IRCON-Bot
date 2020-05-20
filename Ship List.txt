@@ -1,0 +1,135 @@
+100i
+125a
+135c
+300i
+315p
+325a
+350r
+600i
+85X
+890 Jump
+A2 Hercules
+Apollo Medivac
+Apollo Triage
+Ares Inferno
+Ares Ion
+Arrow
+Aurora CL
+Aurora ES
+Aurora LN
+Aurora LX
+Aurora MR
+Avenger Stalker
+Avenger Titan
+Avenger Titan Renegade
+Avenger Warlock
+Ballista
+Blade
+Buccaneer
+C2 Hercules
+C8X Pisces Expedition
+Carrack
+Caterpillar
+Constellation Andromeda
+Constellation Aquila
+Constellation Phoenix
+Constellation Taurus
+Corsair
+Crucible
+Cutlass Black
+Cutlass Blue
+Cutlass Red
+Cyclone
+Cyclone-AA
+Cyclone-RC
+Cyclone-RN
+Cyclone-TR
+Defender
+Dragonfly
+Eclipse
+Endeavor
+F7C Hornet
+F7C Hornet Wildfire
+F7C-M Super Hornet
+F7C-R Hornet Tracker
+F7C-S Hornet Ghost
+Freelancer
+Freelancer DUR
+Freelancer MAX
+Freelancer MIS
+Genesis Starliner
+Gladiator
+Gladius
+Gladius Valiant
+Glaive
+Hammerhead
+Hawk
+Herald
+Hull A
+Hull B
+Hull C
+Hull D
+Hull E
+Hurricane
+Idris-K
+Idris-M
+Idris-P
+Javelin
+Khartu-al
+Kraken
+Kraken Privateer
+M2 Hercules
+M50
+Mantis
+Merchantman
+Mercury Star Runner
+MOLE
+MPUV-1C
+MPUV-1P
+Mustang Alpha
+Mustang Beta
+Mustang Delta
+Mustang Gamma
+Nautilus
+Nova
+Nox	Aopoa
+Orion
+P-52 Merlin
+P-72 Archimedes
+Pioneer
+Polaris
+Prospector
+Prowler
+PTV
+Ranger CV
+Ranger RC
+Ranger TR
+Razor
+Razor EX
+Razor LX
+Reclaimer
+Redeemer
+Reliant Kore
+Reliant Mako
+Reliant Sen
+Reliant Tana
+Retaliator
+Sabre
+Sabre Comet
+San'tok.yāi
+Scythe
+SRV
+Starfarer
+Starfarer Gemini
+Terrapin
+Ursa
+Valkyrie
+Vanguard Harbinger
+Vanguard Hoplite
+Vanguard Sentinel
+Vanguard Warden
+Vulcan
+Vulture
+X1
+X1 Force
+X1 Velocity
