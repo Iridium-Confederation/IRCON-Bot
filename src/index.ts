@@ -103,13 +103,13 @@ client.on('message', async (message: any) => {
     //Command to list all commands !help
     else if (command === "help" && hasRole(message, "Member")) {
       return message.channel.send(
-        "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: https://starcitizen.tools/List_of_Ship_and_Vehicle_Prices\n\nCommands:\n\n" +
-        "!add 'Ship Name' - Add a ship to your fleet.\n"+
-        "!remove 'Ship Name' - Remove a ship from your fleet.\n" +
-        "!search 'Ship Name' - Lists all owners of a certain ship.\n" +
-        "!inventory 'user' - List all ships a certain user owns. Leave blank for your own\n" +
-        "!fleetview 'user' - Generate a fleetview.json file for the org or a user.\n" +
-        "!removeall 'user#XXXX' - MANAGEMENT ONLY: Delete all data for a user."
+        "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: <https://starcitizen.tools/List_of_Ship_and_Vehicle_Prices>\n\n" +
+        "**!add ship** \n\t Add a ship to your fleet.\n"+
+        "**!remove ship** \n\t Remove a ship from your fleet.\n" +
+        "**!search ship** \n\t List all owners of a certain ship.\n" +
+        "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
+        "**!fleetview {user|-all}** \n\t Generate a fleetview.json file for the org or a user.\n" +
+        "**!removeall _user#xxxx_** \n\t MANAGEMENT ONLY: Delete all data for a user."
       );
     }
 
@@ -122,10 +122,19 @@ client.on('message', async (message: any) => {
 
     //Command to retrieve fleetview.json file !fleetview "user"
     else if (command === 'fleetview' && hasRole(message, "Member")) {
+      let username
+      if (commandArgs === "-org"){
+        username = "%"
+      }else if (Boolean(commandArgs)){
+        username = commandArgs + "#%"
+      }else{
+        username = message.author.tag
+      }
+
       const fleetview = await Ships.findAll({
         where: {
           username: {
-            [Sequelize.Op.like]: "#" + commandArgs + "#%"
+            [Sequelize.Op.like]: username
           }
         }
       }).map((t: any) => {
@@ -135,7 +144,7 @@ client.on('message', async (message: any) => {
       })
 
       if (fleetview.length === 0) {
-        message.channel.send(`No results found for user: ${commandArgs}`)
+        message.channel.send("No results found.")
       } else {
         message.channel.send(new Discord.MessageAttachment(Buffer.from(JSON.stringify(fleetview)), 'fleetview.json'))
       }
