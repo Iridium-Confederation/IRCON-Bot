@@ -1,0 +1,117 @@
+100i
+125a
+135c
+300i
+315p
+325a
+350r
+600i explorer
+600i touring
+85x
+890 jump
+apollo medivac
+apollo triage
+arrow
+aurora cl
+aurora es
+aurora ln
+aurora lx
+aurora mr
+avenger stalker
+avenger titan
+avenger warlock
+bengal-class carrier
+blade
+buccaneer
+c8x pisces expedition
+carrack
+caterpillar
+constellation andromeda
+constellation aquila
+constellation phoenix
+constellation taurus
+crucible
+cutlass black
+cutlass blue
+cutlass red
+defender
+dragonfly
+eclipse
+endeavor
+f7a hornet
+f7c hornet
+f7c-m super hornet
+f7c-r hornet tracker
+f7c-s hornet ghost
+f8 lightning
+freelancer
+freelancer dur
+freelancer max
+freelancer mis
+genesis
+gladiator
+gladius
+glaive
+hammerhead
+hawk
+herald
+hercules a2
+hercules c2
+hercules m2
+hull a
+hull b
+hull c
+hull d
+hull e
+hurricane
+idris-m
+idris-p
+javelin
+khartu-al
+m50
+merchantman
+mercury
+mpuv cargo
+mpuv personnel
+mustang alpha
+mustang beta
+mustang delta
+mustang gamma
+mustang omega
+nox
+orion
+p-52 merlin
+p-72 archimedes
+pegasus-class escort carrier
+pioneer
+polaris
+prospector
+prowler
+razor
+razor ex
+razor lx
+reclaimer
+redeemer
+reliant kore
+reliant mako
+reliant sen
+reliant tana
+retaliator base
+retaliator bomber
+sabre
+sabre raven
+san'tok.yāi
+scythe
+srv
+starfarer
+starfarer gemini
+terrapin
+vanguard harbinger
+vanguard hoplite
+vanguard sentinel
+vanguard warden
+vulcan
+vulture
+x1 base
+x1 force
+x1 velocity
