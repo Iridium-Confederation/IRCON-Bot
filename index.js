@@ -1,5 +1,6 @@
 const Discord = require('discord.js');
 const Sequelize = require('sequelize');
+const lineReader = require('line-reader');
 const token = require('./botconfig.json');
 
 const client = new Discord.Client();
@@ -48,21 +49,20 @@ if (command === 'addship' && hasRole(message, "Member")) {
     shipname: shipName,
     });
 
-    if (ship.shipname === "100i" || ship.shipname === "125a" || ship.shipname === "125a" || ship.shipname === "135c" || ship.shipname === "300i" || ship.shipname === "315p" || ship.shipname === "325a" || ship.shipname === "350r" || ship.shipname === "600i" || ship.shipname === "85x" || ship.shipname === "890 jump" || ship.shipname === "a2 hercules" || ship.shipname === "apollo medivac" || ship.shipname === "apollo triage" || ship.shipname === "ares inferno" || ship.shipname === "ares ion" || ship.shipname === "arrow" || ship.shipname === "aurora cl" || ship.shipname === "aurora es" || ship.shipname === "aurora ln" || ship.shipname === "aurora lx" || ship.shipname === "aurora mr" || ship.shipname === "avenger stalker" || ship.shipname === "avenger titan" || ship.shipname === "avenger titan renegade" || ship.shipname === "avenger warlock" || ship.shipname === "ballista" || ship.shipname === "blade" || ship.shipname === "buccaneer" || ship.shipname === "c2 hercules" || ship.shipname === "c8x pisces expedition" || ship.shipname === "carrack" || ship.shipname === "caterpillar" || ship.shipname === "constellation andromeda" || ship.shipname === "constellation aquila" || ship.shipname === "constellation phoenix" || ship.shipname === "constellation taurus" || ship.shipname === "corsair" || ship.shipname === "crucible" || ship.shipname === "cutlass black" || ship.shipname === "cutlass blue" || ship.shipname === "cutlass red" || ship.shipname === "cyclone" || ship.shipname === "cyclone-aa" || ship.shipname === "cyclone-rc" || ship.shipname === "cyclone-rn" || ship.shipname === "cyclone-tr" || ship.shipname === "defender" || ship.shipname === "dragonfly" || ship.shipname === "eclipse" || ship.shipname === "endeavor" || ship.shipname === "f7c hornet" || ship.shipname === "f7c hornet wildfire" || ship.shipname === "f7c-m super hornet" || ship.shipname === "f7c-r hornet tracker" || ship.shipname === "f7c-S hornet ghost" || ship.shipname === "freelancer" || ship.shipname === "freelancer dur" || ship.shipname === "freelancer max" || ship.shipname === "freelancer mis" || ship.shipname === "genesis starliner" || ship.shipname === "gladiator" || ship.shipname === "gladius" || ship.shipname === "gladius valiant" || ship.shipname === "glaive" || ship.shipname === "hammerhead" || ship.shipname === "hawk" || ship.shipname === "herald" || ship.shipname === "hull a" || ship.shipname === "hull b" || ship.shipname === "hull c" || ship.shipname === "hull d" || ship.shipname === "hull e" || ship.shipname === "hurricane" || ship.shipname === "idris-k" || ship.shipname === "idris-m" || ship.shipname === "idris-p" || ship.shipname === "javelin" || ship.shipname === "khartu-al" || ship.shipname === "kraken" || ship.shipname === "kraken privateer" || ship.shipname === "m2 hercules" || ship.shipname === "m50" || ship.shipname === "mantis" || ship.shipname === "merchantman" || ship.shipname === "mercury star runner" || ship.shipname === "mole" || ship.shipname === "mpuv-1c" || ship.shipname === "mpuv-1p" || ship.shipname === "mustang alpha" || ship.shipname === "mustang beta" || ship.shipname === "mustang delta" || ship.shipname === "mustang gamma" || ship.shipname === "nautilus" || ship.shipname === "nova" || ship.shipname === "nox	aopoa" || ship.shipname === "orion" || ship.shipname === "p-52 merlin" || ship.shipname === "p-72 archimedes" || ship.shipname === "pioneer" || ship.shipname === "polaris" || ship.shipname === "prospector" || ship.shipname === "prowler" || ship.shipname === "ptv" || ship.shipname === "ranger cv" || ship.shipname === "ranger rc" || ship.shipname === "ranger tr" || ship.shipname === "razor" || ship.shipname === "razor ex" || ship.shipname === "razor lx" || ship.shipname === "reclaimer" || ship.shipname === "redeemer" || ship.shipname === "reliant kore" || ship.shipname === "reliant mako" || ship.shipname === "reliant Sen" || ship.shipname === "reliant tana" || ship.shipname === "retaliator" || ship.shipname === "sabre" || ship.shipname === "sabre comet" || ship.shipname === "san'tok.yāi" || ship.shipname === "scythe" || ship.shipname === "srv" || ship.shipname === "starfarer" || ship.shipname === "starfarer gemini" || ship.shipname === "terrapin" || ship.shipname === "ursa" || ship.shipname === "valkyrie" || ship.shipname === "vanguard harbinger" || ship.shipname === "vanguard hoplite" || ship.shipname === "vanguard sentinel" || ship.shipname === "vanguard warden" || ship.shipname === "vulcan" || ship.shipname === "vulture" || ship.shipname === "x1" || ship.shipname === "x1 force" || ship.shipname === "x1 velocity")
-    {
-      return message.reply(`added the ${ship.shipname} to their fleet.`);
-    }
+	lineReader.eachLine('./shipList.txt', function(line) {
+		if (line.includes(shipName)) {
+			message.reply(`added the ${ship.shipname} to their fleet.`);
+			return false;
+		}
+	});
 
-    else {
-      await Ships.destroy({
-        where: {
-          shipname: shipName,
-          username: message.author.tag
-          }
-      });
-      return message.reply("This ship does not exist.");
-    }
-  }
+	Ships.destroy({
+		where: {
+			shipname: shipName,
+			username: message.author.tag
+			}
+		});
+	message.reply("this ship does not exist.");
 
 //Command to list your own ships !showships
 else if (command === 'showships' && hasRole(message, "Member")) {
