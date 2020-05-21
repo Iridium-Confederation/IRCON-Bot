@@ -2,9 +2,10 @@
   "name": "ircon",
   "version": "1.0.0",
   "description": "Ship Database for the Iridium Confederation",
-  "main": "index.js",
+  "main": "src/index.ts",
   "scripts": {
-    "start": "node index.js"
+    "build": "node_modules/.bin/tsc -p ./src",
+    "start": "node built/index.js"
   },
   "author": "Brady Spencer",
   "license": "ISC",
@@ -12,6 +13,12 @@
     "discord.js": "^12.2.0",
     "pg": "^8.2.1",
     "sequelize": "^5.21.9",
-    "sqlite3": "^4.2.0"
+    "sqlite3": "^4.2.0",
+    "line-reader": "0.4.0"
+  },
+  "devDependencies": {
+    "@types/validator": "13.0.0",
+    "ts-node": "^8.10.1",
+    "typescript": "^3.6.3"
   }
 }
