@@ -45,12 +45,12 @@ client.on('message', async (message: any) => {
       let shipFound = false
 
       lineReader.eachLine('./shipList.txt', function (line: any) {
-        if (line.includes(shipName)) {
+        if (line === shipName) {
           const ship = Ships.create({
             username: message.author.tag,
-            shipname: shipName,
+            shipname: line,
           });
-          message.reply(`added the ${shipName} to their fleet.`);
+          message.reply(`added the ${line} to their fleet.`);
           shipFound = true;
           return false;
         } else if (line.includes("stop")) {
