@@ -39,8 +39,8 @@ client.on('message', async (message: any) => {
     const command = input.shift();
     const commandArgs = input.join(' ');
 
-    //Command to add a ship to your fleet !addship "ship"
-    if (command === 'addship' && hasRole(message, "Member")) {
+    //Command to add a ship to your fleet !add "ship"
+    if (command === 'add' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
       let shipFound = false
 
@@ -59,8 +59,8 @@ client.on('message', async (message: any) => {
       });
     }
 
-    //Command to list your own ships !showships
-    else if (command === 'showships' && hasRole(message, "Member")) {
+    //Command to list your own ships !howned
+    else if (command === 'owned' && hasRole(message, "Member")) {
       const shipList = await Ships.findAll({
         where: {
           username: message.author.tag
@@ -70,16 +70,28 @@ client.on('message', async (message: any) => {
       return message.channel.send(`Ships you own: ${shipString}`);
     }
 
-    //Command to list what ships a certain owner has !whatships "owner"
-    else if (command === 'whatships' && hasRole(message, "Member")) {
-      const otherUser = commandArgs;
-      const shipList = await Ships.findAll({where: {username: {[Sequelize.Op.like]: "%" + otherUser + "#%"}}})
-      const userString = shipList.map((t: any) => t.shipname).join(', ') || `${otherUser} doesn't own anything.`;
-      return message.channel.send(`${otherUser} owns: ${userString}`);
+    //Command to list what ships a certain owner has !inventory "owner"
+    else if (command === 'inventory' && hasRole(message, "Member")) {
+      const user = commandArgs;
+
+      if (user === "") {
+        const shipList = await Ships.findAll({
+          where: {
+            username: message.author.tag
+          }
+        });
+        const shipString = shipList.map((t: any) => t.shipname).join(', ') || 'No ships owned.';
+        return message.channel.send(`Ships you own: ${shipString}`);
+      }
+      else {
+        const shipList = await Ships.findAll({where: {username: {[Sequelize.Op.like]: user + "#%"}}})
+        const userString = shipList.map((t: any) => t.shipname).join(', ') || `${user} doesn't own anything.`;
+        return message.channel.send(`${user} owns: ${userString}`);
+      }
     }
 
-    //Command to list owners of specific ships !showowners "ship"
-    else if (command === 'showowners' && hasRole(message, "Member")) {
+    //Command to list owners of specific ships !search "ship"
+    else if (command === 'search' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
       const ownerList = await Ships.findAll({
         where: {
@@ -94,11 +106,11 @@ client.on('message', async (message: any) => {
     else if (command === "help" && hasRole(message, "Member")) {
       return message.channel.send(
         "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: https://starcitizen.tools/List_of_Ship_and_Vehicle_Prices\n\nCommands:\n\n" +
-        "!addship 'Ship Name' - Add a ship to your fleet.\n!removeship 'Ship Name' - Remove a ship from your fleet.\n" +
-        "!showships - Lists all your current ships.\n" +
-        "!showowners 'Ship Name' - Lists all owners of a certain ship.\n" +
-        "!whatships 'user#XXXX' - List all ships a certain user owns.\n!" +
-        "!fleetview 'user' - Generate a fleetview.json file for the org or a user." +
+        "!add 'Ship Name' - Add a ship to your fleet.\n"+
+        "!remove 'Ship Name' - Remove a ship from your fleet.\n" +
+        "!search 'Ship Name' - Lists all owners of a certain ship.\n" +
+        "!inventory 'user' - List all ships a certain user owns. Leave blank for your own\n" +
+        "!fleetview 'user' - Generate a fleetview.json file for the org or a user.\n" +
         "!removeall 'user#XXXX' - MANAGEMENT ONLY: Delete all data for a user."
       );
     }
@@ -115,7 +127,7 @@ client.on('message', async (message: any) => {
       const fleetview = await Ships.findAll({
         where: {
           username: {
-            [Sequelize.Op.like]: "%" + commandArgs + "#%"
+            [Sequelize.Op.like]: commandArgs + "#%"
           }
         }
       }).map((t: any) => {
@@ -131,8 +143,8 @@ client.on('message', async (message: any) => {
       }
     }
 
-    //Command to remove ship !removeship "ship"
-    else if (command === 'removeship' && hasRole(message, "Member")) {
+    //Command to remove ship !remove "ship"
+    else if (command === 'remove' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
       const rowCount = await Ships.destroy({
         where: {
