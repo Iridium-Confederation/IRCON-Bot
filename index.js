@@ -41,28 +41,21 @@ client.on('message', async message => {
 
 //Command to add a ship to your fleet !addship "ship"
 if (command === 'addship' && hasRole(message, "Member")) {
-  const splitArgs = commandArgs.split(' ');
-  const shipName = splitArgs.join(' ').toLowerCase();
-
-  const ship = await Ships.create({
-    username: message.author.tag,
-    shipname: shipName,
-    });
+  const shipName = commandArgs.toLowerCase();
 
 	lineReader.eachLine('./shipList.txt', function(line) {
 		if (line.includes(shipName)) {
-			message.reply(`added the ${ship.shipname} to their fleet.`);
+			const ship = Ships.create({
+				username: message.author.tag,
+				shipname: shipName,
+				});
+			message.reply(`added the ${shipName} to their fleet.`);
+			shipFound = true;
 			return false;
 		}
 	});
-
-	Ships.destroy({
-		where: {
-			shipname: shipName,
-			username: message.author.tag
-			}
-		});
-	message.reply("this ship does not exist.");
+}
+	//message.reply("this ship does not exist.");
 
 //Command to list your own ships !showships
 else if (command === 'showships' && hasRole(message, "Member")) {
@@ -78,7 +71,7 @@ else if (command === 'showships' && hasRole(message, "Member")) {
 //Command to list what ships a certain owner has !whatships "owner"
 else if (command === 'whatships' && hasRole(message, "Member")) {
   const otherUser = commandArgs;
-  const shipList = await Ships.findAll({where: {username: otherUser}})
+  const shipList = await Ships.findAll({where: {username: {[Sequelize.Op.like]: "%" + otherUser + "#%"}}})
   const userString = shipList.map(t => t.shipname).join(', ') || `${otherUser} doesn't own anything.`;
   return message.channel.send(`${otherUser} owns: ${userString}`);
 }
@@ -110,13 +103,13 @@ else if (command === "help" && hasRole(message, "Member")) {
 }
 
 //Command to remove all ships of a user !removeall "user#XXXX"
-
 else if (command === "removeall" && hasRole(message, "Management")) {
   const deletedUser = commandArgs;
 	await Ships.destroy({where: {username: deletedUser}});
 	return message.channel.send(`User ${deletedUser} has had his fleet deleted.`);
 }
 
+//Command to retrieve fleetview.json file !fleetview "user"
 else if (command === 'fleetview' && hasRole(message, "Member")) {
     const fleetview = await Ships.findAll({
         where: {
