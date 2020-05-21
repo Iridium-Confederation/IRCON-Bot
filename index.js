@@ -53,9 +53,11 @@ if (command === 'addship' && hasRole(message, "Member")) {
 			shipFound = true;
 			return false;
 		}
+		else if (line.includes("stop")){
+			message.reply("this ship does not exist.");
+		}
 	});
 }
-	//message.reply("this ship does not exist.");
 
 //Command to list your own ships !showships
 else if (command === 'showships' && hasRole(message, "Member")) {
