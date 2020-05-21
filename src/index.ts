@@ -42,7 +42,6 @@ client.on('message', async (message: any) => {
     //Command to add a ship to your fleet !add "ship"
     if (command === 'add' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
-      let shipFound = false
 
       lineReader.eachLine('./shipList.txt', function (line: any) {
         if (line === shipName) {
@@ -51,9 +50,8 @@ client.on('message', async (message: any) => {
             shipname: line,
           });
           message.reply(`added the ${line} to their fleet.`);
-          shipFound = true;
           return false;
-        } else if (line.includes("stop")) {
+        } else if (line === "stop") {
           message.reply("this ship does not exist.");
         }
       });
