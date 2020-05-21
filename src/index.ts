@@ -103,12 +103,12 @@ client.on('message', async (message: any) => {
     //Command to list all commands !help
     else if (command === "help" && hasRole(message, "Member")) {
       return message.channel.send(
-        "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: <https://starcitizen.tools/List_of_Ship_and_Vehicle_Prices>\n\n" +
+        "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: <https://starship42.com/fleetview/>\n\n" +
         "**!add ship** \n\t Add a ship to your fleet.\n"+
         "**!remove ship** \n\t Remove a ship from your fleet.\n" +
         "**!search ship** \n\t List all owners of a certain ship.\n" +
         "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
-        "**!fleetview {user|-all}** \n\t Generate a fleetview.json file for the org or a user.\n" +
+        "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
         "**!removeall _user#xxxx_** \n\t MANAGEMENT ONLY: Delete all data for a user."
       );
     }
