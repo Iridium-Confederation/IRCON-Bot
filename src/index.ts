@@ -125,7 +125,7 @@ client.on('message', async (message: any) => {
       const fleetview = await Ships.findAll({
         where: {
           username: {
-            [Sequelize.Op.like]: commandArgs + "#%"
+            [Sequelize.Op.like]: "#" + commandArgs + "#%"
           }
         }
       }).map((t: any) => {
