@@ -184,36 +184,40 @@ client.on('message', async (message: any) => {
           });
 
           res.on('end', function(){
-            let response = JSON.parse(body);
-            let successCount = 0
-            let failureCount = 0
-            let failures = new Set()
+            Promise.resolve(body)
+              .then(JSON.parse)
+              .catch(e => message.channel.send("Error: Failed to parse attachment."))
+              .then(response => {
+                let successCount = 0
+                let failureCount = 0
+                let failures = new Set()
 
-            const format = response.find((item:any) => item.type) ?  "fleetview" : "hangar-explorer"
+                const format = response.find((item:any) => item.type) ?  "fleetview" : "hangar-explorer"
 
-            response
-              .filter((item:any) => format === "fleetview" && item.type && item.type === "ship" || format === "hangar-explorer")
-              .map((item:any) => {
-              let isSuccess = addShip(item.name.toLowerCase(), message)
+                response
+                  .filter((item:any) => format === "fleetview" && item.type && item.type === "ship" || format === "hangar-explorer")
+                  .map((item:any) => {
+                    let isSuccess = addShip(item.name.toLowerCase(), message)
 
-              if (!isSuccess){
-                failures.add(item.name)
-                failureCount++
-              }else{
-                successCount++
-              }
-            })
+                    if (!isSuccess){
+                      failures.add(item.name)
+                      failureCount++
+                    }else{
+                      successCount++
+                    }
+                  })
 
-            if (successCount){
-              message.channel.send(`Successfully imported **${successCount}** items.`)
-            }
-            if (failureCount){
-              message.channel.send(`Failed to import **${failureCount}** items.`)
+                if (successCount){
+                  message.channel.send(`Successfully imported **${successCount}** items.`)
+                }
+                if (failureCount){
+                  message.channel.send(`Failed to import **${failureCount}** items.`)
 
-              if (commandArgs === "-verbose"){
-                message.channel.send(Array.from(failures).join(', '))
-              }
-            }
+                  if (commandArgs === "-verbose"){
+                    message.channel.send(Array.from(failures).join(', '))
+                  }
+                }
+              })
           });
         })
       }else{
