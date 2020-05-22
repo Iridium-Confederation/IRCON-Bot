@@ -10,11 +10,12 @@
   "author": "Brady Spencer",
   "license": "ISC",
   "dependencies": {
+    "@types/bluebird": "^3.5.32",
+    "bluebird": "^3.7.2",
     "discord.js": "^12.2.0",
     "pg": "^8.2.1",
     "sequelize": "^5.21.9",
-    "sqlite3": "^4.2.0",
-    "line-reader": "0.4.0"
+    "sqlite3": "^4.2.0"
   },
   "devDependencies": {
     "@types/validator": "13.0.0",
