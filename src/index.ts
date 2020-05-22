@@ -29,7 +29,13 @@ client.once('ready', () => {
 });
 
 function hasRole(message: any, role: any) {
-  return message.member.roles.cache.some((r: any) => r.name === role);
+  const hasRole = client
+    .guilds
+    .cache
+    .map((g:any) => g.roles.cache.find((r:any) => r.name === role))
+    .find((r:any) => r.members.find((member:any) => member.id === message.author.id))
+
+  return hasRole != null
 }
 
 //check for command
