@@ -233,7 +233,7 @@ client.on('message', async (message: any) => {
         "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
         "**!import** [-verbose] \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n"
 
-      if (hasRole(message, "Management")){
+      if (hasRole(message, "Member")){
         msg += "**!removeall _user#xxxx_** \n\t (Management): Delete all data for a user.\n"
       }
 
