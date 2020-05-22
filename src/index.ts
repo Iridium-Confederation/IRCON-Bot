@@ -1,7 +1,9 @@
 const Discord = require('discord.js');
 const Sequelize = require('sequelize');
-const lineReader = require('line-reader');
 const token = require('../botconfig.json');
+const fs = require('fs');
+const readline = require('readline');
+const http = require('https');
 
 const client = new Discord.Client();
 const PREFIX = '!';
@@ -24,6 +26,19 @@ const Ships = sequelize.define('ships', {
   },
 );
 
+
+const allowedShips = new Set()
+
+const readInterface = readline.createInterface({
+  input: fs.createReadStream('./shipList.txt'),
+  output: process.stdout,
+  console: false
+});
+
+readInterface.on('line', function(line: any) {
+  allowedShips.add(line)
+});
+
 client.once('ready', () => {
   Ships.sync();
 });
@@ -38,6 +53,18 @@ function hasRole(message: any, role: any) {
   return hasRole != null
 }
 
+function addShip(shipName: string, message: any) {
+  if (allowedShips.has(shipName)) {
+    Ships.create({
+      username: message.author.tag,
+      shipname: shipName,
+    });
+    return true
+  }else{
+    return false
+  }
+}
+
 //check for command
 client.on('message', async (message: any) => {
   if (message.content.startsWith(PREFIX)) {
@@ -48,19 +75,11 @@ client.on('message', async (message: any) => {
     //Command to add a ship to your fleet !add "ship"
     if (command === 'add' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
-
-      lineReader.eachLine('./shipList.txt', function (line: any) {
-        if (line === shipName) {
-          const ship = Ships.create({
-            username: message.author.tag,
-            shipname: line,
-          });
-          message.reply(`added the ${line} to their fleet.`);
-          return false;
-        } else if (line === "stop") {
-          message.reply("this ship does not exist.");
-        }
-      });
+      if (addShip(shipName, message)){
+        message.reply(`added **${shipName}** to your fleet.`);
+      }else{
+        message.reply(`unknown ship **${shipName}**`)
+      }
     }
 
     //Command to list your own ships !howned
@@ -167,6 +186,55 @@ client.on('message', async (message: any) => {
       });
       if (!rowCount) return message.reply('You do not own that ship.');
       return message.reply('Ship removed from your fleet.');
+    }
+
+    else if (command === 'import' && hasRole(message, "Member")) {
+      const attachment = message.attachments.find((a:any) => a)
+      if (attachment){
+        http.get(attachment.url, function(res:any){
+          let body = '';
+
+          res.on('data', function(chunk:any){
+            body += chunk;
+          });
+
+          res.on('end', function(){
+            let response = JSON.parse(body);
+            let successCount = 0
+            let failureCount = 0
+            let failures = new Set()
+
+            const format = response.find((item:any) => item.type) ?  "fleetview" : "hangar-explorer"
+
+            response
+              .filter((item:any) => format === "fleetview" && item.type && item.type === "ship" || format === "hangar-explorer")
+              .map((item:any) => {
+              let isSuccess = addShip(item.name.toLowerCase(), message)
+
+              if (!isSuccess){
+                failures.add(item.name)
+                failureCount++
+              }else{
+                successCount++
+              }
+            })
+
+            if (successCount){
+              message.channel.send(`Successfully imported **${successCount}** items.`)
+            }
+            if (failureCount){
+              message.channel.send(`Failed to import **${failureCount}** items.`)
+
+              if (commandArgs === "-verbose"){
+                message.channel.send(Array.from(failures).join(', '))
+              }
+            }
+          });
+        })
+      }else{
+        message.channel.send("Attach a fleetview or hangar explorer json file with a description of **!import**");
+      }
+
     }
   }
 });
