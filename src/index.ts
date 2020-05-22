@@ -82,15 +82,17 @@ client.on('message', async (message: any) => {
       }
     }
 
-    //Command to list your own ships !howned
-    else if (command === 'owned' && hasRole(message, "Member")) {
-      const shipList = await Ships.findAll({
+    //Command to remove ship !remove "ship"
+    else if (command === 'remove' && hasRole(message, "Member")) {
+      const shipName = commandArgs.toLowerCase();
+      const rowCount = await Ships.destroy({
         where: {
+          shipname: shipName,
           username: message.author.tag
         }
       });
-      const shipString = shipList.map((t: any) => t.shipname).join(', ') || 'No ships owned.';
-      return message.channel.send(`Ships you own: ${shipString}`);
+      if (!rowCount) return message.reply('You do not own that ship.');
+      return message.reply('Ship removed from your fleet.');
     }
 
     //Command to list what ships a certain owner has !inventory "owner"
@@ -123,20 +125,6 @@ client.on('message', async (message: any) => {
       });
       const ownerString = ownerList.map((t: any) => t.username).join(', ') || `No ${shipName}s are owned.`;
       return message.channel.send(`These people own a ${shipName}: ${ownerString}`);
-    }
-
-    //Command to list all commands !help
-    else if (command === "help" && hasRole(message, "Member")) {
-      return message.channel.send(
-        "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: <https://starship42.com/fleetview/>\n\n" +
-        "**!add ship** \n\t Add a ship to your fleet.\n"+
-        "**!remove ship** \n\t Remove a ship from your fleet.\n" +
-        "**!search ship** \n\t List all owners of a certain ship.\n" +
-        "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
-        "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
-        "**!import** \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n" +
-        "**!removeall _user#xxxx_** \n\t MANAGEMENT ONLY: Delete all data for a user."
-      );
     }
 
     //Command to remove all ships of a user !removeall "user#XXXX"
@@ -176,19 +164,7 @@ client.on('message', async (message: any) => {
       }
     }
 
-    //Command to remove ship !remove "ship"
-    else if (command === 'remove' && hasRole(message, "Member")) {
-      const shipName = commandArgs.toLowerCase();
-      const rowCount = await Ships.destroy({
-        where: {
-          shipname: shipName,
-          username: message.author.tag
-        }
-      });
-      if (!rowCount) return message.reply('You do not own that ship.');
-      return message.reply('Ship removed from your fleet.');
-    }
-
+    //Command to import from file !import
     else if (command === 'import' && hasRole(message, "Member")) {
       const attachment = message.attachments.find((a:any) => a)
       if (attachment){
@@ -236,6 +212,20 @@ client.on('message', async (message: any) => {
         message.channel.send("Attach a fleetview or hangar explorer json file with a description of **!import**");
       }
 
+    }
+
+    //Command to list all commands !help
+    else if (command === "help" && hasRole(message, "Member")) {
+      return message.channel.send(
+        "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: <https://starship42.com/fleetview/>\n\n" +
+        "**!add ship** \n\t Add a ship to your fleet.\n"+
+        "**!remove ship** \n\t Remove a ship from your fleet.\n" +
+        "**!search ship** \n\t List all owners of a certain ship.\n" +
+        "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
+        "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
+        "**!import** \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n" +
+        "**!removeall _user#xxxx_** \n\t MANAGEMENT ONLY: Delete all data for a user."
+      );
     }
   }
 });
