@@ -120,7 +120,7 @@ client.on('message', async (message: any) => {
       const shipName = commandArgs.toLowerCase();
       const ownerList = await Ships.findAll({
         where: {
-          shipname: shipName
+          shipname: {[Sequelize.Op.like]: "%" + shipName + "%"}
         }
       });
       const ownerString = ownerList.map((t: any) => t.username).join(', ') || `No ${shipName}s are owned.`;
