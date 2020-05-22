@@ -223,7 +223,7 @@ client.on('message', async (message: any) => {
         "**!search ship** \n\t List all owners of a certain ship.\n" +
         "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
         "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
-        "**!import** \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n" +
+        "**!import** [-verbose] \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n" +
         "**!removeall _user#xxxx_** \n\t MANAGEMENT ONLY: Delete all data for a user."
       );
     }
