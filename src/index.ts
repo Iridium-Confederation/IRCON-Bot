@@ -4,6 +4,7 @@ const token = require('../botconfig.json');
 const fs = require('fs');
 const readline = require('readline');
 const http = require('https');
+const { exec } = require('child_process');
 
 const client = new Discord.Client();
 const PREFIX = '!';
@@ -48,6 +49,7 @@ function hasRole(message: any, role: any) {
     .guilds
     .cache
     .map((g:any) => g.roles.cache.find((r:any) => r.name === role))
+    .filter((g:any) => g)
     .find((r:any) => r.members.find((member:any) => member.id === message.author.id))
 
   return hasRole != null
@@ -164,6 +166,11 @@ client.on('message', async (message: any) => {
       }
     }
 
+    else if (command === 'update' && hasRole(message, "Developer")) {
+      console.log("Starting update...")
+      exec('./update.sh')
+    }
+
     //Command to import from file !import
     else if (command === 'import' && hasRole(message, "Member")) {
       const attachment = message.attachments.find((a:any) => a)
@@ -216,16 +223,24 @@ client.on('message', async (message: any) => {
 
     //Command to list all commands !help
     else if (command === "help" && hasRole(message, "Member")) {
-      return message.channel.send(
+      let msg =
         "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: <https://starship42.com/fleetview/>\n\n" +
         "**!add ship** \n\t Add a ship to your fleet.\n"+
         "**!remove ship** \n\t Remove a ship from your fleet.\n" +
         "**!search ship** \n\t List all owners of a certain ship.\n" +
         "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
         "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
-        "**!import** [-verbose] \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n" +
-        "**!removeall _user#xxxx_** \n\t MANAGEMENT ONLY: Delete all data for a user."
-      );
+        "**!import** [-verbose] \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n"
+
+      if (hasRole(message, "Management")){
+        msg += "**!removeall _user#xxxx_** \n\t (Management): Delete all data for a user.\n"
+      }
+
+      if (hasRole(message, "Developer")){
+        msg += "**!update** \n\t (Developer): Update to the latest version of the bot.\n"
+      }
+
+      return message.channel.send(msg);
     }
   }
 });
