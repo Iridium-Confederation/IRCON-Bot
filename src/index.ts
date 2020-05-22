@@ -233,11 +233,11 @@ client.on('message', async (message: any) => {
         "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
         "**!import** [-verbose] \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n"
 
-      if (hasRole(message, "Member")){
+      if (hasRole(message, "Management")){
         msg += "**!removeall _user#xxxx_** \n\t (Management): Delete all data for a user.\n"
       }
 
-      if (hasRole(message, "Developer")){
+      if (hasRole(message, "Member")){
         msg += "**!update** \n\t (Developer): Update to the latest version of the bot.\n"
       }
 
