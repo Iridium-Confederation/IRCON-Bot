@@ -168,7 +168,7 @@ client.on('message', async (message: any) => {
 
     else if (command === 'update' && hasRole(message, "Developer")) {
       console.log("Starting update...")
-      message.channel.send("Starting update...")
+      message.channel.send("Starting update. Bot will go offline and restart.")
       exec('./update.sh')
     }
 
