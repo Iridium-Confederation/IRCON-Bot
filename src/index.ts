@@ -168,7 +168,7 @@ client.on('message', async (message: any) => {
 
     else if (command === 'update' && hasRole(message, "Member")) {
       console.log("Starting update...")
-      message.channel.send("Starting update. Bot will go offline and restart.")
+      message.channel.send("Starting update. Party time.")
       exec('./update.sh')
     }
 
