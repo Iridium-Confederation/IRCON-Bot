@@ -166,7 +166,7 @@ client.on('message', async (message: any) => {
       }
     }
 
-    else if (command === 'update' && hasRole(message, "Member")) {
+    else if (command === 'update' && hasRole(message, "Database developer")) {
       console.log("Starting update...")
       message.channel.send("Starting update. Party time.")
       exec('./update.sh')
@@ -197,10 +197,10 @@ client.on('message', async (message: any) => {
                 response
                   .filter((item:any) => format === "fleetview" && item.type && item.type === "ship" || format === "hangar-explorer")
                   .map((item:any) => {
-                    let isSuccess = addShip(item.name.toLowerCase(), message)
+                    let isSuccess = addShip(item.name.toLowerCase().trim(), message)
 
                     if (!isSuccess){
-                      failures.add(item.name)
+                      failures.add(item.name.trim())
                       failureCount++
                     }else{
                       successCount++
@@ -213,9 +213,7 @@ client.on('message', async (message: any) => {
                 if (failureCount){
                   message.channel.send(`Failed to import **${failureCount}** items.`)
 
-                  if (commandArgs === "-verbose"){
-                    message.channel.send(Array.from(failures).join(', '))
-                  }
+                  message.channel.send(Array.from(failures).join(', '))
                 }
               })
           });
@@ -235,13 +233,13 @@ client.on('message', async (message: any) => {
         "**!search ship** \n\t List all owners of a certain ship.\n" +
         "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
         "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
-        "**!import** [-verbose] \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n"
+        "**!import** \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n"
 
       if (hasRole(message, "Management")){
         msg += "**!removeall _user#xxxx_** \n\t (Management): Delete all data for a user.\n"
       }
 
-      if (hasRole(message, "Member")){
+      if (hasRole(message, "Database developer")){
         msg += "**!update** \n\t (Developer): Update to the latest version of the bot.\n"
       }
 
