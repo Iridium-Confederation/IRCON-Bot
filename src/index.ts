@@ -76,6 +76,14 @@ function replyTo(message: any, contents: string) {
   }
 }
 
+function formatShipName(shipName: string) {
+  return shipName
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');;
+}
+
 //check for command
 client.on('message', async (message: any) => {
   if (message.content.startsWith(PREFIX)) {
@@ -108,22 +116,25 @@ client.on('message', async (message: any) => {
 
     //Command to list what ships a certain owner has !inventory "owner"
     else if (command === 'inventory' && hasRole(message, "Member")) {
-      const user = commandArgs;
+      const user = commandArgs === "" ? message.author.tag : commandArgs
 
-      if (user === "") {
-        const shipList = await Ships.findAll({
-          where: {
-            username: message.author.tag
-          }
-        });
-        const shipString = shipList.map((t: any) => t.shipname).join(', ') || 'No ships owned.';
-        return replyTo(message, `Ships you own: ${shipString}`);
-      }
-      else {
-        const shipList = await Ships.findAll({where: {username: {[Sequelize.Op.like]: user + "#%"}}})
-        const userString = shipList.map((t: any) => t.shipname).join(', ') || `${user} doesn't own anything.`;
-        return replyTo(message, `${user} owns: ${userString}`);
-      }
+      const matches = await Ships.findAll({
+        where: {
+          username: user
+        }
+      });
+      const reply =
+        `${user.split("#")[0]}'s inventory:\n` +
+        Object.entries(_.groupBy(matches, 'shipname'))
+        .map((group:any) => {
+          const shipName = group[0]
+          const shipCount = group[1].length
+
+          return `**${(formatShipName(shipName))}**` + (shipCount > 1 ? " x " + shipCount : "")
+        })
+        .sort()
+        .join("\n")
+      return replyTo(message, reply);
     }
 
     //Command to list owners of specific ships !search "ship"
@@ -141,7 +152,7 @@ client.on('message', async (message: any) => {
           const users = group[1]
           const userCount = _.groupBy(users, 'username')
 
-          return `**${shipName}**` + ": " +
+          return `**${formatShipName(shipName)}**` + ": " +
             Object.entries(userCount)
               .map((user:any) => {
                 const username = user[0].split("#")[0]
