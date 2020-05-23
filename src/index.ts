@@ -161,6 +161,7 @@ client.on('message', async (message: any) => {
               })
               .join(', ')
         })
+        .sort()
         .join("\n")
 
       return replyTo(message, reply);
