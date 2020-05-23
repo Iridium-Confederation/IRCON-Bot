@@ -228,6 +228,7 @@ client.on('message', async (message: any) => {
     else if (command === "help" && hasRole(message, "Member")) {
       let msg =
         "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: <https://starship42.com/fleetview/>\n\n" +
+        "User guide: https://discordapp.com/channels/226021087996149772/712454452380172328/713552865431650345 \n\n" +
         "**!add ship** \n\t Add a ship to your fleet.\n"+
         "**!remove ship** \n\t Remove a ship from your fleet.\n" +
         "**!search ship** \n\t List all owners of a certain ship.\n" +
