@@ -194,7 +194,8 @@ client.on('message', async (message) => {
         }
       }).map((t:Ships) => {
         return {
-          name: t.shipname
+          name: t.shipname,
+          shipname: t.username.split('#')[0]
         }
       })
 
