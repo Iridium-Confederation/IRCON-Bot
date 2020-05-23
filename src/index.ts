@@ -166,7 +166,7 @@ client.on('message', async (message: any) => {
         .sort()
         .join("\n")
 
-      return replyTo(message, reply);
+      return replyTo(message, reply === "" ? "No owners found." : reply);
     }
 
     //Command to remove all ships of a user !removeall "user#XXXX"
@@ -262,7 +262,16 @@ client.on('message', async (message: any) => {
       }else{
         replyTo(message, "Attach a fleetview or hangar explorer json file with a description of **!import**");
       }
+    }
 
+    else if (command === "stats" && hasRole(message, "Member")){
+      const ships = await Ships.findAll();
+      const totalShips = await Ships.count();
+      const totalOwners = Object.entries(_.groupBy(ships, 'username')).length
+
+      let reply = `We have **${totalShips}** ships contributed by **${totalOwners}** owners.`
+
+      replyTo(message, reply)
     }
 
     //Command to list all commands !help
@@ -275,7 +284,8 @@ client.on('message', async (message: any) => {
         "**!search ship** \n\t List all owners of a certain ship.\n" +
         "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
         "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
-        "**!import** \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n"
+        "**!import** \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n" +
+        "**!stats** \n\t Stats about the overall fleet.\n"
 
       if (hasRole(message, "Management")){
         msg += "**!removeall _user#xxxx_** \n\t (Management): Delete all data for a user.\n"
