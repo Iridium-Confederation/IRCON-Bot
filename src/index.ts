@@ -284,7 +284,7 @@ client.on('message', async (message) => {
         "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
         "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
         "**!import** \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n" +
-        "**!stats** \n\t Stats about the overall fleet.\n"
+        "**!stats** \n\t Org fleet statistics.\n"
 
       if (hasRole(message, "Management")){
         msg += "**!removeall _user#xxxx_** \n\t (Management): Delete all data for a user.\n"
