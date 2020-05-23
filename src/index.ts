@@ -120,9 +120,11 @@ client.on('message', async (message: any) => {
 
       const matches = await Ships.findAll({
         where: {
-          username: user
-        }
-      });
+          username: {
+            [Sequelize.Op.like]: user + (commandArgs === "" ? "" : '#%')
+          }
+      }});
+
       const reply =
         `${user.split("#")[0]}'s inventory:\n` +
         Object.entries(_.groupBy(matches, 'shipname'))
