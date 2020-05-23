@@ -68,6 +68,14 @@ function addShip(shipName: string, message: any) {
   }
 }
 
+function replyTo(message: any, contents: string) {
+  if (contents.length >= 2000){
+    message.channel.send("Reply too long. Try a smaller query.")
+  }else{
+    return message.channel.send(contents);
+  }
+}
+
 //check for command
 client.on('message', async (message: any) => {
   if (message.content.startsWith(PREFIX)) {
@@ -109,12 +117,12 @@ client.on('message', async (message: any) => {
           }
         });
         const shipString = shipList.map((t: any) => t.shipname).join(', ') || 'No ships owned.';
-        return message.channel.send(`Ships you own: ${shipString}`);
+        return replyTo(message, `Ships you own: ${shipString}`);
       }
       else {
         const shipList = await Ships.findAll({where: {username: {[Sequelize.Op.like]: user + "#%"}}})
         const userString = shipList.map((t: any) => t.shipname).join(', ') || `${user} doesn't own anything.`;
-        return message.channel.send(`${user} owns: ${userString}`);
+        return replyTo(message, `${user} owns: ${userString}`);
       }
     }
 
@@ -144,14 +152,14 @@ client.on('message', async (message: any) => {
         })
         .join("\n")
 
-      return message.channel.send(reply);
+      return replyTo(message, reply);
     }
 
     //Command to remove all ships of a user !removeall "user#XXXX"
     else if (command === "removeall" && hasRole(message, "Management")) {
       const deletedUser = commandArgs;
       await Ships.destroy({where: {username: deletedUser}});
-      return message.channel.send(`User ${deletedUser} has had his fleet deleted.`);
+      return replyTo(message, `User ${deletedUser} has had his fleet deleted.`);
     }
 
     //Command to retrieve fleetview.json file !fleetview "user"
@@ -178,15 +186,15 @@ client.on('message', async (message: any) => {
       })
 
       if (fleetview.length === 0) {
-        message.channel.send("No results found.")
+        replyTo(message, "No results found.")
       } else {
-        message.channel.send(new Discord.MessageAttachment(Buffer.from(JSON.stringify(fleetview)), 'fleetview.json'))
+        replyTo(message, new Discord.MessageAttachment(Buffer.from(JSON.stringify(fleetview)), 'fleetview.json'))
       }
     }
 
     else if (command === 'update' && hasRole(message, "Database developer")) {
       console.log("Starting update...")
-      message.channel.send("Starting update. Party time.")
+      replyTo(message, "Starting update. Party time.")
       exec('./update.sh')
     }
 
@@ -204,7 +212,7 @@ client.on('message', async (message: any) => {
           res.on('end', function(){
             Promise.resolve(body)
               .then(JSON.parse)
-              .catch(e => message.channel.send("Error: Failed to parse attachment."))
+              .catch(e => replyTo(message, "Error: Failed to parse attachment."))
               .then(response => {
                 let successCount = 0
                 let failureCount = 0
@@ -226,18 +234,18 @@ client.on('message', async (message: any) => {
                   })
 
                 if (successCount){
-                  message.channel.send(`Successfully imported **${successCount}** items.`)
+                  replyTo(message, `Successfully imported **${successCount}** items.`)
                 }
                 if (failureCount){
-                  message.channel.send(`Failed to import **${failureCount}** items.`)
+                  replyTo(message, `Failed to import **${failureCount}** items.`)
 
-                  message.channel.send(Array.from(failures).join(', '))
+                  replyTo(message, Array.from(failures).join(', '))
                 }
               })
           });
         })
       }else{
-        message.channel.send("Attach a fleetview or hangar explorer json file with a description of **!import**");
+        replyTo(message, "Attach a fleetview or hangar explorer json file with a description of **!import**");
       }
 
     }
@@ -262,7 +270,7 @@ client.on('message', async (message: any) => {
         msg += "**!update** \n\t (Developer): Update to the latest version of the bot.\n"
       }
 
-      return message.channel.send(msg);
+      return replyTo(message, msg);
     }
   }
 });
