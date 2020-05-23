@@ -200,6 +200,7 @@ client.on('message', async (message: any) => {
       if (fleetview.length === 0) {
         replyTo(message, "No results found.")
       } else {
+        replyTo(message,"Click <https://www.starship42.com/fleetview/> -> Choose File -> Upload this attachment.\n")
         replyTo(message, new Discord.MessageAttachment(Buffer.from(JSON.stringify(fleetview)), 'fleetview.json'))
       }
     }
