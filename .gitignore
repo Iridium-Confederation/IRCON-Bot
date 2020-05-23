@@ -3,3 +3,5 @@ botconfig.json
 .idea/
 built/
 *.sqlite
+.vscode/
+shipList.txt

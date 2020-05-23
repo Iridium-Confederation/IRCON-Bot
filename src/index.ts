@@ -1,10 +1,11 @@
-const Discord = require('discord.js');
-const Sequelize = require('sequelize');
 const token = require('../botconfig.json');
-const fs = require('fs');
-const readline = require('readline');
-const http = require('https');
-const _ = require('lodash');
+import * as Discord from 'discord.js'
+import {Op} from 'sequelize';
+import {Sequelize, Table, Column, Model, HasMany} from 'sequelize-typescript';
+import fs from 'fs';
+import readline from 'readline';
+import http from 'https';
+import _ from 'lodash';
 const { exec } = require('child_process');
 
 const client = new Discord.Client();
@@ -12,32 +13,31 @@ const PREFIX = '!';
 
 client.login(token);
 
+@Table
+class Ships extends Model<Ships> {
+  @Column
+  username!: string;
+ 
+  @Column
+  shipname!: string;
+}
+
 const sequelize = new Sequelize('database', 'user', 'password', {
   host: 'localhost',
   dialect: 'sqlite',
   logging: false,
   storage: 'database.sqlite',
+  models: [Ships]
 });
-
-//owned ship database
-const Ships = sequelize.define('ships', {
-    username: {
-      type: Sequelize.STRING,
-    },
-    shipname: Sequelize.TEXT,
-  },
-);
-
+ 
 
 const allowedShips = new Set()
 
-const readInterface = readline.createInterface({
-  input: fs.createReadStream('./shipList.txt'),
-  output: process.stdout,
-  console: false
+const readInterface = readline.createInterface(
+  {input: fs.createReadStream('./shipList.txt')
 });
 
-readInterface.on('line', function(line: any) {
+readInterface.on('line', function(line: string) {
   allowedShips.add(line)
 });
 
@@ -45,18 +45,17 @@ client.once('ready', () => {
   Ships.sync();
 });
 
-function hasRole(message: any, role: any) {
+function hasRole(message: Discord.Message, role: string) {
   const hasRole = client
     .guilds
     .cache
-    .map((g:any) => g.roles.cache.find((r:any) => r.name === role))
-    .filter((g:any) => g)
-    .find((r:any) => r.members.find((member:any) => member.id === message.author.id))
+    .map(g => g.roles.cache.find(r => r.name === role))
+    .find(r => r && r.members.find(member => member.id === message.author.id))
 
   return hasRole != null
 }
 
-function addShip(shipName: string, message: any) {
+function addShip(shipName: string, message: Discord.Message) {
   if (allowedShips.has(shipName)) {
     Ships.create({
       username: message.author.tag,
@@ -68,11 +67,11 @@ function addShip(shipName: string, message: any) {
   }
 }
 
-function replyTo(message: any, contents: string) {
+function replyTo(message: Discord.Message, ...contents:Parameters<Discord.TextChannel['send']>) {
   if (contents.length >= 2000){
     message.channel.send("Reply too long. Try a smaller query.")
   }else{
-    return message.channel.send(contents);
+    return message.channel.send(...contents);
   }
 }
 
@@ -85,7 +84,7 @@ function formatShipName(shipName: string) {
 }
 
 //check for command
-client.on('message', async (message: any) => {
+client.on('message', async (message) => {
   if (message.content.startsWith(PREFIX)) {
     const input = message.content.slice(PREFIX.length).split(' ');
     const command = input.shift();
@@ -121,14 +120,14 @@ client.on('message', async (message: any) => {
       const matches = await Ships.findAll({
         where: {
           username: {
-            [Sequelize.Op.like]: user + (commandArgs === "" ? "" : '#%')
+            [Op.like]: user + (commandArgs === "" ? "" : '#%')
           }
       }});
 
       const reply =
         `${user.split("#")[0]}'s inventory:\n` +
         Object.entries(_.groupBy(matches, 'shipname'))
-        .map((group:any) => {
+        .map(group => {
           const shipName = group[0]
           const shipCount = group[1].length
 
@@ -144,7 +143,7 @@ client.on('message', async (message: any) => {
       const shipName = commandArgs.toLowerCase();
       const matches = await Ships.findAll({
         where: {
-          shipname: {[Sequelize.Op.like]: "%" + shipName + "%"}
+          shipname: {[Op.like]: "%" + shipName + "%"}
         }
       });
 
@@ -156,7 +155,7 @@ client.on('message', async (message: any) => {
 
           return `**${formatShipName(shipName)}**` + ": " +
             Object.entries(userCount)
-              .map((user:any) => {
+              .map(user => {
                 const username = user[0].split("#")[0]
                 const count = user[1].length
                 return username + (count > 1 ? " x " + user[1].length : "")
@@ -190,10 +189,10 @@ client.on('message', async (message: any) => {
       const fleetview = await Ships.findAll({
         where: {
           username: {
-            [Sequelize.Op.like]: username
+            [Op.like]: username
           }
         }
-      }).map((t: any) => {
+      }).map((t:Ships) => {
         return {
           name: t.shipname
         }
@@ -217,10 +216,10 @@ client.on('message', async (message: any) => {
     else if (command === 'import' && hasRole(message, "Member")) {
       const attachment = message.attachments.find((a:any) => a)
       if (attachment){
-        http.get(attachment.url, function(res:any){
+        http.get(attachment.url, function(res){
           let body = '';
 
-          res.on('data', function(chunk:any){
+          res.on('data', function(chunk){
             body += chunk;
           });
 
@@ -233,7 +232,7 @@ client.on('message', async (message: any) => {
                 let failureCount = 0
                 let failures = new Set()
 
-                const format = response.find((item:any) => item.type) ?  "fleetview" : "hangar-explorer"
+                const format = response.find((item:any)  => item.type) ?  "fleetview" : "hangar-explorer"
 
                 response
                   .filter((item:any) => format === "fleetview" && item.type && item.type === "ship" || format === "hangar-explorer")
