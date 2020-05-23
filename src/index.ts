@@ -80,7 +80,7 @@ client.on('message', async (message: any) => {
       if (addShip(shipName, message)){
         message.reply(`added **${shipName}** to your fleet.`);
       }else{
-        message.reply(`unknown ship **${shipName}**`)
+        message.reply(`Unknown ship.`)
       }
     }
 
