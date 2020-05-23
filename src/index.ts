@@ -4,6 +4,7 @@ const token = require('../botconfig.json');
 const fs = require('fs');
 const readline = require('readline');
 const http = require('https');
+const _ = require('lodash');
 const { exec } = require('child_process');
 
 const client = new Discord.Client();
@@ -120,13 +121,30 @@ client.on('message', async (message: any) => {
     //Command to list owners of specific ships !search "ship"
     else if (command === 'search' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
-      const ownerList = await Ships.findAll({
+      const matches = await Ships.findAll({
         where: {
           shipname: {[Sequelize.Op.like]: "%" + shipName + "%"}
         }
       });
-      const ownerString = ownerList.map((t: any) => t.username).join(', ') || `No ${shipName}s are owned.`;
-      return message.channel.send(`These people own a ${shipName}: ${ownerString}`);
+
+      const reply = Object.entries(_.groupBy(matches, 'shipname'))
+        .map(group => {
+          const shipName = group[0]
+          const users = group[1]
+          const userCount = _.groupBy(users, 'username')
+
+          return `**${shipName}**` + ": " +
+            Object.entries(userCount)
+              .map((user:any) => {
+                const username = user[0].split("#")[0]
+                const count = user[1].length
+                return username + (count > 1 ? " x " + user[1].length : "")
+              })
+              .join(', ')
+        })
+        .join("\n")
+
+      return message.channel.send(reply);
     }
 
     //Command to remove all ships of a user !removeall "user#XXXX"

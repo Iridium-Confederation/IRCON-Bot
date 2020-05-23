@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "discord.js": "^12.2.0",
+    "lodash": "^4.17.15",
     "pg": "^8.2.1",
     "sequelize": "^5.21.9",
     "sqlite3": "^4.2.0"
