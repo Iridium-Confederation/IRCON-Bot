@@ -284,7 +284,7 @@ client.on('message', async (message: Discord.Message) => {
         "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: <https://starship42.com/fleetview/>\n\n" +
         "User guide: https://discordapp.com/channels/226021087996149772/712454452380172328/713552865431650345 \n\n" +
         "**!add ship** \n\t Add a ship to your fleet.\n"+
-        "**!remove {ship|-all}}** \n\t Remove ships from your fleet.\n" +
+        "**!remove {ship|-all}** \n\t Remove ships from your fleet.\n" +
         "**!search ship** \n\t List all owners of a certain ship.\n" +
         "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
         "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
