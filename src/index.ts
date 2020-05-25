@@ -1,17 +1,26 @@
 const token = require('../botconfig.json');
 import * as Discord from 'discord.js'
 import {Op} from 'sequelize';
-import {Sequelize, Table, Column, Model, HasMany} from 'sequelize-typescript';
+import {Sequelize, Table, Column, Model} from 'sequelize-typescript';
 import fs from 'fs';
 import readline from 'readline';
-import http from 'https';
 import _ from 'lodash';
 const { exec } = require('child_process');
+import fetch from 'node-fetch';
 
 const client = new Discord.Client();
 const PREFIX = '!';
 
-client.login(token);
+
+if (!client.login(token)){
+  console.log("Failed to login.")
+}
+
+interface Blah {
+  name: string
+
+  type: string
+}
 
 @Table
 class Ships extends Model<Ships> {
@@ -21,16 +30,13 @@ class Ships extends Model<Ships> {
   @Column
   shipname!: string;
 }
-
-const sequelize = new Sequelize('database', 'user', 'password', {
+new Sequelize('database', 'user', 'password', {
   host: 'localhost',
   dialect: 'sqlite',
   logging: false,
   storage: 'database.sqlite',
   models: [Ships]
 });
- 
-
 const allowedShips = new Set()
 
 const readInterface = readline.createInterface(
@@ -69,7 +75,7 @@ function addShip(shipName: string, message: Discord.Message) {
 
 function replyTo(message: Discord.Message, ...contents:Parameters<Discord.TextChannel['send']>) {
   if (contents.length >= 2000){
-    message.channel.send("Reply too long. Try a smaller query.")
+    return message.channel.send("Reply too long. Try a smaller query.")
   }else{
     return message.channel.send(...contents);
   }
@@ -80,11 +86,11 @@ function formatShipName(shipName: string) {
     .toLowerCase()
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');;
+    .join(' ');
 }
 
 //check for command
-client.on('message', async (message) => {
+client.on('message', async (message: Discord.Message) => {
   if (message.content.startsWith(PREFIX)) {
     const input = message.content.slice(PREFIX.length).split(' ');
     const command = input.shift();
@@ -94,9 +100,9 @@ client.on('message', async (message) => {
     if (command === 'add' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
       if (addShip(shipName, message)){
-        message.reply(`added **${shipName}** to your fleet.`);
+        await message.reply(`added **${shipName}** to your fleet.`);
       }else{
-        message.reply(`Unknown ship.`)
+        await message.reply(`Unknown ship.`)
       }
     }
 
@@ -200,67 +206,63 @@ client.on('message', async (message) => {
       })
 
       if (fleetview.length === 0) {
-        replyTo(message, "No results found.")
+        await replyTo(message, "No results found.")
       } else {
-        replyTo(message,"Click <https://www.starship42.com/fleetview/> -> Choose File -> Upload this attachment.\n")
-        replyTo(message, new Discord.MessageAttachment(Buffer.from(JSON.stringify(fleetview)), 'fleetview.json'))
+        await replyTo(message, "Click <https://www.starship42.com/fleetview/> -> Choose File -> Upload this attachment.\n")
+        await replyTo(message, new Discord.MessageAttachment(Buffer.from(JSON.stringify(fleetview)), 'fleetview.json'))
       }
     }
 
     else if (command === 'update' && hasRole(message, "Database developer")) {
       console.log("Starting update...")
-      replyTo(message, "Starting update. Party time.")
+      await replyTo(message, "Starting update. Party time.");
       exec('./update.sh')
     }
 
     //Command to import from file !import
     else if (command === 'import' && hasRole(message, "Member")) {
-      const attachment = message.attachments.find((a:any) => a)
+      const attachment = message.attachments.find(() => true)
+
       if (attachment){
-        http.get(attachment.url, function(res){
-          let body = '';
+        let body:Blah[]
 
-          res.on('data', function(chunk){
-            body += chunk;
-          });
+        try {
+          const response = await fetch(attachment.url);
+          body = await response.json();
+        }catch(e){
+          await replyTo(message, "Error: Failed to parse attachment.\n " + e)
+          return;
+        }
 
-          res.on('end', function(){
-            Promise.resolve(body)
-              .then(JSON.parse)
-              .catch(e => replyTo(message, "Error: Failed to parse attachment."))
-              .then(response => {
-                let successCount = 0
-                let failureCount = 0
-                let failures = new Set()
+        let successCount = 0
+        let failureCount = 0
+        let failures = new Set()
 
-                const format = response.find((item:any)  => item.type) ?  "fleetview" : "hangar-explorer"
+        const format = body.find(item => item.type) ?  "fleetview" : "hangar-explorer"
 
-                response
-                  .filter((item:any) => format === "fleetview" && item.type && item.type === "ship" || format === "hangar-explorer")
-                  .map((item:any) => {
-                    let isSuccess = addShip(item.name.toLowerCase().trim(), message)
+        body
+          .filter((item:any) => format === "fleetview" && item.type && item.type === "ship" || format === "hangar-explorer")
+          .map((item:any) => {
+            let isSuccess = addShip(item.name.toLowerCase().trim(), message)
 
-                    if (!isSuccess){
-                      failures.add(item.name.trim())
-                      failureCount++
-                    }else{
-                      successCount++
-                    }
-                  })
+            if (!isSuccess){
+              failures.add(item.name.trim())
+              failureCount++
+            }else{
+              successCount++
+            }
+          })
 
-                if (successCount){
-                  replyTo(message, `Successfully imported **${successCount}** items.`)
-                }
-                if (failureCount){
-                  replyTo(message, `Failed to import **${failureCount}** items.`)
+        if (successCount){
+          await replyTo(message, `Successfully imported **${successCount}** items.`)
+        }
+        if (failureCount){
+          await replyTo(message, `Failed to import **${failureCount}** items.`)
 
-                  replyTo(message, Array.from(failures).join(', '))
-                }
-              })
-          });
-        })
+          await replyTo(message, Array.from(failures).join(', '))
+        }
       }else{
-        replyTo(message, "Attach a fleetview or hangar explorer json file with a description of **!import**");
+        await replyTo(message, "Attach a fleetview or hangar explorer json file with a description of **!import**");
       }
     }
 
@@ -271,7 +273,7 @@ client.on('message', async (message) => {
 
       let reply = `We have **${totalShips}** ships contributed by **${totalOwners}** owners.`
 
-      replyTo(message, reply)
+      await replyTo(message, reply)
     }
 
     //Command to list all commands !help
