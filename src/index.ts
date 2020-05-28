@@ -19,6 +19,7 @@ interface FleetViewShip {
   rsiSlug: string
   slug: string
   type: string
+  brochure: string
 }
 
 @Table
@@ -299,6 +300,15 @@ client.on('message', async (message: Discord.Message) => {
         }
       }else{
         await replyTo(message, "Attach a fleetview or hangar explorer json file with a description of **!import**");
+      }
+    }
+
+    else if (command === "brochure" && hasRole(message, "Member")){
+      const ship = findShip(commandArgs)
+      if (ship?.brochure){
+        await replyTo(message, `${ship.name}: <${ship.brochure}>`)
+      }else{
+        await replyTo(message, "No brochure found.")
       }
     }
 
