@@ -120,11 +120,6 @@ function replyTo(message: Discord.Message, ...contents:Parameters<Discord.TextCh
   }
 }
 
-function formatShipName(shipName: string) {
-  let match = findShip(shipName)
-  return match ? match.rsiName : "..."
-}
-
 //check for command
 client.on('message', async (message: Discord.Message) => {
   if (message.content.startsWith(PREFIX)) {
@@ -173,10 +168,11 @@ client.on('message', async (message: Discord.Message) => {
         `${user.split("#")[0]}'s inventory:\n` +
         Object.entries(_.groupBy(matches, 'shipname'))
         .map(group => {
-          const shipName = group[0]
+          const shipNameDb = group[0]
           const shipCount = group[1].length
+          const ship = findShip(shipNameDb)
 
-          return `**${(formatShipName(shipName))}**` + (shipCount > 1 ? " x " + shipCount : "")
+          return `**${ship?.rsiName}**` + (shipCount > 1 ? " x " + shipCount : "")
         })
         .sort()
         .join("\n")
@@ -194,11 +190,12 @@ client.on('message', async (message: Discord.Message) => {
 
       const reply = Object.entries(_.groupBy(matches, 'shipname'))
         .map(group => {
-          const shipName = group[0]
+          const shipNameDb = group[0]
           const users = group[1]
           const userCount = _.groupBy(users, 'username')
+          const ship = findShip(shipNameDb)
 
-          return `**${formatShipName(shipName)}**` + ": " +
+          return `**${ship?.rsiName}**` + ": " +
             Object.entries(userCount)
               .map(user => {
                 const username = user[0].split("#")[0]
