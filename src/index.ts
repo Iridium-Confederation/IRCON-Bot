@@ -1,5 +1,3 @@
-import {deserialize} from "v8";
-
 const token = require('../botconfig.json');
 import * as Discord from 'discord.js'
 import {Op} from 'sequelize';
