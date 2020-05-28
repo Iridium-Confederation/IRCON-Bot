@@ -1,3 +1,5 @@
+import {deserialize} from "v8";
+
 const token = require('../botconfig.json');
 import * as Discord from 'discord.js'
 import {Op} from 'sequelize';
@@ -15,7 +17,11 @@ if (!client.login(token)){
 
 interface FleetViewShip {
   name: string
+  description: string
+  size: string
   rsiName: string
+  focus: string
+  classification: string
   rsiSlug: string
   slug: string
   type: string
@@ -312,13 +318,25 @@ client.on('message', async (message: Discord.Message) => {
     }
 
     else if (command === "stats" && hasRole(message, "Member")){
-      const ships = await Ships.findAll();
-      const totalShips = await Ships.count();
-      const totalOwners = Object.entries(_.groupBy(ships, 'username')).length
+      if (commandArgs){
+        const ship = findShip(commandArgs)
+        if (ship){
+          let msg = ""
+          msg += `The **${ship.rsiName}** is a **${ship.size}** vessel${ship.classification ? `, with a **${ship.classification.toLowerCase()}** specialization` : ""}. `
+          msg += ship?.description + "\n\n"
+          msg += ship.brochure ? "A brochure is available here for your viewing pleasure: " + ship.brochure : ""
 
-      let reply = `We have **${totalShips}** ships contributed by **${totalOwners}** owners.`
-
-      await replyTo(message, reply)
+          return replyTo(message, msg)
+        }else{
+          return replyTo(message, "Ship not found.")
+        }
+      }else{
+        const ships = await Ships.findAll();
+        const totalShips = await Ships.count();
+        const totalOwners = Object.entries(_.groupBy(ships, 'username')).length
+        let reply = `We have **${totalShips}** ships contributed by **${totalOwners}** owners.`
+        await replyTo(message, reply)
+      }
     }
 
     //Command to list all commands !help
