@@ -166,7 +166,7 @@ client.on('message', async (message: Discord.Message) => {
 
       const reply =
         `${user.split("#")[0]}'s inventory:\n` +
-        Object.entries(_.groupBy(matches, 'shipname'))
+        Object.entries(_.groupBy(matches, ship => findShip(ship.shipname)?.rsiName))
         .map(group => {
           const shipNameDb = group[0]
           const shipCount = group[1].length
@@ -188,7 +188,7 @@ client.on('message', async (message: Discord.Message) => {
         }
       });
 
-      const reply = Object.entries(_.groupBy(matches, 'shipname'))
+      const reply = Object.entries(_.groupBy(matches, ship => findShip(ship.shipname)?.rsiName))
         .map(group => {
           const shipNameDb = group[0]
           const users = group[1]
