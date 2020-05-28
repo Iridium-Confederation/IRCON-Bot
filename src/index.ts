@@ -2,8 +2,6 @@ const token = require('../botconfig.json');
 import * as Discord from 'discord.js'
 import {Op} from 'sequelize';
 import {Sequelize, Table, Column, Model} from 'sequelize-typescript';
-import fs from 'fs';
-import readline from 'readline';
 import _ from 'lodash';
 const { exec } = require('child_process');
 import fetch from 'node-fetch';
@@ -11,14 +9,15 @@ import fetch from 'node-fetch';
 const client = new Discord.Client();
 const PREFIX = '!';
 
-
 if (!client.login(token)){
   console.log("Failed to login.")
 }
 
-interface Blah {
+interface FleetViewShip {
   name: string
-
+  rsiName: string
+  rsiSlug: string
+  slug: string
   type: string
 }
 
@@ -30,6 +29,7 @@ class Ships extends Model<Ships> {
   @Column
   shipname!: string;
 }
+
 new Sequelize('database', 'user', 'password', {
   host: 'localhost',
   dialect: 'sqlite',
@@ -37,15 +37,20 @@ new Sequelize('database', 'user', 'password', {
   storage: 'database.sqlite',
   models: [Ships]
 });
-const allowedShips = new Set()
 
-const readInterface = readline.createInterface(
-  {input: fs.createReadStream('./shipList.txt')
-});
+let allowedShips:FleetViewShip[]
 
-readInterface.on('line', function(line: string) {
-  allowedShips.add(line)
-});
+(async () => {
+  try {
+    const p1 = await fetch("https://api.fleetyards.net/v1/models?perPage=200&page=1");
+    const p2 = await fetch("https://api.fleetyards.net/v1/models?perPage=200&page=2");
+
+    allowedShips = (await p1.json()).concat(await p2.json())
+  }catch(e){
+    console.log("Failed to fetch ship list.")
+    process.exit(1);
+  }
+})();
 
 client.once('ready', () => {
   Ships.sync();
@@ -61,15 +66,46 @@ function hasRole(message: Discord.Message, role: string) {
   return hasRole != null
 }
 
+function sanitizeSlug(shipName: string) {
+  return shipName.replace(/[.']/g, "-");
+}
+
+function findShip(shipName: string) : FleetViewShip|undefined {
+  const success = allowedShips
+    .find(s =>
+      s.name.toLowerCase() === shipName ||
+      s.rsiName.toLowerCase() === shipName ||
+      s.rsiSlug.toLowerCase() === sanitizeSlug(shipName) ||
+      s.slug.toLowerCase() === sanitizeSlug(shipName) ||
+      s.rsiName.toLowerCase().replace(/-/gi, " ") === shipName
+    );
+
+  if (success){
+    return success
+  }else if (/\s/g.test(shipName)){
+    return (
+      findShip(shipName.substring(0, shipName.lastIndexOf(" "))) ||
+      findShip(shipName.substring(shipName.indexOf(" ") + 1)) ||
+      findShip(shipName.replace(/\s/g, "")) ||
+      shipName.split(" ").map(t => findShip(t)).find(t => t)
+
+  )
+  }else{
+    const re = new RegExp(shipName, 'i')
+    return allowedShips.find(s => s.name.match(re))
+  }
+}
+
 function addShip(shipName: string, message: Discord.Message) {
-  if (allowedShips.has(shipName)) {
+  const foundShip = findShip(shipName)
+  if (foundShip) {
     Ships.create({
       username: message.author.tag,
-      shipname: shipName,
+      shipname: foundShip.name,
     });
-    return true
+    return foundShip
   }else{
-    return false
+    return
   }
 }
 
@@ -82,11 +118,8 @@ function replyTo(message: Discord.Message, ...contents:Parameters<Discord.TextCh
 }
 
 function formatShipName(shipName: string) {
-  return shipName
-    .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  let match = findShip(shipName)
+  return match ? match.name : "..."
 }
 
 //check for command
@@ -99,8 +132,9 @@ client.on('message', async (message: Discord.Message) => {
     //Command to add a ship to your fleet !add "ship"
     if (command === 'add' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
-      if (addShip(shipName, message)){
-        await message.reply(`added **${shipName}** to your fleet.`);
+      const addedShip = addShip(shipName, message)
+      if (addedShip){
+        await message.reply(`added **${addedShip.name}** to your fleet.`);
       }else{
         await message.reply(`Unknown ship.`)
       }
@@ -226,7 +260,7 @@ client.on('message', async (message: Discord.Message) => {
       const attachment = message.attachments.find(() => true)
 
       if (attachment){
-        let body:Blah[]
+        let body:FleetViewShip[]
 
         try {
           const response = await fetch(attachment.url);
