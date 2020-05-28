@@ -72,6 +72,8 @@ function sanitizeSlug(shipName: string) {
 }
 
 function findShip(shipName: string) : FleetViewShip|undefined {
+  shipName = shipName?.toLowerCase()
+
   const success = allowedShips
     .find(s =>
       s.name.toLowerCase() === shipName ||
@@ -120,7 +122,7 @@ function replyTo(message: Discord.Message, ...contents:Parameters<Discord.TextCh
 
 function formatShipName(shipName: string) {
   let match = findShip(shipName)
-  return match ? match.name : "..."
+  return match ? match.rsiName : "..."
 }
 
 //check for command
