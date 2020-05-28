@@ -14,6 +14,7 @@ if (!client.login(token)){
 }
 
 interface FleetViewShip {
+  storeUrl: string;
   name: string
   description: string
   size: string
@@ -23,6 +24,10 @@ interface FleetViewShip {
   rsiSlug: string
   slug: string
   type: string
+  price: number
+  pledgePrice: number
+  lastPledgePrice: number
+  onSale: boolean
   brochure: string
 }
 
@@ -321,8 +326,13 @@ client.on('message', async (message: Discord.Message) => {
         if (ship){
           let msg = ""
           msg += `The **${ship.rsiName}** is a **${ship.size}** vessel${ship.classification ? `, with a **${ship.classification.toLowerCase()}** specialization` : ""}. `
-          msg += ship?.description + "\n\n"
-          msg += ship.brochure ? "A brochure is available here for your viewing pleasure: " + ship.brochure : ""
+          msg += ship.description ? ship.description : ""
+          msg += "\n\n"
+          msg += ship.brochure ? `Brochure: ${ship.brochure}\n` : ""
+          msg += ship.price ? `Available for in-game purchase for **${ship.price}** UEC.\n` : ""
+          msg += `RSI Link: <${ship.storeUrl}>\n`
+          msg += !ship.onSale ? `Not currently available for pledge. Last known pledge cost **$${ship.lastPledgePrice}**.\n` : ""
+          msg += ship.onSale ? `Currently available for pledge for **$${ship.pledgePrice}**. Pledging is completely optional and exists so you can support the game. All ships will be available for in-game purchase with UEC.\n` : ""
 
           return replyTo(message, msg)
         }else{
