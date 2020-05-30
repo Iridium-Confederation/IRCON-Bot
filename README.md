@@ -1,6 +1,7 @@
 # IRCON-Bot
 
 ## Install
+Edit ircon-bot.service and change WorkingDirectory to reflect the directory you cloned the bot
 ```
 useradd --system --no-create-home discord
 visudo
