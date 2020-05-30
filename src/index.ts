@@ -96,8 +96,8 @@ function findShip(shipName: string) : FleetViewShip|undefined {
     return success
   }else if (/\s/g.test(shipName)){
     return (
-      findShip(shipName.substring(0, shipName.lastIndexOf(" "))) ||
       findShip(shipName.substring(shipName.indexOf(" ") + 1)) ||
+      findShip(shipName.substring(0, shipName.lastIndexOf(" "))) ||
       findShip(shipName.replace(/\s/g, "")) ||
       shipName.split(" ").map(t => findShip(t)).find(t => t)
 
@@ -129,6 +129,23 @@ function replyTo(message: Discord.Message, ...contents:Parameters<Discord.TextCh
   }
 }
 
+async function deleteShips(shipName: string, owner: string, deleteAll: boolean) {
+  const searchedShip = findShip(shipName)
+  let count = 0
+
+  const matches = await Ships.findAll({
+    where: {username: owner}
+  })
+  matches.find((m: Ships) => {
+    if (deleteAll || (searchedShip && searchedShip.slug == findShip(m.shipname)?.slug)){
+      m.destroy()
+      count++
+    }
+  })
+
+  return count
+}
+
 //check for command
 client.on('message', async (message: Discord.Message) => {
   if (message.content.startsWith(PREFIX)) {
@@ -150,16 +167,9 @@ client.on('message', async (message: Discord.Message) => {
     //Command to remove ship !remove "ship"
     else if (command === 'remove' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
-      const rowCount = await Ships.destroy({
-        where: {
-          shipname: {
-            [Op.like]: commandArgs === "-all" ? "%" : shipName
-          },
-          username: message.author.tag
-        },
-        limit: commandArgs === "-all" ? Number.MAX_SAFE_INTEGER : 1
-      });
-      return message.reply(rowCount ? `${rowCount} ship${rowCount > 1 ? "s" : ""} removed from your fleet.` : 'You do not own that ship.');
+
+      const rowCount = await deleteShips(shipName, message.author.tag, commandArgs === "-all");
+      return message.reply(rowCount ? `${rowCount} ship${rowCount > 1 ? "s" : ""} removed from your fleet.` : 'You do not own any ships.');
     }
 
     //Command to list what ships a certain owner has !inventory "owner"
