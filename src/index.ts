@@ -131,19 +131,21 @@ function replyTo(message: Discord.Message, ...contents:Parameters<Discord.TextCh
 
 async function deleteShips(shipName: string, owner: string, deleteAll: boolean) {
   const searchedShip = findShip(shipName)
-  let count = 0
+  const removed = new Set<FleetViewShip>()
 
   const matches = await Ships.findAll({
     where: {username: owner}
   })
   matches.find((m: Ships) => {
-    if (deleteAll || (searchedShip && searchedShip.slug == findShip(m.shipname)?.slug)){
+    const dbShip = findShip(m.shipname);
+
+    if (dbShip && (deleteAll || (searchedShip && searchedShip.slug === dbShip.slug))){
       m.destroy()
-      count++
+      removed.add(dbShip)
     }
   })
 
-  return count
+  return removed
 }
 
 //check for command
@@ -156,6 +158,11 @@ client.on('message', async (message: Discord.Message) => {
     //Command to add a ship to your fleet !add "ship"
     if (command === 'add' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
+
+      if (shipName.length <= 1) {
+        return message.reply('Could you be more specific?')
+      }
+
       const addedShip = addShip(shipName, message)
       if (addedShip){
         await message.reply(`added **${addedShip.name}** to your fleet.`);
@@ -167,9 +174,18 @@ client.on('message', async (message: Discord.Message) => {
     //Command to remove ship !remove "ship"
     else if (command === 'remove' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
+      const removedShips = await deleteShips(shipName, message.author.tag, commandArgs === "-all");
+      const rowCount = removedShips.size
+      if (commandArgs === '-all')
+      {
+        return message.reply(  `${rowCount} ship${rowCount > 1 ? "s" : ""} removed from your fleet.`);
+      }else if (shipName.length <= 1) {
+        return message.reply('Could you be more specific?')
+      }else{
+        const deletedShip = removedShips.values().next().value
+        return message.reply(deletedShip ? `Removed **${deletedShip.rsiName}** from your fleet.` : 'You do not own that ship.')
+      }
 
-      const rowCount = await deleteShips(shipName, message.author.tag, commandArgs === "-all");
-      return message.reply(rowCount ? `${rowCount} ship${rowCount > 1 ? "s" : ""} removed from your fleet.` : 'You do not own any ships.');
     }
 
     //Command to list what ships a certain owner has !inventory "owner"
