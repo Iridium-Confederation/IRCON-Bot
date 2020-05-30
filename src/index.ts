@@ -367,8 +367,12 @@ client.on('message', async (message: Discord.Message) => {
       }else{
         const ships = await Ships.findAll();
         const totalShips = await Ships.count();
-        const totalOwners = Object.entries(_.groupBy(ships, 'username')).length
-        let reply = `We have **${totalShips}** ships contributed by **${totalOwners}** owners.`
+        const owners = Object.entries(_.groupBy(ships, 'username'))
+        let reply = `We have **${totalShips}** ships contributed by **${owners.length}** owners.\n\n`
+        reply += "**Contributors**: " + owners
+          .map(o => o[0].split("#")[0])
+          .sort()
+          .join(", ")
         await replyTo(message, reply)
       }
     }
@@ -384,7 +388,7 @@ client.on('message', async (message: Discord.Message) => {
         "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
         "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
         "**!import** \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n" +
-        "**!stats** [ship] \n\t Display org fleet statistics or show detailed info about a single ship.\n"
+        "**!stats** ship \n\t Display org fleet statistics or show detailed info about a single ship.\n"
 
       if (hasRole(message, "Management")){
         msg += "**!removeall _user#xxxx_** \n\t (Management): Delete all data for a user.\n"
