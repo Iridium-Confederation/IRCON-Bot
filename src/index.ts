@@ -122,7 +122,7 @@ function addShip(shipName: string, message: Discord.Message) {
 }
 
 function replyTo(message: Discord.Message, ...contents:Parameters<Discord.TextChannel['send']>) {
-  if (contents.length >= 2000){
+  if (contents[0].length >= 2000){
     return message.channel.send("Reply too long. Try a smaller query.")
   }else{
     return message.channel.send(...contents);
