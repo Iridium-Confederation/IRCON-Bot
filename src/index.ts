@@ -98,12 +98,12 @@ function findShip(shipName: string) : FleetViewShip|undefined {
     return (
       findShip(shipName.substring(shipName.indexOf(" ") + 1)) ||
       findShip(shipName.substring(0, shipName.lastIndexOf(" "))) ||
-      findShip(shipName.replace(/\s/g, "")) ||
+      // findShip(shipName.replace(/\s/g, "")) ||
       shipName.split(" ").map(t => findShip(t)).find(t => t)
 
   )
   }else{
-    const re = new RegExp(shipName, 'i')
+    const re = new RegExp(`\\b${shipName}\\b`, 'i')
     return allowedShips.find(s => s.name.match(re))
   }
 }
