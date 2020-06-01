@@ -81,8 +81,14 @@ function sanitizeSlug(shipName: string) {
 }
 
 function findShip(shipName: string) : FleetViewShip|undefined {
-  shipName = shipName?.toLowerCase()
 
+  // A list of tokens people shouldn't be able to search on. This helps keep searches accurate.
+  const blacklist = ["edition"]
+  if (blacklist.find(item => item === shipName)){
+    return;
+  }
+
+  shipName = shipName?.toLowerCase()
   const success = allowedShips
     .find(s =>
       s.name.toLowerCase() === shipName ||
