@@ -255,7 +255,7 @@ client.on('message', async (message: Discord.Message) => {
     else if (command === "removeall" && hasRole(message, "Management")) {
       const deletedUser = commandArgs;
       await Ships.destroy({where: {username: deletedUser}});
-      return replyTo(message, `User ${deletedUser} has had his fleet deleted.`);
+      return replyTo(message, `User ${deletedUser} fleet is deleted.`);
     }
 
     //Command to retrieve fleetview.json file !fleetview "user"
