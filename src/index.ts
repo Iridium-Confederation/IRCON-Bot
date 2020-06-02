@@ -388,13 +388,13 @@ client.on('message', async (message: Discord.Message) => {
       let msg =
         "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: <https://starship42.com/fleetview/>\n\n" +
         "User guide: https://discordapp.com/channels/226021087996149772/712454452380172328/713552865431650345 \n\n" +
-        "**!add ship** \n\t Add a ship to your fleet.\n"+
+        "**!add <ship>** \n\t Add a ship to your fleet.\n"+
         "**!remove {ship|-all}** \n\t Remove ships from your fleet.\n" +
-        "**!search ship** \n\t List all owners of a certain ship.\n" +
+        "**!search <ship>** \n\t List all owners of a certain ship.\n" +
         "**!inventory [username]** \n\t List all ships a certain user owns. Leave blank for your own\n" +
         "**!fleetview {user|-org}** \n\t Generate a fleetview.json file for the org or a user.\n" +
         "**!import** \n\t Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.\n" +
-        "**!stats** ship \n\t Display org fleet statistics or show detailed info about a single ship.\n"
+        "**!stats [ship]** \n\t Display org fleet statistics or show detailed info about a single ship.\n"
 
       if (hasRole(message, "Management")){
         msg += "**!removeall _user#xxxx_** \n\t (Management): Delete all data for a user.\n"
