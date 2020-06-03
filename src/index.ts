@@ -1,10 +1,11 @@
 const token = require('../botconfig.json');
 import * as Discord from 'discord.js'
 import {Op} from 'sequelize';
-import {Sequelize, Table, Column, Model} from 'sequelize-typescript';
+import {Column, Model, Sequelize, Table} from 'sequelize-typescript';
 import _ from 'lodash';
-const { exec } = require('child_process');
 import fetch from 'node-fetch';
+
+const { exec } = require('child_process');
 
 const client = new Discord.Client();
 const PREFIX = '!';
@@ -81,10 +82,9 @@ function sanitizeSlug(shipName: string) {
 }
 
 function findShip(shipName: string) : FleetViewShip|undefined {
-
   // A list of tokens people shouldn't be able to search on. This helps keep searches accurate.
   const blacklist = ["edition"]
-  if (blacklist.find(item => item === shipName)){
+  if (blacklist.find(item => item === shipName) || shipName.length <= 1){
     return;
   }
 
@@ -110,7 +110,7 @@ function findShip(shipName: string) : FleetViewShip|undefined {
   )
   }else{
     const re = new RegExp(`\\b${shipName}\\b`, 'i')
-    return allowedShips.find(s => s.name.match(re))
+    return allowedShips.find(s => s.name.match(re));
   }
 }
 
@@ -196,28 +196,28 @@ client.on('message', async (message: Discord.Message) => {
 
     //Command to list what ships a certain owner has !inventory "owner"
     else if (command === 'inventory' && hasRole(message, "Member")) {
-      const user = commandArgs === "" ? message.author.tag : commandArgs
-
       const matches = await Ships.findAll({
         where: {
           username: {
-            [Op.like]: user + (commandArgs === "" ? "" : '#%')
+            [Op.like]: commandArgs === "" ? message.author.tag : `%${commandArgs}%#%`
           }
       }});
 
-      const reply =
-        `${user.split("#")[0]}'s inventory:\n` +
-        Object.entries(_.groupBy(matches, ship => findShip(ship.shipname)?.rsiName))
+      let firstUserFound:string = ""
+      const ships = Object.entries(_.groupBy(matches, ship => findShip(ship.shipname)?.rsiName))
         .map(group => {
-          const shipNameDb = group[0]
-          const shipCount = group[1].length
-          const ship = findShip(shipNameDb)
+          const shipNameDb = group[0];
+          const shipCount = group[1].length;
+          const ship = findShip(shipNameDb);
 
-          return `**${ship?.rsiName}**` + (shipCount > 1 ? " x " + shipCount : "")
+          firstUserFound = firstUserFound ? firstUserFound : group[1][0].username;
+          return firstUserFound === group[1][0].username ? (`**${ship?.rsiName}**` + (shipCount > 1 ? " x " + shipCount : "")) : ""
         })
         .sort()
-        .join("\n")
-      return replyTo(message, reply);
+        .join("\n");
+      const header = firstUserFound ? `${firstUserFound.split("#")[0]}'s inventory:\n` : "User not found or has no ships."
+
+      return replyTo(message, header + ships);
     }
 
     //Command to list owners of specific ships !search "ship"
