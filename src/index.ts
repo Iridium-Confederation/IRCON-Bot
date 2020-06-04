@@ -374,6 +374,10 @@ client.on('message', async (message: Discord.Message) => {
         msg += "**!update** \n\t (Developer): Update to the latest version of the bot.\n"
       }
 
+      if (hasRole(message, "Database developer")){
+        msg += "**!db** \n\t (Developer): Fetch db.\n"
+      }
+
       return replyTo(message, msg);
     }
   }
