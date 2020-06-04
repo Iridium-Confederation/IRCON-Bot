@@ -1,6 +1,7 @@
 import {Ships} from "./Ships";
 
 const token = require('../botconfig.json');
+const fs = require('fs');
 import * as Discord from 'discord.js'
 import _ from 'lodash';
 import fetch from 'node-fetch';
@@ -314,6 +315,11 @@ client.on('message', async (message: Discord.Message) => {
       }else{
         await replyTo(message, "No brochure found.")
       }
+    }
+
+    else if (command === "db" && hasRole(message, "Database developer")){
+      const data = fs.readFileSync('database.sqlite');
+      await replyTo(message, new Discord.MessageAttachment(data, "database.sqlite"));
     }
 
     else if (command === "stats" && hasRole(message, "Member")){
