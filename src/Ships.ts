@@ -9,6 +9,9 @@ export class Ships extends Model<Ships> {
   @Column
   shipname!: string;
 
+  @Column
+  discordUserId!: string
+
   static initialize (){
     new Sequelize('database', 'user', 'password', {
       host: 'localhost',

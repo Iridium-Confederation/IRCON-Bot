@@ -4,6 +4,7 @@ const token = require('../botconfig.json');
 import * as Discord from 'discord.js'
 import _ from 'lodash';
 import fetch from 'node-fetch';
+import {GuildMember} from "discord.js";
 
 const { exec } = require('child_process');
 
@@ -33,6 +34,7 @@ let allowedShips:FleetViewShip[]
 client.once('ready', () => {
   Ships.sync();
 });
+
 
 function hasRole(message: Discord.Message, role: string) {
   const hasRole = client
@@ -119,6 +121,19 @@ async function deleteShips(shipName: string, owner: string, deleteAll: boolean) 
 
 //check for command
 client.on('message', async (message: Discord.Message) => {
+
+  (async () => {
+    if (message.guild){
+      message.guild.members.cache.forEach(async (m:GuildMember) => {
+        const ships = await Ships.findShipsByOwner(m.user.tag);
+        ships.forEach((ship:Ships) => {
+          ship.discordUserId = m.user.id
+          ship.save()
+        })
+      })
+    }
+  })()
+
   if (message.content.startsWith(PREFIX)) {
     const input = message.content.slice(PREFIX.length).split(' ');
     const command = input.shift();
