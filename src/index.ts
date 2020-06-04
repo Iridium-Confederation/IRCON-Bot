@@ -83,7 +83,7 @@ function sanitizeSlug(shipName: string) {
 
 function findShip(shipName: string) : FleetViewShip|undefined {
   // A list of tokens people shouldn't be able to search on. This helps keep searches accurate.
-  const blacklist = ["edition"]
+  const blacklist = ["edition", "explorer"]
   if (blacklist.find(item => item === shipName) || shipName.length <= 1){
     return;
   }
