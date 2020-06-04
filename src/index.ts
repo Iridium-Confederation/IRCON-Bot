@@ -319,7 +319,7 @@ client.on('message', async (message: Discord.Message) => {
 
     else if (command === "db" && hasRole(message, "Database developer")){
       const data = fs.readFileSync('database.sqlite');
-      await replyTo(message,  new Discord.MessageAttachment(Buffer.from(JSON.stringify(db)), 'database.sqlite'));
+      await replyTo(message,  new Discord.MessageAttachment(data, 'database.sqlite'));
     }
 
     else if (command === "stats" && hasRole(message, "Member")){
