@@ -170,12 +170,13 @@ client.on('message', async (message: Discord.Message) => {
         const deletedShip = removedShips.values().next().value
         return message.reply(deletedShip ? `Removed **${deletedShip.rsiName}** from your fleet.` : 'You do not own that ship.')
       }
-
     }
 
     //Command to list what ships a certain owner has !inventory "owner"
     else if (command === 'inventory' && hasRole(message, "Member")) {
-      const matches = await Ships.findShipsByOwnerLike(commandArgs === "" ? message.author.tag : `%${commandArgs}%#%`)
+      const matches =
+        commandArgs === "" ?
+          await Ships.findShipsByOwnerId(message.author.id) : await Ships.findShipsByOwnerLike(`%${commandArgs}%#%`)
 
       let firstUserFound:string = ""
       const ships = Object.entries(_.groupBy(matches, ship => findShip(ship.shipname)?.rsiName))

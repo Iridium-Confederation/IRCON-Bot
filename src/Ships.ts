@@ -49,5 +49,13 @@ export class Ships extends Model<Ships> {
       }
     });
   }
+
+  static async findShipsByOwnerId(owner: string) {
+    return Ships.findAll({
+      where: {
+        discordUserId: owner
+      }
+    });
+  }
 }
 
