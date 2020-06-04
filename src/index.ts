@@ -386,7 +386,7 @@ client.on('message', async (message: Discord.Message) => {
     //Command to list all commands !help
     else if (command === "help" && hasRole(message, "Member")) {
       let msg =
-        "Looking for the exact name of your ship? Names on this list appear exactly as they should be typed: <https://starship42.com/fleetview/>\n\n" +
+        "Looking for the exact name of your ship? See: <https://fleetyards.net/ships/>\n\n" +
         "User guide: https://discordapp.com/channels/226021087996149772/712454452380172328/713552865431650345 \n\n" +
         "**!add <ship>** \n\t Add a ship to your fleet.\n"+
         "**!remove {ship|-all}** \n\t Remove ships from your fleet.\n" +
