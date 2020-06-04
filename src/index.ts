@@ -1,7 +1,7 @@
+import {Ships} from "./Ships";
+
 const token = require('../botconfig.json');
 import * as Discord from 'discord.js'
-import {Op} from 'sequelize';
-import {Column, Model, Sequelize, Table} from 'sequelize-typescript';
 import _ from 'lodash';
 import fetch from 'node-fetch';
 
@@ -14,40 +14,7 @@ if (!client.login(token)){
   console.log("Failed to login.")
 }
 
-interface FleetViewShip {
-  storeUrl: string;
-  name: string
-  description: string
-  size: string
-  rsiName: string
-  focus: string
-  classification: string
-  rsiSlug: string
-  slug: string
-  type: string
-  price: number
-  pledgePrice: number
-  lastPledgePrice: number
-  onSale: boolean
-  brochure: string
-}
-
-@Table
-class Ships extends Model<Ships> {
-  @Column
-  username!: string;
- 
-  @Column
-  shipname!: string;
-}
-
-new Sequelize('database', 'user', 'password', {
-  host: 'localhost',
-  dialect: 'sqlite',
-  logging: false,
-  storage: 'database.sqlite',
-  models: [Ships]
-});
+Ships.initialize()
 
 let allowedShips:FleetViewShip[]
 
@@ -106,8 +73,7 @@ function findShip(shipName: string) : FleetViewShip|undefined {
       findShip(shipName.substring(0, shipName.lastIndexOf(" "))) ||
       // findShip(shipName.replace(/\s/g, "")) ||
       shipName.split(" ").map(t => findShip(t)).find(t => t)
-
-  )
+    )
   }else{
     const re = new RegExp(`\\b${shipName}\\b`, 'i')
     return allowedShips.find(s => s.name.match(re));
@@ -138,10 +104,7 @@ function replyTo(message: Discord.Message, ...contents:Parameters<Discord.TextCh
 async function deleteShips(shipName: string, owner: string, deleteAll: boolean) {
   const searchedShip = findShip(shipName)
   const removed = new Set<FleetViewShip>()
-
-  const matches = await Ships.findAll({
-    where: {username: owner}
-  })
+  const matches = await Ships.findShipsByOwner(owner);
   matches.find((m: Ships) => {
     const dbShip = findShip(m.shipname);
 
@@ -196,12 +159,7 @@ client.on('message', async (message: Discord.Message) => {
 
     //Command to list what ships a certain owner has !inventory "owner"
     else if (command === 'inventory' && hasRole(message, "Member")) {
-      const matches = await Ships.findAll({
-        where: {
-          username: {
-            [Op.like]: commandArgs === "" ? message.author.tag : `%${commandArgs}%#%`
-          }
-      }});
+      const matches = await Ships.findShipsByOwnerLike(commandArgs === "" ? message.author.tag : `%${commandArgs}%#%`)
 
       let firstUserFound:string = ""
       const ships = Object.entries(_.groupBy(matches, ship => findShip(ship.shipname)?.rsiName))
@@ -223,11 +181,7 @@ client.on('message', async (message: Discord.Message) => {
     //Command to list owners of specific ships !search "ship"
     else if (command === 'search' && hasRole(message, "Member")) {
       const shipName = commandArgs.toLowerCase();
-      const matches = await Ships.findAll({
-        where: {
-          shipname: {[Op.like]: "%" + shipName + "%"}
-        }
-      });
+      const matches = await Ships.findShipsByName(`%${shipName}%`);
 
       const reply = Object.entries(_.groupBy(matches, ship => findShip(ship.shipname)?.rsiName))
         .map(group => {
@@ -269,13 +223,8 @@ client.on('message', async (message: Discord.Message) => {
         username = message.author.tag
       }
 
-      const fleetview = await Ships.findAll({
-        where: {
-          username: {
-            [Op.like]: username
-          }
-        }
-      }).map((t:Ships) => {
+      const fleetview = (await Ships.findShipsByOwnerLike(username))
+      .map((t:Ships) => {
         return {
           name: t.shipname,
           shipname: t.username.split('#')[0]
