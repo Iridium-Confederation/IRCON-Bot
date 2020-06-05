@@ -1,5 +1,6 @@
-import {Column, Model, Sequelize, Table} from "sequelize-typescript";
+import {BelongsTo, Column, ForeignKey, Model, Sequelize, Table} from "sequelize-typescript";
 import {Op} from "sequelize";
+import {User} from "./User";
 
 @Table
 export class Ships extends Model<Ships> {
@@ -10,7 +11,11 @@ export class Ships extends Model<Ships> {
   shipname!: string;
 
   @Column
+  @ForeignKey(() => User)
   discordUserId!: string
+
+  @BelongsTo(() => User)
+  owner!: User
 
   static initialize (){
     new Sequelize('database', 'user', 'password', {
@@ -18,7 +23,7 @@ export class Ships extends Model<Ships> {
       dialect: 'sqlite',
       logging: false,
       storage: 'database.sqlite',
-      models: [Ships]
+      models: [Ships, User]
     });
   }
 
@@ -28,17 +33,21 @@ export class Ships extends Model<Ships> {
         shipname: {
           [Op.like]: name
         }
-      }
+      },
+      include: [User]
     });
   }
 
   static async findShipsByOwnerLike(owner: string) {
     return Ships.findAll({
-      where: {
-        username: {
-          [Op.like]: owner
+      include: [{
+        model: User,
+        where: {
+          lastKnownTag: {
+            [Op.like]: owner
+          }
         }
-      }
+      }]
     });
   }
 
@@ -46,7 +55,8 @@ export class Ships extends Model<Ships> {
     return Ships.findAll({
       where: {
         username: owner
-      }
+      },
+      include: [User]
     });
   }
 
@@ -54,7 +64,8 @@ export class Ships extends Model<Ships> {
     return Ships.findAll({
       where: {
         discordUserId: owner
-      }
+      },
+      include: [User]
     });
   }
 }

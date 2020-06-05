@@ -1,11 +1,11 @@
-import {Ships} from "./Ships";
+import {Ships} from "./models/Ships";
 
 const token = require('../botconfig.json');
 const fs = require('fs');
 import * as Discord from 'discord.js'
 import _ from 'lodash';
 import fetch from 'node-fetch';
-import {GuildMember} from "discord.js";
+import {User} from "./models/User";
 
 const { exec } = require('child_process');
 
@@ -18,6 +18,7 @@ if (!client.login(token)){
 
 Ships.initialize()
 
+
 let allowedShips:FleetViewShip[]
 
 (async () => {
@@ -27,15 +28,15 @@ let allowedShips:FleetViewShip[]
 
     allowedShips = (await p1.json()).concat(await p2.json())
   }catch(e){
-    console.log("Failed to fetch ship list.")
+    console.log(`Failed to fetch ship list: ${e}`)
     process.exit(1);
   }
 })();
 
 client.once('ready', () => {
+  User.sync();
   Ships.sync();
 });
-
 
 function hasRole(message: Discord.Message, role: string) {
   const hasRole = client
@@ -123,15 +124,20 @@ async function deleteShips(shipName: string, owner: string, deleteAll: boolean) 
 //check for command
 client.on('message', async (message: Discord.Message) => {
 
-  (async () => {
-    if (message.guild){
-      message.guild.members.cache.forEach(async (m:GuildMember) => {
-        const ships = await Ships.findShipsByOwner(m.user.tag);
-        ships.forEach((ship:Ships) => {
-          ship.discordUserId = m.user.id
-          ship.save()
-        })
-      })
+  await (async () => {
+    if (message.guild) {
+
+      for (const m of message.guild.members.cache.values()) {
+        let dbUser = (await User.findById(m.user.id))[0]
+        if (dbUser) {
+          dbUser.lastKnownTag = m.user.tag
+        }else {
+          dbUser = new User();
+          dbUser.discordUserId = m.user.id
+          dbUser.lastKnownTag! = m.user.tag
+        }
+        dbUser.save()
+      }
     }
   })()
 
@@ -306,15 +312,6 @@ client.on('message', async (message: Discord.Message) => {
         }
       }else{
         await replyTo(message, "Attach a fleetview or hangar explorer json file with a description of **!import**");
-      }
-    }
-
-    else if (command === "brochure" && hasRole(message, "Member")){
-      const ship = findShip(commandArgs)
-      if (ship?.brochure){
-        await replyTo(message, `${ship.name}: <${ship.brochure}>`)
-      }else{
-        await replyTo(message, "No brochure found.")
       }
     }
 
