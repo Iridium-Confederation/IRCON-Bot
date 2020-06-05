@@ -231,8 +231,19 @@ client.on('message', async (message: Discord.Message) => {
     //Command to remove all ships of a user !removeall "user#XXXX"
     else if (command === "removeall" && hasRole(message, "Management")) {
       const deletedUser = commandArgs;
-      await Ships.destroy({where: {username: deletedUser}});
-      return replyTo(message, `User ${deletedUser} fleet is deleted.`);
+      const user = (await User.findByTag(commandArgs))[0];
+      if (user){
+        const ships = await Ships.findShipsByOwnerId(user.discordUserId);
+
+        let count = 0;
+        const shipCount = ships.map(s => {
+          count++;
+          s.destroy();
+        })
+        return replyTo(message, `1 user deleted. ${count} ships deleted.`);
+      }else{
+        return replyTo(message, `User not found.`);
+      }
     }
 
     //Command to retrieve fleetview.json file !fleetview "user"
