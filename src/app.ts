@@ -88,8 +88,8 @@ function addShip(shipName: string, message: Discord.Message) {
   const foundShip = findShip(shipName)
   if (foundShip) {
     Ships.create({
-      username: message.author.tag,
       shipname: foundShip.name,
+      discordUserId: message.author.id
     });
     return foundShip
   }else{
@@ -191,8 +191,8 @@ client.on('message', async (message: Discord.Message) => {
           const shipCount = group[1].length;
           const ship = findShip(shipNameDb);
 
-          firstUserFound = firstUserFound ? firstUserFound : group[1][0].username;
-          return firstUserFound === group[1][0].username ? (`**${ship?.rsiName}**` + (shipCount > 1 ? " x " + shipCount : "")) : ""
+          firstUserFound = firstUserFound ? firstUserFound : group[1][0].owner.lastKnownTag;
+          return firstUserFound === group[1][0].owner.lastKnownTag ? (`**${ship?.rsiName}**` + (shipCount > 1 ? " x " + shipCount : "")) : ""
         })
         .sort()
         .join("\n");
@@ -209,8 +209,8 @@ client.on('message', async (message: Discord.Message) => {
       const reply = Object.entries(_.groupBy(matches, ship => findShip(ship.shipname)?.rsiName))
         .map(group => {
           const shipNameDb = group[0]
-          const users = group[1]
-          const userCount = _.groupBy(users, 'username')
+          const ships = group[1]
+          const userCount = _.groupBy(ships, ship => ship.owner.lastKnownTag)
           const ship = findShip(shipNameDb)
 
           return `**${ship?.rsiName}**` + ": " +
@@ -250,7 +250,7 @@ client.on('message', async (message: Discord.Message) => {
       .map((t:Ships) => {
         return {
           name: t.shipname,
-          shipname: t.username.split('#')[0]
+          shipname: t.owner.lastKnownTag.split('#')[0]
         }
       })
 
@@ -339,9 +339,9 @@ client.on('message', async (message: Discord.Message) => {
           return replyTo(message, "Ship not found.")
         }
       }else{
-        const ships = await Ships.findAll();
+        const ships = await Ships.findAll({include: [User]});
         const totalShips = await Ships.count();
-        const owners = Object.entries(_.groupBy(ships, 'username'))
+        const owners = Object.entries(_.groupBy(ships, (ship:Ships) => ship.owner.lastKnownTag))
         let reply = `We have **${totalShips}** ships contributed by **${owners.length}** owners.\n\n`
         reply += "**Contributors**: " + owners
           .map(o => o[0].split("#")[0])

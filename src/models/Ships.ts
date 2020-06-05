@@ -5,10 +5,7 @@ import {User} from "./User";
 @Table
 export class Ships extends Model<Ships> {
   @Column
-  username!: string;
-
-  @Column
-  shipname!: string;
+  shipname!: string
 
   @Column
   @ForeignKey(() => User)
@@ -27,7 +24,7 @@ export class Ships extends Model<Ships> {
     });
   }
 
-  static async findShipsByName(name: string) {
+  static async findShipsByName(name: string): Promise<Ships[]> {
     return Ships.findAll({
       where: {
         shipname: {
@@ -38,7 +35,7 @@ export class Ships extends Model<Ships> {
     });
   }
 
-  static async findShipsByOwnerLike(owner: string) {
+  static async findShipsByOwnerLike(owner: string): Promise<Ships[]> {
     return Ships.findAll({
       include: [{
         model: User,
@@ -51,7 +48,7 @@ export class Ships extends Model<Ships> {
     });
   }
 
-  static async findShipsByOwner(owner: string) {
+  static async findShipsByOwner(owner: string): Promise<Ships[]> {
     return Ships.findAll({
       where: {
         username: owner
@@ -60,12 +57,14 @@ export class Ships extends Model<Ships> {
     });
   }
 
-  static async findShipsByOwnerId(owner: string) {
+  static async findShipsByOwnerId(owner: string): Promise<Ships[]> {
     return Ships.findAll({
-      where: {
-        discordUserId: owner
-      },
-      include: [User]
+      include: [{
+        model: User,
+        where: {
+          discordUserId: owner
+        }
+      }]
     });
   }
 }
