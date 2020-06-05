@@ -14,6 +14,15 @@ export class User extends Model<User> {
   @HasMany(() => Ships)
   ownedShips!: Ships[];
 
+  static async findByTag(tag: string):Promise<User[]> {
+    return User.findAll({
+        where: {
+          lastKnownTag: tag
+        },
+        include: [Ships]
+      }
+    )};
+
   static async findById(discordUserId: string):Promise<User[]> {
     return User.findAll({
       where: {
