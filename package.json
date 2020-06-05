@@ -5,7 +5,7 @@
   "main": "built/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "npx sequelize-cli db:migrate && node built/index.js"
+    "start": "npx sequelize-cli db:migrate --migrations-path built/migrations --config src/config/config.json && node built/app.js"
   },
   "author": "Brady Spencer",
   "license": "ISC",
