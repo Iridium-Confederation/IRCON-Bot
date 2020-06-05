@@ -13,7 +13,6 @@ Cmnd_Alias DISCORD_CMNDS = /bin/systemctl start ircon-bot, /bin/systemctl stop i
 ```
 type `:wq!` to exit visudo
 ```
-chmod a+x install.sh
 ./install.sh
 ```
 
