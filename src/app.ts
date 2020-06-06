@@ -73,8 +73,12 @@ function findShip(shipName: string) : FleetViewShip|undefined {
     return success
   }else if (/\s/g.test(shipName)){
     return (
+      // Everything except the first word
       findShip(shipName.substring(shipName.indexOf(" ") + 1)) ||
+
+      // Everything except the last word
       findShip(shipName.substring(0, shipName.lastIndexOf(" "))) ||
+
       // findShip(shipName.replace(/\s/g, "")) ||
       shipName.split(" ").map(t => findShip(t)).find(t => t)
     )
@@ -124,24 +128,24 @@ async function deleteShips(shipName: string, owner: string, deleteAll: boolean) 
 //check for command
 client.on('message', async (message: Discord.Message) => {
 
-  await (async () => {
-    if (message.guild) {
-
-      for (const m of message.guild.members.cache.values()) {
-        let dbUser = (await User.findById(m.user.id))[0]
-        if (dbUser) {
-          dbUser.lastKnownTag = m.user.tag
-        }else {
-          dbUser = new User();
-          dbUser.discordUserId = m.user.id
-          dbUser.lastKnownTag! = m.user.tag
-        }
-        dbUser.save()
-      }
-    }
-  })()
-
   if (message.content.startsWith(PREFIX)) {
+    await (async () => {
+      if (message.guild) {
+
+        for (const m of message.guild.members.cache.values()) {
+          let dbUser = (await User.findById(m.user.id))[0]
+          if (dbUser) {
+            dbUser.lastKnownTag = m.user.tag
+          }else {
+            dbUser = new User();
+            dbUser.discordUserId = m.user.id
+            dbUser.lastKnownTag! = m.user.tag
+          }
+          dbUser.save()
+        }
+      }
+    })()
+
     const input = message.content.slice(PREFIX.length).split(' ');
     const command = input.shift();
     const commandArgs = input.join(' ');
