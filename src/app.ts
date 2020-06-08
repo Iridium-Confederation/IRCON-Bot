@@ -125,26 +125,25 @@ async function deleteShips(shipName: string, owner: string, deleteAll: boolean) 
   return removed
 }
 
-//check for command
+async function updateUser(newUser: Discord.User | Discord.PartialUser) {
+  let dbUser = (await User.findById(newUser.id))[0]
+  if (!dbUser) {
+    dbUser = new User();
+    dbUser.lastKnownTag = newUser.tag ? newUser.tag : ""
+  }
+  dbUser.discordUserId = newUser.id
+  dbUser.lastKnownTag = newUser.tag ? newUser.tag : ""
+  dbUser.save()
+}
+
+client.on('userUpdate', async (oldUser: Discord.User | Discord.PartialUser, newUser: Discord.User | Discord.PartialUser) =>{
+  await updateUser(newUser);
+})
+
 client.on('message', async (message: Discord.Message) => {
 
   if (message.content.startsWith(PREFIX)) {
-    await (async () => {
-      if (message.guild) {
-
-        for (const m of message.guild.members.cache.values()) {
-          let dbUser = (await User.findById(m.user.id))[0]
-          if (dbUser) {
-            dbUser.lastKnownTag = m.user.tag
-          }else {
-            dbUser = new User();
-            dbUser.discordUserId = m.user.id
-            dbUser.lastKnownTag! = m.user.tag
-          }
-          dbUser.save()
-        }
-      }
-    })()
+    await updateUser(message.author);
 
     const input = message.content.slice(PREFIX.length).split(' ');
     const command = input.shift();
@@ -234,16 +233,15 @@ client.on('message', async (message: Discord.Message) => {
 
     //Command to remove all ships of a user !removeall "user#XXXX"
     else if (command === "removeall" && hasRole(message, "Management")) {
-      const deletedUser = commandArgs;
       const user = (await User.findByTag(commandArgs))[0];
       if (user){
         const ships = await Ships.findShipsByOwnerId(user.discordUserId);
 
         let count = 0;
-        const shipCount = ships.map(s => {
+        ships.map(s => {
           count++;
           s.destroy();
-        })
+        });
         return replyTo(message, `1 user deleted. ${count} ships deleted.`);
       }else{
         return replyTo(message, `User not found.`);
