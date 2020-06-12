@@ -50,10 +50,12 @@ export class Ships extends Model<Ships> {
 
   static async findShipsByOwner(owner: string): Promise<Ships[]> {
     return Ships.findAll({
-      where: {
-        username: owner
-      },
-      include: [User]
+      include: [{
+        model: User,
+        where: {
+          lastKnownTag: owner
+        }
+      }]
     });
   }
 
