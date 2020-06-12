@@ -119,6 +119,10 @@ async function deleteShips(shipName: string, owner: string, deleteAll: boolean) 
     if (dbShip && (deleteAll || (searchedShip && searchedShip.slug === dbShip.slug))){
       m.destroy()
       removed.add(dbShip)
+
+      if (!deleteAll){
+        return removed
+      }
     }
   })
 
