@@ -208,7 +208,6 @@ client.on('message', async (message: Discord.Message) => {
           await Ships.findShipsByOwnerId(message.author.id) : await Ships.findShipsByOwnerLike(`%${commandArgs}%#%`)
 
       const totalUec = getTotalUec(ships).toLocaleString();
-      const totalUsd = getTotalUsd(ships).toLocaleString();
 
       let firstUserFound:string = ""
       const shipStr = Object.entries(_.groupBy(ships, ship => findShip(ship.shipname)?.rsiName))
@@ -226,8 +225,7 @@ client.on('message', async (message: Discord.Message) => {
       let header;
 
       if (firstUserFound){
-        header = `${firstUserFound.split("#")[0]}'s inventory (**$${totalUsd}** / **${totalUec} UEC**):\n`;
-
+        header = `${firstUserFound.split("#")[0]}'s inventory (**${totalUec} UEC**):\n`;
       }else{
         header = "User not found or has no ships."
       }
