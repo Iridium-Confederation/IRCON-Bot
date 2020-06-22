@@ -5,10 +5,10 @@ After=syslog.target network.target
 [Service]
 User=discord
 Group=discord
-WorkingDirectory=/opt/IRCON-Bot
+WorkingDirectory=/
 Type=simple
 ExecStart=npm start
-RestartSec=1
+RestartSec=90
 TimeoutStopSec=30
 Restart=always
 
