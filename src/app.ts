@@ -381,7 +381,7 @@ client.on('message', async (message: Discord.Message) => {
         }
 
         let reply =
-          `We have **${totalShips}** ships contributed by **${owners.length}** owners` +
+          `We have **${totalShips}** ships contributed by **${owners.length}** owners ` +
           `with a total ship value of **$${totalUsdNum}** ` +
           `(**${totalUecNum} UEC** for ships available for in-game purchase).\n\n`
 
