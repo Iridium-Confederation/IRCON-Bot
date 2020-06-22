@@ -144,6 +144,22 @@ client.on('userUpdate', async (oldUser: Discord.User | Discord.PartialUser, newU
   await updateUser(newUser);
 })
 
+function getTotalUsd(ships: Ships[]) : Number {
+  const total = ships
+    .map(ship => findShip(ship.shipname)?.lastPledgePrice)
+    .reduce((a, b) => (a ? a : 0) + (b ? b : 0));
+
+  return total ? total : 0;
+}
+
+function getTotalUec(ships: Ships[]) : Number {
+  const total = ships
+    .map(ship => findShip(ship.shipname)?.price)
+    .reduce((a, b) => (a ? a : 0) + (b ? b : 0));
+
+  return total ? total : 0;
+}
+
 client.on('message', async (message: Discord.Message) => {
 
   if (message.content.startsWith(PREFIX)) {
@@ -187,12 +203,15 @@ client.on('message', async (message: Discord.Message) => {
 
     //Command to list what ships a certain owner has !inventory "owner"
     else if (command === 'inventory' && hasRole(message, "Member")) {
-      const matches =
+      const ships =
         commandArgs === "" ?
           await Ships.findShipsByOwnerId(message.author.id) : await Ships.findShipsByOwnerLike(`%${commandArgs}%#%`)
 
+      const totalUec = getTotalUec(ships).toLocaleString();
+      const totalUsd = getTotalUsd(ships).toLocaleString();
+
       let firstUserFound:string = ""
-      const ships = Object.entries(_.groupBy(matches, ship => findShip(ship.shipname)?.rsiName))
+      const shipStr = Object.entries(_.groupBy(ships, ship => findShip(ship.shipname)?.rsiName))
         .map(group => {
           const shipNameDb = group[0];
           const shipCount = group[1].length;
@@ -203,9 +222,17 @@ client.on('message', async (message: Discord.Message) => {
         })
         .sort()
         .join("\n");
-      const header = firstUserFound ? `${firstUserFound.split("#")[0]}'s inventory:\n` : "User not found or has no ships."
 
-      return replyTo(message, header + ships);
+      let header;
+
+      if (firstUserFound){
+        header = `${firstUserFound.split("#")[0]}'s inventory (**$${totalUsd}** / **${totalUec} UEC**):\n`;
+
+      }else{
+        header = "User not found or has no ships."
+      }
+
+      return replyTo(message, header + shipStr);
     }
 
     //Command to list owners of specific ships !search "ship"
@@ -362,28 +389,13 @@ client.on('message', async (message: Discord.Message) => {
         const totalShips = await Ships.count();
         const owners = Object.entries(_.groupBy(ships, (ship:Ships) => ship.owner.lastKnownTag))
 
-        const totalUsd = ships
-          .map(ship => findShip(ship.shipname)?.lastPledgePrice)
-          .reduce((a,b) => (a ? a : 0) + (b ? b : 0))
-
-        const totalUec = ships
-          .map(ship => findShip(ship.shipname)?.price)
-          .reduce((a,b) => (a ? a : 0) + (b ? b : 0))
-
-        let totalUsdNum
-        if (totalUsd){
-          totalUsdNum = totalUsd.toLocaleString();
-        }
-
-        let totalUecNum
-        if (totalUec){
-          totalUecNum = totalUec.toLocaleString();
-        }
+        const totalUsd = getTotalUsd(ships).toLocaleString()
+        const totalUec = getTotalUec(ships).toLocaleString()
 
         let reply =
           `We have **${totalShips}** ships contributed by **${owners.length}** owners ` +
-          `with a total ship value of **$${totalUsdNum}** ` +
-          `(**${totalUecNum} UEC** for ships available for in-game purchase).\n\n`
+          `with a total ship value of **$${totalUsd}** ` +
+          `(**${totalUec} UEC** for ships available for in-game purchase).\n\n`
 
         reply += "**Contributors**: " + owners
           .map(o => o[0].split("#")[0])
