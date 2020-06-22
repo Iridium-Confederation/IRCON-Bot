@@ -356,14 +356,41 @@ client.on('message', async (message: Discord.Message) => {
           return replyTo(message, "Ship not found.")
         }
       }else{
-        const ships = await Ships.findAll({include: [User]});
+
+        // Total org statistics
+        const ships:Ships[] = await Ships.findAll({include: [User]});
         const totalShips = await Ships.count();
         const owners = Object.entries(_.groupBy(ships, (ship:Ships) => ship.owner.lastKnownTag))
-        let reply = `We have **${totalShips}** ships contributed by **${owners.length}** owners.\n\n`
+
+        const totalUsd = ships
+          .map(ship => findShip(ship.shipname)?.lastPledgePrice)
+          .reduce((a,b) => (a ? a : 0) + (b ? b : 0))
+
+        const totalUec = ships
+          .map(ship => findShip(ship.shipname)?.price)
+          .reduce((a,b) => (a ? a : 0) + (b ? b : 0))
+
+        let totalUsdNum
+        if (totalUsd){
+          totalUsdNum = totalUsd.toLocaleString();
+        }
+
+        let totalUecNum
+        if (totalUec){
+          totalUecNum = totalUec.toLocaleString();
+        }
+
+        let reply =
+          `We have **${totalShips}** ships contributed by **${owners.length}** owners` +
+          `with a total ship value of **$${totalUsdNum}** ` +
+          `(**${totalUecNum} UEC** for ships available for in-game purchase).\n\n`
+
         reply += "**Contributors**: " + owners
           .map(o => o[0].split("#")[0])
           .sort()
           .join(", ")
+
+
         await replyTo(message, reply)
       }
     }
