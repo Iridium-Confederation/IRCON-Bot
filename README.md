@@ -15,6 +15,9 @@ type `:wq!` to exit visudo
 ```
 ./install.sh
 ```
+## Config 
+
+Create a file in the project root called `botconfig.json`. 
 
 ## Dependencies
 [Python](https://www.python.org/) is needed to automatically fetch the sqlite binaries.
