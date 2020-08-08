@@ -6,6 +6,7 @@ import * as Discord from 'discord.js'
 import _ from 'lodash';
 import fetch from 'node-fetch';
 import {User} from "./models/User";
+import {TextChannel} from "discord.js";
 
 const { exec } = require('child_process');
 
@@ -143,7 +144,6 @@ async function updateUser(newUser: Discord.User | Discord.PartialUser) {
 client.on('userUpdate', async (oldUser: Discord.User | Discord.PartialUser, newUser: Discord.User | Discord.PartialUser) =>{
   await updateUser(newUser);
 })
-
 function getTotalUsd(ships: Ships[]) : Number {
   const total = ships
     .map(ship => findShip(ship.shipname)?.lastPledgePrice)
@@ -159,6 +159,19 @@ function getTotalUec(ships: Ships[]) : Number {
 
   return total ? total : 0;
 }
+
+client.on('guildMemberAdd', member => {
+  // Send the message to a designated channel on a server:
+  const channel = member.guild.channels.cache.find(ch => ch.name === 'recruitment_info');
+  
+  // Do nothing if the channel wasn't found on this server
+  if (!channel) return;
+
+  if (!((channel): channel is TextChannel => channel.type === 'text')(channel)) return;
+  
+  // Send the message, mentioning the member
+  channel.send(`A user has joined the server: ${member}`);
+});
 
 client.on('message', async (message: Discord.Message) => {
 
