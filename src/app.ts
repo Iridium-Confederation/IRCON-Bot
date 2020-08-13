@@ -378,8 +378,10 @@ client.on("message", async (message: Discord.Message) => {
     } else if (command === "update" && hasRole(message, "Database developer")) {
       if (commandArgs.includes("-docker")) {
         exec("kill $(pidof npm)");
+        console.log("Starting docker update...");
+        await replyTo(message, "Starting docker update. Party time.");
       } else {
-        console.log("Starting update...");
+        console.log("Starting traditional update...");
         await replyTo(message, "Starting update. Party time.");
         exec("./update.sh");
       }
