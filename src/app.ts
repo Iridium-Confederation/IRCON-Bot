@@ -376,7 +376,7 @@ client.on("message", async (message: Discord.Message) => {
         );
       }
     } else if (command === "update" && hasRole(message, "Database developer")) {
-      if (command.indexOf("-docker")) {
+      if (command.includes("-docker")) {
         exec("kill $(pidof npm)");
       } else {
         console.log("Starting update...");
