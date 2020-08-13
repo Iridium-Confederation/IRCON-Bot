@@ -21,7 +21,7 @@ Ships.initialize();
 
 let allowedShips: FleetViewShip[];
 
-(async () => {
+async function refreshShipList() {
   try {
     const p1 = await fetch(
       "https://api.fleetyards.net/v1/models?perPage=200&page=1"
@@ -35,7 +35,12 @@ let allowedShips: FleetViewShip[];
     console.log(`Failed to fetch ship list: ${e}`);
     process.exit(1);
   }
+}
+
+(async () => {
+  await refreshShipList();
 })();
+setInterval(refreshShipList, 900_000);
 
 client.once("ready", () => {
   User.sync();
@@ -164,6 +169,7 @@ client.on(
     await updateUser(newUser);
   }
 );
+
 function getTotalUsd(ships: Ships[]): Number {
   const total = ships
     .map((ship) => findShip(ship.shipname)?.lastPledgePrice)
@@ -244,7 +250,6 @@ client.on("message", async (message: Discord.Message) => {
         );
       }
     }
-
     //Command to list what ships a certain owner has !inventory "owner"
     else if (command === "inventory" && hasRole(message, "Member")) {
       const ships =
