@@ -22,9 +22,10 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.14.152",
-    "@types/validator": "13.0.0",
     "@types/node": "^14.0.5",
     "@types/node-fetch": "^2.5.7",
+    "@types/validator": "13.0.0",
+    "prettier": "2.0.5",
     "ts-node": "^8.10.1",
     "typescript": "^3.6.3"
   }
