@@ -186,7 +186,7 @@ function getTotalUec(ships: Ships[]): Number {
   return total ? total : 0;
 }
 
-client.on("guildMemberAdd", (member) => {
+client.on("guildMemberAdd", async (member) => {
   // Send the message to a designated channel on a server:
   const channel = member.guild.channels.cache.find(
     (ch) => ch.name === "recruitment_info"
@@ -199,7 +199,7 @@ client.on("guildMemberAdd", (member) => {
     return;
 
   // Send the message, mentioning the member
-  channel.send(`A user has joined the server: ${member}`);
+  await channel.send(`A user has joined the server: ${member}`);
 });
 
 client.on("message", async (message: Discord.Message) => {
