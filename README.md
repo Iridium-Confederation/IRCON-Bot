@@ -1,7 +1,7 @@
 # FleetBot
 
-FleetBot is a helpful fleet management tool for your Star Citizen Org. Import and manage your personal fleet from the RSI website. Easily find out who owns
-what ships in your org. Even get the total UEC value of your ships. 
+FleetBot is a helpful fleet management tool for your Star Citizen Organization. Import and manage your personal fleet from the RSI website. Easily find out who owns
+what ships in your org. Even get the total UEC value of your ships. Export your personal or org fleet and visualize it in FleetView.
 
 ## Usage (!help)
 
@@ -64,26 +64,4 @@ npm run start
 Requires [docker](https://docs.docker.com/get-docker/) and [docker compose](https://docs.docker.com/compose/install/) 
 ```
 cd docker && docker-compose build && docker-compose up -d
-```
-
-## Install (systemctl)
-
-Edit ircon-bot.service and change WorkingDirectory to reflect the directory you cloned the bot
-
-```
-useradd --system --no-create-home discord
-visudo
-```
-
-Add to end:
-
-```
-Cmnd_Alias DISCORD_CMNDS = /bin/systemctl start ircon-bot, /bin/systemctl stop ircon-bot, /bin/systemctl restart ircon-bot
-%discord ALL=(ALL) NOPASSWD: DISCORD_CMNDS
-```
-
-type `:wq!` to exit visudo
-
-```
-./install.sh
 ```
