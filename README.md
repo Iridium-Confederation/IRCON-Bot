@@ -7,7 +7,7 @@ what ships in your org. Even get the total UEC value of your ships.
 
 Looking for the exact name of your ship? See: https://fleetyards.net/ships/
 
-!add <ship>
+!add \<ship\>
      
      Add a ship to your fleet.
      
@@ -15,7 +15,7 @@ Looking for the exact name of your ship? See: https://fleetyards.net/ships/
 
      Remove ships from your fleet.
      
-!search <ship>
+!search \<ship\>
      
      List all owners of a certain ship.
      
