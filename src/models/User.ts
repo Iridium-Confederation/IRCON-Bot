@@ -7,6 +7,7 @@ import {
   Unique,
 } from "sequelize-typescript";
 import { Ships } from "./Ships";
+import { Snowflake } from "discord.js";
 
 @Table
 export class User extends Model<User> {
