@@ -9,6 +9,7 @@ import {
 import { Op } from "sequelize";
 import { User } from "./User";
 import { Snowflake } from "discord.js";
+import { findShip } from "../utils";
 
 export class ShipDao {
   static async findShipsByName(
@@ -134,4 +135,32 @@ export class Ships extends Model<Ships> {
 
   @Column
   guildId!: string;
+}
+
+export async function deleteShips(
+  shipName: string,
+  owner: string,
+  guildId: Snowflake,
+  deleteAll: boolean
+) {
+  const searchedShip = findShip(shipName);
+  const removed = new Set<FleetViewShip>();
+  const matches = await ShipDao.findShipsByOwner(owner, guildId);
+  matches.find((m: Ships) => {
+    const dbShip = findShip(m.shipname);
+
+    if (
+      dbShip &&
+      (deleteAll || (searchedShip && searchedShip.slug === dbShip.slug))
+    ) {
+      m.destroy();
+      removed.add(dbShip);
+
+      if (!deleteAll) {
+        return removed;
+      }
+    }
+  });
+
+  return removed;
 }
