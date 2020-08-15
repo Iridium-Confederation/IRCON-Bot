@@ -1,4 +1,4 @@
-import { Ships } from "./models/Ships";
+import { ShipDao, Ships } from "./models/Ships";
 
 const token = require("../botconfig.json");
 const fs = require("fs");
@@ -6,7 +6,7 @@ import * as Discord from "discord.js";
 import _ from "lodash";
 import fetch from "node-fetch";
 import { User } from "./models/User";
-import { TextChannel } from "discord.js";
+import { Snowflake, TextChannel } from "discord.js";
 
 const { exec } = require("child_process");
 
@@ -17,7 +17,7 @@ if (!client.login(token)) {
   console.log("Failed to login.");
 }
 
-Ships.initialize();
+ShipDao.initialize();
 
 let allowedShips: FleetViewShip[];
 
@@ -44,7 +44,7 @@ setInterval(refreshShipList, 900_000);
 
 client.once("ready", () => {
   User.sync();
-  Ships.sync();
+  ShipDao.sync();
 });
 
 function hasRole(message: Discord.Message, role: string) {
@@ -101,9 +101,10 @@ function findShip(shipName: string): FleetViewShip | undefined {
 function addShip(shipName: string, message: Discord.Message) {
   const foundShip = findShip(shipName);
   if (foundShip) {
-    Ships.create({
+    ShipDao.create({
       shipname: foundShip.name,
       discordUserId: message.author.id,
+      guildId: message.guild?.id,
     });
     return foundShip;
   } else {
@@ -125,11 +126,12 @@ function replyTo(
 async function deleteShips(
   shipName: string,
   owner: string,
+  guildId: Snowflake,
   deleteAll: boolean
 ) {
   const searchedShip = findShip(shipName);
   const removed = new Set<FleetViewShip>();
-  const matches = await Ships.findShipsByOwner(owner);
+  const matches = await ShipDao.findShipsByOwner(owner, guildId);
   matches.find((m: Ships) => {
     const dbShip = findShip(m.shipname);
 
@@ -181,7 +183,7 @@ function getTotalUsd(ships: Ships[]): Number {
 function getTotalUec(ships: Ships[]): Number {
   const total = ships
     .map((ship) => findShip(ship.shipname)?.price)
-    .reduce((a, b) => (a ? a : 0) + (b ? b : 0));
+    .reduce((a, b) => (a ? a : 0) + (b ? b : 0), 0);
 
   return total ? total : 0;
 }
@@ -201,6 +203,14 @@ client.on("guildMemberAdd", async (member) => {
   // Send the message, mentioning the member
   await channel.send(`A user has joined the server: ${member}`);
 });
+
+function getGuildId(message: Discord.Message) {
+  if (message.guild) {
+    return message.guild.id;
+  } else {
+    return replyTo(message, "Unable to determine your Discord Guild.");
+  }
+}
 
 client.on("message", async (message: Discord.Message) => {
   if (message.content.startsWith(PREFIX)) {
@@ -228,10 +238,15 @@ client.on("message", async (message: Discord.Message) => {
 
     //Command to remove ship !remove "ship"
     else if (command === "remove" && hasRole(message, "Member")) {
+      const guildId = getGuildId(message);
+
+      if (guildId instanceof Promise) return;
+
       const shipName = commandArgs.toLowerCase();
       const removedShips = await deleteShips(
         shipName,
         message.author.tag,
+        guildId,
         commandArgs === "-all"
       );
       const rowCount = removedShips.size;
@@ -252,10 +267,20 @@ client.on("message", async (message: Discord.Message) => {
     }
     //Command to list what ships a certain owner has !inventory "owner"
     else if (command === "inventory" && hasRole(message, "Member")) {
+      const guildId = getGuildId(message);
+
+      if (guildId instanceof Promise) return;
+
       const ships =
         commandArgs === ""
-          ? await Ships.findShipsByOwnerId(message.author.id)
-          : await Ships.findShipsByOwnerLike(`%${commandArgs}%#%`);
+          ? await ShipDao.findShipsByOwnerId(
+              message.author.id,
+              guildId as string
+            )
+          : await ShipDao.findShipsByOwnerLike(
+              `%${commandArgs}%#%`,
+              guildId as string
+            );
 
       const totalUec = getTotalUec(ships).toLocaleString();
 
@@ -293,8 +318,12 @@ client.on("message", async (message: Discord.Message) => {
 
     //Command to list owners of specific ships !search "ship"
     else if (command === "search" && hasRole(message, "Member")) {
+      const guildId = getGuildId(message);
+
+      if (guildId instanceof Promise) return;
+
       const shipName = commandArgs.toLowerCase();
-      const matches = await Ships.findShipsByName(`%${shipName}%`);
+      const matches = await ShipDao.findShipsByName(`%${shipName}%`, guildId);
 
       const reply = Object.entries(
         _.groupBy(matches, (ship) => findShip(ship.shipname)?.rsiName)
@@ -327,14 +356,17 @@ client.on("message", async (message: Discord.Message) => {
     else if (command === "removeall" && hasRole(message, "Management")) {
       const user = (await User.findByTag(commandArgs))[0];
       if (user) {
-        const ships = await Ships.findShipsByOwnerId(user.discordUserId);
+        const ships = await ShipDao.findShipsByOwnerId(
+          user.discordUserId,
+          message.guild?.id
+        );
 
         let count = 0;
         ships.map((s) => {
           count++;
           s.destroy();
         });
-        return replyTo(message, `1 user deleted. ${count} ships deleted.`);
+        return replyTo(message, `${count} ships deleted.`);
       } else {
         return replyTo(message, `User not found.`);
       }
@@ -342,6 +374,10 @@ client.on("message", async (message: Discord.Message) => {
 
     //Command to retrieve fleetview.json file !fleetview "user"
     else if (command === "fleetview" && hasRole(message, "Member")) {
+      const guildId = getGuildId(message);
+
+      if (guildId instanceof Promise) return;
+
       let username;
       if (commandArgs === "-org") {
         username = "%";
@@ -351,14 +387,14 @@ client.on("message", async (message: Discord.Message) => {
         username = message.author.tag;
       }
 
-      const fleetview = (await Ships.findShipsByOwnerLike(username)).map(
-        (t: Ships) => {
-          return {
-            name: t.shipname,
-            shipname: t.owner.lastKnownTag.split("#")[0],
-          };
-        }
-      );
+      const fleetview = (
+        await ShipDao.findShipsByOwnerLike(username, guildId as string)
+      ).map((t: Ships) => {
+        return {
+          name: t.shipname,
+          shipname: t.owner.lastKnownTag.split("#")[0],
+        };
+      });
 
       if (fleetview.length === 0) {
         await replyTo(message, "No results found.");
@@ -480,8 +516,12 @@ client.on("message", async (message: Discord.Message) => {
         }
       } else {
         // Total org statistics
-        const ships: Ships[] = await Ships.findAll({ include: [User] });
-        const totalShips = await Ships.count();
+        const guildId = getGuildId(message);
+        if (guildId instanceof Promise) return;
+
+        const ships: Ships[] = await ShipDao.findAll(guildId);
+        const totalShips = await ShipDao.count();
+
         const owners = Object.entries(
           _.groupBy(ships, (ship: Ships) => ship.owner.lastKnownTag)
         );
