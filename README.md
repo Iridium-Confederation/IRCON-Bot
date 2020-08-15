@@ -1,5 +1,24 @@
 # IRCON-Bot
 
+## Usage (!help)
+
+Looking for the exact name of your ship? See: https://fleetyards.net/ships/
+
+!add <ship> 
+     Add a ship to your fleet.
+!remove {ship|-all} 
+     Remove ships from your fleet.
+!search <ship> 
+     List all owners of a certain ship.
+!inventory [username] 
+     List all ships a certain user owns. Leave blank for your own
+!fleetview {user|-org} 
+     Generate a fleetview.json file for the org or a user.
+!import 
+     Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.
+!stats [ship] 
+     Display org fleet statistics or show detailed info about a single ship.
+  
 ## Config
 
 Create a file in the project root called `botconfig.json`.
