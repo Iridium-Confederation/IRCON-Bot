@@ -1,4 +1,7 @@
-# IRCON-Bot
+# FleetBot
+
+FleetBot is a helpful fleet management tool for your Star Citizen Org. Import and manage your personal fleet from the RSI website. Easily find out who owns
+what ships in your org. Even get the total UEC value of your ships. 
 
 ## Usage (!help)
 
