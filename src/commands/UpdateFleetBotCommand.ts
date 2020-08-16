@@ -8,8 +8,8 @@ export class UpdateFleetBotCommand implements FleetBotCommand {
     const { commandArgs } = getCommand(message);
 
     if (commandArgs.includes("-docker")) {
-      exec("kill $(pidof npm)");
       console.log("Starting docker update...");
+      exec("kill $(pidof npm)");
       return replyTo(message, "Starting docker update. Party time.");
     }
   }
