@@ -105,7 +105,7 @@ export function getGuildId(message: Discord.Message) {
   if (message.guild) {
     return message.guild.id;
   } else {
-    replyTo(message, "Unable to determine your Discord Guild.");
+    replyTo(message, "Private message support coming in a future release.");
   }
 }
 

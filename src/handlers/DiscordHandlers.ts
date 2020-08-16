@@ -43,23 +43,23 @@ export class DiscordHandlers {
   }
 
   registerOnGuildMemberAdd() {
-    client.on("guildMemberAdd", async (member) => {
-      // Send the message to a designated channel on a server:
-      const channel = member.guild.channels.cache.find(
-        (ch) => ch.name === "recruitment_info"
-      );
-
-      // Do nothing if the channel wasn't found on this server
-      if (!channel) return;
-
-      if (
-        !((channel): channel is TextChannel => channel.type === "text")(channel)
-      )
-        return;
-
-      // Send the message, mentioning the member
-      await channel.send(`A user has joined the server: ${member}`);
-    });
+    // client.on("guildMemberAdd", async (member) => {
+    //   // Send the message to a designated channel on a server:
+    //   const channel = member.guild.channels.cache.find(
+    //     (ch) => ch.name === "recruitment_info"
+    //   );
+    //
+    //   // Do nothing if the channel wasn't found on this server
+    //   if (!channel) return;
+    //
+    //   if (
+    //     !((channel): channel is TextChannel => channel.type === "text")(channel)
+    //   )
+    //     return;
+    //
+    //   // Send the message, mentioning the member
+    //   await channel.send(`A user has joined the server: ${member}`);
+    // });
   }
 
   registerOnMessage() {

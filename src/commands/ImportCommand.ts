@@ -1,10 +1,13 @@
 import Discord from "discord.js";
 import fetch from "node-fetch";
-import { addShip, replyTo } from "../utils";
+import { addShip, getGuildId, replyTo } from "../utils";
 import { FleetBotCommand } from "./FleetBotCommand";
 
 export class ImportCommand implements FleetBotCommand {
   async execute(message: Discord.Message): Promise<void> {
+    const guildId = getGuildId(message);
+    if (guildId == null) return;
+
     const attachment = message.attachments.find(() => true);
 
     if (attachment) {

@@ -1,10 +1,13 @@
 import Discord from "discord.js";
 import { User } from "../models/User";
-import { replyTo } from "../utils";
+import { getGuildId, replyTo } from "../utils";
 import { FleetBotCommand } from "./FleetBotCommand";
 
 export class HelpCommand implements FleetBotCommand {
   execute(message: Discord.Message) {
+    const guildId = getGuildId(message);
+    if (guildId == null) return;
+
     let msg =
       "Looking for the exact name of your ship? See: <https://fleetyards.net/ships/>\n\n" +
       "**!add <ship>** \n\t Add a ship to your fleet.\n" +
