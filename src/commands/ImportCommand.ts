@@ -57,7 +57,7 @@ export class ImportCommand implements FleetBotCommand {
     } else {
       replyTo(
         message,
-        "Uplaod a **FleetView** or **Hangar XPLORer** json file here with a description of **!import**\n\n" +
+        "Uplaod a **FleetView** or **Hangar XPLORer** json file here with a description of **!fb import**\n\n" +
           "**FleetView**: Click <https://www.starship42.com/fleetview/> -> (Select your fleet) -> Start -> Download JSON.\n" +
           "**Hangar XPLORer**: Install the Chrome/Firefox plugin -> RSI -> Accounts -> My Hanger -> Download JSON."
       );
