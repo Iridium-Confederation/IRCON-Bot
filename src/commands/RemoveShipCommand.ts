@@ -6,8 +6,8 @@ import { deleteShips } from "../models/Ships";
 export class RemoveShipCommand implements FleetBotCommand {
   async execute(message: Discord.Message): Promise<void> {
     const { commandArgs } = getCommand(message);
-    const guildId = getGuildId(message);
 
+    const guildId = getGuildId(message);
     if (guildId == null) return;
 
     const shipName = commandArgs.toLowerCase();
