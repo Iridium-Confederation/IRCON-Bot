@@ -88,7 +88,7 @@ export async function refreshShipList() {
 export function getTotalUsd(ships: Ships[]): Number {
   const total = ships
     .map((ship) => findShip(ship.shipname)?.lastPledgePrice)
-    .reduce((a, b) => (a ? a : 0) + (b ? b : 0));
+    .reduce((a, b) => (a ? a : 0) + (b ? b : 0), 0);
 
   return total ? total : 0;
 }
