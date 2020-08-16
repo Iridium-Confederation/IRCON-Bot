@@ -46,7 +46,7 @@ export class DiscordHandlers {
     client.on("message", async (message: Discord.Message) => {
       // Disables PM support for now.
 
-      let PREFIX = "!";
+      let PREFIX = "!fb";
       if (message.content.startsWith(PREFIX)) {
         const guildId = getGuildId(message);
         if (guildId == null) return;
