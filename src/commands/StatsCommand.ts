@@ -13,6 +13,9 @@ import { FleetBotCommand } from "./FleetBotCommand";
 
 export class StatsCommand implements FleetBotCommand {
   async execute(message: Discord.Message): Promise<void> {
+    const guildId = getGuildId(message);
+    if (guildId == null) return;
+
     const { commandArgs } = getCommand(message);
 
     if (commandArgs) {
@@ -44,9 +47,6 @@ export class StatsCommand implements FleetBotCommand {
       }
     } else {
       // Total org statistics
-      const guildId = getGuildId(message);
-      if (guildId == null) return;
-
       const ships: Ships[] = await ShipDao.findAll(guildId);
       const totalShips = await ShipDao.count();
 

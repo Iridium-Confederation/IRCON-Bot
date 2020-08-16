@@ -15,7 +15,6 @@ export class InventoryCommand implements FleetBotCommand {
     const { commandArgs } = getCommand(message);
 
     const guildId = getGuildId(message);
-
     if (guildId == null) return;
 
     const ships =

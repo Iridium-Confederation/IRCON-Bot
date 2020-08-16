@@ -6,8 +6,8 @@ import { FleetBotCommand } from "./FleetBotCommand";
 export class FleetViewCommand implements FleetBotCommand {
   async execute(message: Discord.Message): Promise<void> {
     const { commandArgs } = getCommand(message);
-    const guildId = getGuildId(message);
 
+    const guildId = getGuildId(message);
     if (guildId == null) return;
 
     let username;
