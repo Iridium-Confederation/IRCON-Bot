@@ -1,5 +1,5 @@
 import Discord from "discord.js";
-import { getCommand, getGuildId } from "../utils";
+import { getCommand, getGuildId, replyTo } from "../utils";
 import { FleetBotCommand } from "./FleetBotCommand";
 import { deleteShips } from "../models/Ships";
 
@@ -17,16 +17,19 @@ export class RemoveShipCommand implements FleetBotCommand {
       guildId,
       commandArgs === "-all"
     );
+
     const rowCount = removedShips.size;
     if (commandArgs === "-all") {
-      message.reply(
+      replyTo(
+        message,
         `${rowCount} ship${rowCount > 1 ? "s" : ""} removed from your fleet.`
       );
     } else if (shipName.length <= 1) {
-      message.reply("Could you be more specific?");
+      replyTo(message, "Could you be more specific?");
     } else {
       const deletedShip = removedShips.values().next().value;
-      message.reply(
+      replyTo(
+        message,
         deletedShip
           ? `Removed **${deletedShip.rsiName}** from your fleet.`
           : "You do not own that ship."

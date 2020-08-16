@@ -23,9 +23,9 @@ export class RemoveAllCommand implements FleetBotCommand {
         count++;
         s.destroy();
       });
-      return replyTo(message, `${count} ships deleted.`);
+      replyTo(message, `${count} ships deleted.`);
     } else {
-      return replyTo(message, `User not found.`);
+      replyTo(message, `User not found.`);
     }
   }
 }

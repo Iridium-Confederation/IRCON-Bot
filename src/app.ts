@@ -1,5 +1,5 @@
 import { ShipDao } from "./models/Ships";
-import { getGuildId, refreshShipList } from "./utils";
+import { refreshShipList } from "./utils";
 import { DiscordHandlers } from "./handlers/DiscordHandlers";
 require("fs");
 
@@ -7,14 +7,10 @@ require("fs");
 ShipDao.initialize();
 
 // Background job for ship list
-(async () => {
-  await refreshShipList();
-})();
+refreshShipList().then(() => true);
 setInterval(refreshShipList, 900_000);
 
-const discordHandlers = new DiscordHandlers();
-discordHandlers.login();
-discordHandlers.registerOnReady();
-discordHandlers.registerOnGuildMemberAdd();
-discordHandlers.registerOnMessage();
-discordHandlers.registerOnUserUpdate();
+DiscordHandlers.login();
+DiscordHandlers.registerOnReady();
+DiscordHandlers.registerOnMessage();
+DiscordHandlers.registerOnUserUpdate();

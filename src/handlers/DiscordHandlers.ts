@@ -1,4 +1,4 @@
-import Discord, { TextChannel } from "discord.js";
+import Discord from "discord.js";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
 import { getCommand, getGuildId, hasRole, updateUser } from "../utils";
@@ -17,20 +17,20 @@ export const client = new Discord.Client();
 import { DownloadDBCommand } from "../commands/DownloadDBCommand";
 
 export class DiscordHandlers {
-  login() {
+  static login() {
     if (!client.login(token)) {
       console.log("Failed to login.");
     }
   }
 
-  registerOnReady() {
+  static registerOnReady() {
     client.once("ready", () => {
       User.sync();
       ShipDao.sync();
     });
   }
 
-  registerOnUserUpdate() {
+  static registerOnUserUpdate() {
     client.on(
       "userUpdate",
       async (
@@ -42,29 +42,8 @@ export class DiscordHandlers {
     );
   }
 
-  registerOnGuildMemberAdd() {
-    // client.on("guildMemberAdd", async (member) => {
-    //   // Send the message to a designated channel on a server:
-    //   const channel = member.guild.channels.cache.find(
-    //     (ch) => ch.name === "recruitment_info"
-    //   );
-    //
-    //   // Do nothing if the channel wasn't found on this server
-    //   if (!channel) return;
-    //
-    //   if (
-    //     !((channel): channel is TextChannel => channel.type === "text")(channel)
-    //   )
-    //     return;
-    //
-    //   // Send the message, mentioning the member
-    //   await channel.send(`A user has joined the server: ${member}`);
-    // });
-  }
-
-  registerOnMessage() {
+  static registerOnMessage() {
     client.on("message", async (message: Discord.Message) => {
-
       // Disables PM support for now.
       const guildId = getGuildId(message);
       if (guildId == null) return;
