@@ -1,5 +1,5 @@
 import { ShipDao } from "./models/Ships";
-import { refreshShipList } from "./utils";
+import { getGuildId, refreshShipList } from "./utils";
 import { DiscordHandlers } from "./handlers/DiscordHandlers";
 require("fs");
 
