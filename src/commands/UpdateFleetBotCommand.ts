@@ -7,10 +7,8 @@ export class UpdateFleetBotCommand implements FleetBotCommand {
   async execute(message: Discord.Message): Promise<void> {
     const { commandArgs } = getCommand(message);
 
-    if (commandArgs.includes("-docker")) {
-      await replyTo(message, "Starting docker update. Party time.");
-      console.log("Starting docker update...");
-      exec("kill $(pidof npm)");
-    }
+    await replyTo(message, "Starting docker update. Party time.");
+    console.log("Starting docker update...");
+    exec("kill $(pidof npm)");
   }
 }
