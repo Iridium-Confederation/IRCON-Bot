@@ -7,8 +7,8 @@ import { FleetBotCommand } from "./FleetBotCommand";
 export class SearchCommand implements FleetBotCommand {
   async execute(message: Discord.Message): Promise<void> {
     const guildId = getGuildId(message);
-    const { commandArgs } = getCommand(message);
 
+    const { commandArgs } = getCommand(message);
     if (guildId == null) return;
 
     const shipName = commandArgs.toLowerCase();
