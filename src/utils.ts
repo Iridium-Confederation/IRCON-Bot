@@ -4,7 +4,7 @@ import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
 import { client } from "./handlers/DiscordHandlers";
 
-const PREFIX = "!";
+const PREFIX = "!fb";
 
 export function replyTo(
   message: Discord.Message,
@@ -20,7 +20,7 @@ export function replyTo(
 }
 
 export function getCommand(message: Discord.Message) {
-  const input = message.content.slice(PREFIX.length).split(" ");
+  const input = message.content.slice(PREFIX.length + 1).split(" ");
   const command = input.shift();
   const commandArgs = input.join(" ");
   return { command, commandArgs };
