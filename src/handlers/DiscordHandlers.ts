@@ -45,11 +45,12 @@ export class DiscordHandlers {
   static registerOnMessage() {
     client.on("message", async (message: Discord.Message) => {
       // Disables PM support for now.
-      const guildId = getGuildId(message);
-      if (guildId == null) return;
 
       let PREFIX = "!";
       if (message.content.startsWith(PREFIX)) {
+        const guildId = getGuildId(message);
+        if (guildId == null) return;
+
         await updateUser(message.author);
 
         const { command } = getCommand(message);
