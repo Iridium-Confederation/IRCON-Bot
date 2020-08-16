@@ -1,5 +1,5 @@
 import Discord from "discord.js";
-import { addShip, getCommand, getGuildId } from "../utils";
+import { addShip, getCommand, getGuildId, replyTo } from "../utils";
 import { FleetBotCommand } from "./FleetBotCommand";
 
 export class AddShipCommand implements FleetBotCommand {
@@ -12,14 +12,14 @@ export class AddShipCommand implements FleetBotCommand {
     const shipName = commandArgs.toLowerCase();
 
     if (shipName.length <= 1) {
-      await message.reply("Could you be more specific?");
+      replyTo(message, "Could you be more specific?");
     }
 
     const addedShip = addShip(shipName, message);
     if (addedShip) {
-      await message.reply(`added **${addedShip.name}** to your fleet.`);
+      replyTo(message, `added **${addedShip.name}** to your fleet.`);
     } else {
-      await message.reply(`Unknown ship.`);
+      replyTo(message, `Unknown ship.`);
     }
   }
 }
