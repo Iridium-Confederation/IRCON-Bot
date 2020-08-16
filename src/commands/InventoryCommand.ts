@@ -56,6 +56,6 @@ export class InventoryCommand implements FleetBotCommand {
       header = "User not found or has no ships.";
     }
 
-    return replyTo(message, header + shipStr);
+    replyTo(message, header + shipStr);
   }
 }
