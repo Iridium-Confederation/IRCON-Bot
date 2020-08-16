@@ -1,7 +1,7 @@
 import Discord, { TextChannel } from "discord.js";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
-import { getCommand, hasRole, updateUser } from "../utils";
+import { getCommand, getGuildId, hasRole, updateUser } from "../utils";
 import { AddShipCommand } from "../commands/AddShipCommand";
 import { RemoveShipCommand } from "../commands/RemoveShipCommand";
 import { InventoryCommand } from "../commands/InventoryCommand";
@@ -64,6 +64,11 @@ export class DiscordHandlers {
 
   registerOnMessage() {
     client.on("message", async (message: Discord.Message) => {
+
+      // Disables PM support for now.
+      const guildId = getGuildId(message);
+      if (guildId == null) return;
+
       let PREFIX = "!";
       if (message.content.startsWith(PREFIX)) {
         await updateUser(message.author);
