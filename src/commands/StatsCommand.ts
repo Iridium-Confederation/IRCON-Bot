@@ -48,7 +48,7 @@ export class StatsCommand implements FleetBotCommand {
     } else {
       // Total org statistics
       const ships: Ships[] = await ShipDao.findAll(guildId);
-      const totalShips = await ShipDao.count();
+      const totalShips = ships.length;
 
       const owners = Object.entries(
         _.groupBy(ships, (ship: Ships) => ship.owner.lastKnownTag)
