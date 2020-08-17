@@ -2,20 +2,18 @@ import Discord from "discord.js";
 import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
-import { client } from "./handlers/DiscordHandlers";
+import { client, PREFIX } from "./handlers/DiscordHandlers";
 
-const PREFIX = "!fb";
+let allowedShips: FleetViewShip[];
 
 export function replyTo(
   message: Discord.Message,
   ...contents: Parameters<Discord.TextChannel["send"]>
 ) {
   if (contents[0].length >= 2000) {
-    message.channel
-      .send("Reply too long. Try a smaller query.")
-      .then(() => true);
+    message.channel.send("Reply too long. Try a smaller query.").then(() => {});
   } else {
-    message.channel.send(...contents).then(() => true);
+    message.channel.send(...contents).then(() => {});
   }
 }
 
@@ -66,8 +64,6 @@ export function findShip(shipName: string): FleetViewShip | undefined {
     return allowedShips.find((s) => s.name.match(re));
   }
 }
-
-export let allowedShips: FleetViewShip[];
 
 export async function refreshShipList() {
   try {
