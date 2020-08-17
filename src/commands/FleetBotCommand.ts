@@ -1,5 +1,3 @@
 import * as Discord from "discord.js";
 
-export interface FleetBotCommand {
-  execute: (message: Discord.Message) => void;
-}
+export type FleetBotCommand = (message: Discord.Message) => Promise<any>;

@@ -3,12 +3,12 @@ import { getCommand, replyTo } from "../utils";
 import { exec } from "child_process";
 import { FleetBotCommand } from "./FleetBotCommand";
 
-export class UpdateFleetBotCommand implements FleetBotCommand {
-  async execute(message: Discord.Message): Promise<void> {
-    const { commandArgs } = getCommand(message);
+export const UpdateFleetBotCommand: FleetBotCommand = async (
+  message: Discord.Message
+) => {
+  const { commandArgs } = getCommand(message);
 
-    await replyTo(message, "Starting docker update. Party time.");
-    console.log("Starting docker update...");
-    exec("kill $(pidof npm)");
-  }
-}
+  await replyTo(message, "Starting docker update. Party time.");
+  console.log("Starting docker update...");
+  exec("kill $(pidof npm)");
+};
