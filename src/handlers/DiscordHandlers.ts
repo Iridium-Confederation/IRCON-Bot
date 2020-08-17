@@ -3,7 +3,7 @@ import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
 import * as Utils from "../utils";
 import * as Commands from "../commands";
-import { commandsLogger } from "../app";
+import { commandsLogger } from "../logging/logging";
 const token = require("../../botconfig.json");
 export const client = new Discord.Client();
 export const PREFIX = "!fb";
@@ -43,7 +43,7 @@ export function registerOnMessage() {
       const { command } = Utils.getCommand(message);
 
       commandsLogger.info(
-        `[${message.author.tag}] executed command [${message.content}]`
+        `[${message.author.tag}-${message.author.id}] executed command [${message.content}]`
       );
 
       await Utils.updateUser(message.author);
