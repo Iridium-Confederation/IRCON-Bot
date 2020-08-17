@@ -6,3 +6,4 @@ built/
 .vscode/
 shipList.txt
 admins.json
+*.log
