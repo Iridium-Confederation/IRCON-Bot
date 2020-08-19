@@ -37,9 +37,6 @@ export function registerOnMessage() {
   client.on("message", async (message: Discord.Message) => {
     // Disables PM support for now.
     if (message.content.startsWith(PREFIX)) {
-      const guildId = Utils.getGuildId(message);
-      if (guildId == null) return;
-
       const { command } = Utils.getCommand(message);
 
       commandsLogger.info(
@@ -73,6 +70,8 @@ export function registerOnMessage() {
         await Commands.StatsCommand(message);
       } else if (command === "help") {
         await Commands.HelpCommand(message);
+      } else if (command === "set" || command === "clear") {
+        await Commands.SetCommand(message);
       }
     }
   });

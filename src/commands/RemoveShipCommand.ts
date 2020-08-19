@@ -8,14 +8,14 @@ export const RemoveShipCommand: FleetBotCommand = async (
 ) => {
   const { commandArgs } = getCommand(message);
 
-  const guildId = getGuildId(message);
+  const guildId = await getGuildId(message);
   if (guildId == null) return;
 
   const shipName = commandArgs.toLowerCase();
   const removedShips = await deleteShips(
     shipName,
     message.author.tag,
-    guildId,
+    await guildId,
     commandArgs === "-all"
   );
 

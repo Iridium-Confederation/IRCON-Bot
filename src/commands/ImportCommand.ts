@@ -6,7 +6,7 @@ import { FleetBotCommand } from "./FleetBotCommand";
 export const ImportCommand: FleetBotCommand = async (
   message: Discord.Message
 ) => {
-  const guildId = getGuildId(message);
+  const guildId = await getGuildId(message);
   if (guildId == null) return;
 
   const attachment = message.attachments.find(() => true);
@@ -36,8 +36,12 @@ export const ImportCommand: FleetBotCommand = async (
           (format === "fleetview" && item.type && item.type === "ship") ||
           format === "hangar-explorer"
       )
-      .map((item: any) => {
-        let isSuccess = addShip(item.name.toLowerCase().trim(), message);
+      .map(async (item: any) => {
+        let isSuccess = addShip(
+          item.name.toLowerCase().trim(),
+          message,
+          await guildId
+        );
 
         if (!isSuccess) {
           failures.add(item.name.trim());
