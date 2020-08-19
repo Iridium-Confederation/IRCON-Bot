@@ -5,6 +5,7 @@ import {
   getGuildId,
   getTotalUec,
   getTotalUsd,
+  getUserGuilds,
   replyTo,
 } from "../utils";
 import { ShipDao, Ships } from "../models/Ships";
@@ -14,7 +15,7 @@ import { FleetBotCommand } from "./FleetBotCommand";
 export const StatsCommand: FleetBotCommand = async (
   message: Discord.Message
 ) => {
-  const guildId = getGuildId(message);
+  const guildId = await getGuildId(message);
   if (guildId == null) return;
 
   const { commandArgs } = getCommand(message);
@@ -48,7 +49,7 @@ export const StatsCommand: FleetBotCommand = async (
     }
   } else {
     // Total org statistics
-    const ships: Ships[] = await ShipDao.findAll(guildId);
+    const ships: Ships[] = await ShipDao.findAll(await guildId);
     const totalShips = ships.length;
 
     const owners = Object.entries(
@@ -57,9 +58,10 @@ export const StatsCommand: FleetBotCommand = async (
 
     const totalUsd = getTotalUsd(ships).toLocaleString();
     const totalUec = getTotalUec(ships).toLocaleString();
+    const currentGuild = getUserGuilds(message).get(guildId);
 
     let reply =
-      `We have **${totalShips}** ships contributed by **${owners.length}** owners ` +
+      `**${currentGuild?.name}** currently has **${totalShips}** ships contributed by **${owners.length}** owners ` +
       `with a total ship value of **$${totalUsd}** ` +
       `(**${totalUec} UEC** for ships available for in-game purchase).\n\n`;
 
@@ -69,6 +71,10 @@ export const StatsCommand: FleetBotCommand = async (
         .map((o) => o[0].split("#")[0])
         .sort()
         .join(", ");
+
+    if (owners.length == 0) {
+      reply += "None yet. Why not be the first?";
+    }
 
     replyTo(message, reply);
   }
