@@ -1,4 +1,4 @@
-import Discord from "discord.js";
+import Discord, { Snowflake } from "discord.js";
 import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
@@ -97,21 +97,62 @@ export function getTotalUec(ships: Ships[]): Number {
   return total ? total : 0;
 }
 
-export function getGuildId(message: Discord.Message) {
+export function getUserGuilds(message: Discord.Message) {
+  return client.guilds.cache.filter(
+    (g) => g.members.cache.get(message.author.id) != null
+  );
+}
+
+export async function getGuildId(message: Discord.Message) {
   if (message.guild) {
     return message.guild.id;
   } else {
-    replyTo(message, "Private message support coming in a future release.");
+    const guilds = getUserGuilds(message);
+    const user = (await User.findById(message.author.id))[0];
+
+    if (user.defaultGuildId) {
+      if (guilds.get(user.defaultGuildId) == null) {
+        replyTo(
+          message,
+          "You are no longer connected to your default guild. Please set a new one.\n"
+        );
+        user.defaultGuildId = null;
+        user.save();
+      } else {
+        return user.defaultGuildId;
+      }
+    }
+
+    if (guilds.size > 1 && user.defaultGuildId == null) {
+      replyTo(
+        message,
+        "You have joined multiple Discord guilds serviced by FleetBot.\n\n" +
+          guilds.map((g) => `**${g.name}** (id: ${g.id})`).join("\n") +
+          "\n\n" +
+          "Select one as your default for private messaging using: **!fb set default_guild [GUILD_ID]**"
+      );
+    } else if (guilds.size == 1) {
+      return guilds.values().next()?.value.id;
+    } else {
+      replyTo(
+        message,
+        "You are not part of any Discord guilds serviced by FleetBot."
+      );
+    }
   }
 }
 
-export function addShip(shipName: string, message: Discord.Message) {
+export function addShip(
+  shipName: string,
+  message: Discord.Message,
+  guildId: Snowflake
+) {
   const foundShip = findShip(shipName);
   if (foundShip) {
     ShipDao.create({
       shipname: foundShip.name,
       discordUserId: message.author.id,
-      guildId: message.guild?.id,
+      guildId: guildId,
     });
     return foundShip;
   } else {

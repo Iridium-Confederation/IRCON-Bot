@@ -8,7 +8,7 @@ export const FleetViewCommand: FleetBotCommand = async (
 ) => {
   const { commandArgs } = getCommand(message);
 
-  const guildId = getGuildId(message);
+  const guildId = await getGuildId(message);
   if (guildId == null) return;
 
   let username;
@@ -21,7 +21,7 @@ export const FleetViewCommand: FleetBotCommand = async (
   }
 
   const fleetview = (
-    await ShipDao.findShipsByOwnerLike(username, guildId as string)
+    await ShipDao.findShipsByOwnerLike(username, await guildId)
   ).map((t: Ships) => {
     return {
       name: t.shipname,

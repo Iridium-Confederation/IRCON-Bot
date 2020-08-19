@@ -1,4 +1,5 @@
 import {
+  AllowNull,
   Column,
   HasMany,
   Model,
@@ -20,6 +21,10 @@ export class User extends Model<User> {
 
   @Column
   lastKnownTag!: string;
+
+  @AllowNull
+  @Column("VARCHAR")
+  defaultGuildId!: string | null;
 
   @HasMany(() => Ships)
   ownedShips!: Ships[];

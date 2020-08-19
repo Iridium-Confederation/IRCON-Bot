@@ -7,13 +7,13 @@ import { FleetBotCommand } from "./FleetBotCommand";
 export const SearchCommand: FleetBotCommand = async (
   message: Discord.Message
 ) => {
-  const guildId = getGuildId(message);
+  const guildId = await getGuildId(message);
 
   const { commandArgs } = getCommand(message);
   if (guildId == null) return;
 
   const shipName = commandArgs.toLowerCase();
-  const matches = await ShipDao.findShipsByName(`%${shipName}%`, guildId);
+  const matches = await ShipDao.findShipsByName(`%${shipName}%`, await guildId);
 
   const reply = Object.entries(
     _.groupBy(matches, (ship) => findShip(ship.shipname)?.rsiName)
