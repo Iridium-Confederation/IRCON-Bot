@@ -13,7 +13,7 @@ export const SearchCommand: FleetBotCommand = async (
   if (guildId == null) return;
 
   const shipName = commandArgs.toLowerCase();
-  const matches = await ShipDao.findShipsByName(`%${shipName}%`, await guildId);
+  const matches = await ShipDao.findShipsByName(`%${shipName}%`, guildId);
 
   const reply = Object.entries(
     _.groupBy(matches, (ship) => findShip(ship.shipname)?.rsiName)
