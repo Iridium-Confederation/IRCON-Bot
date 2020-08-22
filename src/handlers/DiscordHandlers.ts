@@ -6,7 +6,7 @@ import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
 const token = require("../../botconfig.json");
 export const client = new Discord.Client();
-export const PREFIX = () => "!fb ";
+export const PREFIX = () => "!";
 
 export function login() {
   if (!client.login(token)) {
