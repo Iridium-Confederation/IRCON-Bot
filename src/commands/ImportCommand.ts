@@ -2,6 +2,7 @@ import Discord from "discord.js";
 import fetch from "node-fetch";
 import { addShip, getGuildId, replyTo } from "../utils";
 import { FleetBotCommand } from "./FleetBotCommand";
+import { PREFIX } from "../handlers/DiscordHandlers";
 
 export const ImportCommand: FleetBotCommand = async (
   message: Discord.Message
@@ -62,7 +63,7 @@ export const ImportCommand: FleetBotCommand = async (
   } else {
     replyTo(
       message,
-      "Uplaod a **FleetView** or **Hangar XPLORer** json file here with a description of **!fb import**\n\n" +
+      `Uplaod a **FleetView** or **Hangar XPLORer** json file here with a description of **${PREFIX()}import**\n\n` +
         "**FleetView**: Click <https://www.starship42.com/fleetview/> -> (Select your fleet) -> Start -> Download JSON.\n" +
         "**Hangar XPLORer**: Install the Chrome/Firefox plugin -> RSI -> Accounts -> My Hanger -> Download JSON."
     );
