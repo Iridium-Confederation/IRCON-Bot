@@ -1,37 +1,45 @@
 # FleetBot
 
-FleetBot is a helpful fleet management tool for your Star Citizen Org. Import and manage your personal fleet from the RSI website. Easily find out who owns
-what ships in your org. Even get the total UEC value of your ships. 
+FleetBot is a helpful fleet management tool for your Star Citizen Organization. Import and manage your personal fleet from the RSI website. Easily find out who owns
+what ships in your org. Even get the total UEC value of your ships. Export your personal or org fleet and visualize it in FleetView.
 
-## Usage (!help)
+Designed and developed by Iridium Confederation.
+
+Discord: https://discord.gg/Ystmtsn
+
+RSI: https://robertsspaceindustries.com/orgs/IRCON
+
+Development questions: https://discord.gg/Ru8WqyG
+
+# Usage (!fb help)
 
 Looking for the exact name of your ship? See: https://fleetyards.net/ships/
 
-!add \<ship\>
+!fb add \<ship\>
      
      Add a ship to your fleet.
      
-!remove {ship|-all}
+!fb remove {ship|-all}
 
      Remove ships from your fleet.
      
-!search \<ship\>
+!fb search \<ship\>
      
      List all owners of a certain ship.
      
-!inventory [username]
+!fb inventory [username]
 
      List all ships a certain user owns. Leave blank for your own
     
-!fleetview {user|-org}
+!fb fleetview {user|-org}
 
      Generate a fleetview.json file for the org or a user.
      
-!import
+!fb import
 
      Upload a HangarXPLOR or FleetView JSON File and specify this command in the comment.
      
-!stats [ship] 
+!fb stats [ship] 
 
      Display org fleet statistics or show detailed info about a single ship.
      
@@ -64,26 +72,4 @@ npm run start
 Requires [docker](https://docs.docker.com/get-docker/) and [docker compose](https://docs.docker.com/compose/install/) 
 ```
 cd docker && docker-compose build && docker-compose up -d
-```
-
-## Install (systemctl)
-
-Edit ircon-bot.service and change WorkingDirectory to reflect the directory you cloned the bot
-
-```
-useradd --system --no-create-home discord
-visudo
-```
-
-Add to end:
-
-```
-Cmnd_Alias DISCORD_CMNDS = /bin/systemctl start ircon-bot, /bin/systemctl stop ircon-bot, /bin/systemctl restart ircon-bot
-%discord ALL=(ALL) NOPASSWD: DISCORD_CMNDS
-```
-
-type `:wq!` to exit visudo
-
-```
-./install.sh
 ```
