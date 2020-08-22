@@ -16,7 +16,7 @@ export const AddShipCommand: FleetBotCommand = async (
     replyTo(message, "Could you be more specific?");
   }
 
-  const addedShip = addShip(shipName, message, await guildId);
+  const addedShip = addShip(shipName, message, guildId);
   if (addedShip) {
     replyTo(message, `added **${addedShip.name}** to your fleet.`);
   } else {
