@@ -6,7 +6,7 @@ import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
 const token = require("../../botconfig.json");
 export const client = new Discord.Client();
-export const PREFIX = "!fb";
+export const PREFIX = () => "!fb ";
 
 export function login() {
   if (!client.login(token)) {
@@ -36,7 +36,7 @@ export function registerOnUserUpdate() {
 export function registerOnMessage() {
   client.on("message", async (message: Discord.Message) => {
     // Disables PM support for now.
-    if (message.content.startsWith(PREFIX)) {
+    if (message.content.startsWith(PREFIX())) {
       const { command } = Utils.getCommand(message);
 
       commandsLogger.info(
