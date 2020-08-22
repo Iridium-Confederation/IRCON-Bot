@@ -2,6 +2,7 @@ import Discord from "discord.js";
 import { getCommand, getUserGuilds, replyTo } from "../utils";
 import { FleetBotCommand } from "./FleetBotCommand";
 import { User } from "../models/User";
+import { PREFIX } from "../handlers/DiscordHandlers";
 
 export const SetCommand: FleetBotCommand = async (message: Discord.Message) => {
   const { command, commandArgs } = getCommand(message);
@@ -25,6 +26,9 @@ export const SetCommand: FleetBotCommand = async (message: Discord.Message) => {
       replyTo(message, "Invalid GUILD_ID.");
     }
   } else {
-    replyTo(message, "**Usage**: !fb set default_guild GUILD_ID");
+    replyTo(
+      message,
+      `**Usage**: ${PREFIX()}{set|clear} default_guild [GUILD_ID]`
+    );
   }
 };
