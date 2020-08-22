@@ -1,4 +1,5 @@
 import {
+  AllowNull,
   Column,
   HasMany,
   Model,
@@ -7,6 +8,9 @@ import {
   Unique,
 } from "sequelize-typescript";
 import { Ships } from "./Ships";
+import { Snowflake } from "discord.js";
+
+const admins = require("../../admins.json");
 
 @Table
 export class User extends Model<User> {
@@ -18,8 +22,18 @@ export class User extends Model<User> {
   @Column
   lastKnownTag!: string;
 
+  @AllowNull
+  @Column("VARCHAR")
+  defaultGuildId!: string | null;
+
   @HasMany(() => Ships)
   ownedShips!: Ships[];
+
+  static isAdmin(discordUserId: Snowflake) {
+    return admins
+      .map((a: any) => a.discordId)
+      .find((id: string) => id == discordUserId);
+  }
 
   static async findByTag(tag: string): Promise<User[]> {
     return User.findAll({
