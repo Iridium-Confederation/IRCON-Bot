@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fleetbot-deployment
+  labels:
+    app: fleetbot
+spec:
+  selector:
+    matchLabels:
+      app: fleetbot
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: fleetbot
+    spec:
+      volumes:
+        - name: bot-pv-storage
+          persistentVolumeClaim:
+            claimName: bot-pv-claim
+        - name: secret-volume
+          secret:
+            secretName: bot-config
+      containers:
+        - name: fleetbot
+          image: monestri/iridium-fleetbot:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: "80m"
+          volumeMounts:
+            - mountPath: "/bot"
+              name: bot-pv-storage
+            - name: secret-volume
+              mountPath: "/etc/botconfig"
+
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: bot-backup
+spec:
+  schedule: "* * * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          volumes:
+            - name: bot-pv-storage
+              persistentVolumeClaim:
+                claimName: bot-pv-claim
+            - name: secret-volume
+              secret:
+                defaultMode: 0600
+                secretName: backup-key
+          containers:
+            - name: bot-backup
+              image: monestri/dev-tools:latest
+              imagePullPolicy: Always
+              args:
+                - rsync
+                - "-v"
+                - "-a"
+                - "--no-links"
+                - "-e"
+                - "ssh -o StrictHostKeyChecking=no"
+                - /bot
+                - root@185.136.234.126:/bot
+              volumeMounts:
+                - mountPath: "/bot"
+                  name: bot-pv-storage
+                - name: secret-volume
+                  mountPath: /root/.ssh/id_rsa
+                  subPath: id_rsa
+                - name: secret-volume
+                  mountPath: /root/.ssh/id_rsa.pub
+                  subPath: id_rsa.pub
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: bot-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+    - ReadOnlyMany
+  hostPath:
+    path: "/mnt/bot-data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bot-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 2Gi

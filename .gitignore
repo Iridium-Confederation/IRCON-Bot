@@ -5,3 +5,7 @@ built/
 *.sqlite
 .vscode/
 shipList.txt
+admins.json
+*.log
+*.secret
+id_rsa*
