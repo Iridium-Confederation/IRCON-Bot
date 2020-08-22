@@ -14,10 +14,7 @@ export const RemoveAllCommand: FleetBotCommand = async (
 
   const user = (await User.findByTag(commandArgs))[0];
   if (user) {
-    const ships = await ShipDao.findShipsByOwnerId(
-      user.discordUserId,
-      await guildId
-    );
+    const ships = await ShipDao.findShipsByOwnerId(user.discordUserId, guildId);
 
     let count = 0;
     ships.map((s) => {

@@ -49,7 +49,7 @@ export const StatsCommand: FleetBotCommand = async (
     }
   } else {
     // Total org statistics
-    const ships: Ships[] = await ShipDao.findAll(await guildId);
+    const ships: Ships[] = await ShipDao.findAll(guildId);
     const totalShips = ships.length;
 
     const owners = Object.entries(

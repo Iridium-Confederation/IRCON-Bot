@@ -20,14 +20,14 @@ export const FleetViewCommand: FleetBotCommand = async (
     username = message.author.tag;
   }
 
-  const fleetview = (
-    await ShipDao.findShipsByOwnerLike(username, await guildId)
-  ).map((t: Ships) => {
-    return {
-      name: t.shipname,
-      shipname: t.owner.lastKnownTag.split("#")[0],
-    };
-  });
+  const fleetview = (await ShipDao.findShipsByOwnerLike(username, guildId)).map(
+    (t: Ships) => {
+      return {
+        name: t.shipname,
+        shipname: t.owner.lastKnownTag.split("#")[0],
+      };
+    }
+  );
 
   if (fleetview.length === 0) {
     replyTo(message, "No results found.");

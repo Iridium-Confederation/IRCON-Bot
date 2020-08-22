@@ -15,7 +15,7 @@ export const RemoveShipCommand: FleetBotCommand = async (
   const removedShips = await deleteShips(
     shipName,
     message.author.tag,
-    await guildId,
+    guildId,
     commandArgs === "-all"
   );
 

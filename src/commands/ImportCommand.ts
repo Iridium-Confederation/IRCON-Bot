@@ -40,7 +40,7 @@ export const ImportCommand: FleetBotCommand = async (
         let isSuccess = addShip(
           item.name.toLowerCase().trim(),
           message,
-          await guildId
+          guildId
         );
 
         if (!isSuccess) {
