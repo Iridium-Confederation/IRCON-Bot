@@ -103,7 +103,9 @@ export function getUserGuilds(message: Discord.Message) {
   );
 }
 
-export async function getGuildId(message: Discord.Message) {
+export async function getGuildId(
+  message: Discord.Message
+): Promise<string | null> {
   if (message.guild) {
     return message.guild.id;
   } else {
@@ -139,6 +141,8 @@ export async function getGuildId(message: Discord.Message) {
         "You are not part of any Discord guilds serviced by FleetBot."
       );
     }
+
+    return null;
   }
 }
 

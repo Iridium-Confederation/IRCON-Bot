@@ -20,8 +20,8 @@ export const InventoryCommand: FleetBotCommand = async (
 
   const ships =
     commandArgs === ""
-      ? await ShipDao.findShipsByOwnerId(message.author.id, await guildId)
-      : await ShipDao.findShipsByOwnerLike(`%${commandArgs}%#%`, await guildId);
+      ? await ShipDao.findShipsByOwnerId(message.author.id, guildId)
+      : await ShipDao.findShipsByOwnerLike(`%${commandArgs}%#%`, guildId);
 
   const totalUec = getTotalUec(ships).toLocaleString();
 
