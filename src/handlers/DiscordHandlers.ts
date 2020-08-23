@@ -1,4 +1,4 @@
-import Discord from "discord.js";
+import Discord, { TextChannel } from "discord.js";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
 import * as Utils from "../utils";
