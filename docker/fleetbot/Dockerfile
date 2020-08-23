@@ -1,7 +1,7 @@
 
 FROM ubuntu:focal
 
-RUN apt-get update 
+RUN apt-get update
 RUN apt-get -y install curl sudo
 
 # Install nodejs
@@ -13,6 +13,6 @@ RUN apt-get install -y git
 
 # Application dependencies
 RUN apt-get install -y python3
-COPY start.sh /
+COPY start.sh /start.sh
 RUN chmod +x /start.sh
-CMD /start.sh 
+CMD ["/bin/sh", "/start.sh"]

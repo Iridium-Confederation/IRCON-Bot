@@ -2,7 +2,7 @@ version: "3.3"
 services:
   fleetbot:
     build: fleetbot
-    image: monestri/iridium-fleetbot
+    image: monestri/iridium-fleetbot:latest
     networks:
       - default
     volumes:
