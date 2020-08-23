@@ -11,6 +11,17 @@ services:
       - ./botconfig.json:/botconfig.json
     restart: unless-stopped
 
+  fleetbot-ircon:
+    build: fleetbot-ircon
+    image: monestri/iridium-fleetbot-ircon
+    networks:
+      - default
+    volumes:
+      - data:/bot
+      - ./admins.json:/admins.json
+      - ./botconfig.json:/botconfig.json
+    restart: unless-stopped
+
   dev-tools:
     build: devtools
     image: monestri/dev-tools
