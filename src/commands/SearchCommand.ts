@@ -9,7 +9,7 @@ export const SearchCommand: FleetBotCommand = async (
 ) => {
   const guildId = await getGuildId(message);
 
-  const { commandArgs } = getCommand(message);
+  const { commandArgs } = await getCommand(message);
   if (guildId == null) return;
 
   const shipName = commandArgs.toLowerCase();

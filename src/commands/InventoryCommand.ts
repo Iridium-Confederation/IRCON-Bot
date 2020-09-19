@@ -14,7 +14,7 @@ import _ from "lodash";
 export const InventoryCommand: FleetBotCommand = async (
   message: Discord.Message
 ) => {
-  const { commandArgs } = getCommand(message);
+  const { commandArgs } = await getCommand(message);
 
   const guildId = await getGuildId(message);
   if (guildId == null) return;

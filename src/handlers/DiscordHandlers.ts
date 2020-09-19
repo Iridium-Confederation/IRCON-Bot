@@ -4,10 +4,11 @@ import { ShipDao } from "../models/Ships";
 import * as Utils from "../utils";
 import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
+import { getCommand, getGuildId } from "../utils";
 const token = require("../../botconfig.json");
 export const client = new Discord.Client();
-export const PREFIX = (message: Discord.Message) => {
-  if (message.guild?.id == "226021087996149772") {
+export const PREFIX = async (message: Discord.Message) => {
+  if ((await getGuildId(message)) == "226021087996149772") {
     return "!";
   } else {
     return "!fb ";
@@ -65,8 +66,8 @@ export function registerOnUserUpdate() {
 export function registerOnMessage() {
   client.on("message", async (message: Discord.Message) => {
     // Disables PM support for now.
-    if (message.content.startsWith(PREFIX(message))) {
-      const { command } = Utils.getCommand(message);
+    if (message.content.startsWith(await PREFIX(message))) {
+      const { command } = await getCommand(message);
 
       commandsLogger.info(
         `[${message.author.tag}-${message.author.id}] executed command [${message.content}]`

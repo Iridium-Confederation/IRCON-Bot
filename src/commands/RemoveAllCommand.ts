@@ -7,7 +7,7 @@ import { getCommand, getGuildId, replyTo } from "../utils";
 export const RemoveAllCommand: FleetBotCommand = async (
   message: Discord.Message
 ) => {
-  const { commandArgs } = getCommand(message);
+  const { commandArgs } = await getCommand(message);
 
   const guildId = await getGuildId(message);
   if (guildId == null) return;
