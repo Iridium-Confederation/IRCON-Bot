@@ -75,7 +75,7 @@ spec:
 
   jobTemplate:
     spec:
-      backoffLimit: 0
+        backoffLimit: 0
       template:
         spec:
           restartPolicy: Never

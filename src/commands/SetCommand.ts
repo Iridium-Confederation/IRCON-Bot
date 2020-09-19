@@ -5,7 +5,7 @@ import { User } from "../models/User";
 import { PREFIX } from "../handlers/DiscordHandlers";
 
 export const SetCommand: FleetBotCommand = async (message: Discord.Message) => {
-  const { command, commandArgs } = getCommand(message);
+  const { command, commandArgs } = await getCommand(message);
 
   const user = (await User.findById(message.author.id))[0];
   const re = /^\W*default_guild\W*(?<id>\d+)\W*$/;
@@ -28,7 +28,7 @@ export const SetCommand: FleetBotCommand = async (message: Discord.Message) => {
   } else {
     replyTo(
       message,
-      `**Usage**: ${PREFIX(message)}{set|clear} default_guild [GUILD_ID]`
+      `**Usage**: ${await PREFIX(message)}{set|clear} default_guild [GUILD_ID]`
     );
   }
 };
