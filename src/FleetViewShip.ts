@@ -1,4 +1,5 @@
 interface FleetViewShip {
+  id: string;
   storeUrl: string;
   name: string;
   description: string;

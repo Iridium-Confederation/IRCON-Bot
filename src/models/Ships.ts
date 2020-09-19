@@ -1,4 +1,5 @@
 import {
+  AllowNull,
   BelongsTo,
   Column,
   ForeignKey,
@@ -135,6 +136,10 @@ export class Ships extends Model<Ships> {
 
   @Column
   guildId!: string;
+
+  @AllowNull
+  @Column("VARCHAR")
+  fleetyardsId!: string | null;
 }
 
 export async function deleteShips(
