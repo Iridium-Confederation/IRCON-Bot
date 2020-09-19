@@ -5,6 +5,7 @@ import {
   getCommand,
   getGuildId,
   getTotalUec,
+  getUserGuilds,
   replyTo,
 } from "../utils";
 import { ShipDao } from "../models/Ships";
@@ -18,10 +19,15 @@ export const InventoryCommand: FleetBotCommand = async (
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
-  const ships =
-    commandArgs === ""
-      ? await ShipDao.findShipsByOwnerId(message.author.id, guildId)
-      : await ShipDao.findShipsByOwnerLike(`%${commandArgs}%#%`, guildId);
+  let ships;
+  if (commandArgs.includes("-org")) {
+    ships = await ShipDao.findAll(guildId);
+  } else {
+    ships =
+      commandArgs === ""
+        ? await ShipDao.findShipsByOwnerId(message.author.id, guildId)
+        : await ShipDao.findShipsByOwnerLike(`%${commandArgs}%#%`, guildId);
+  }
 
   const totalUec = getTotalUec(ships).toLocaleString();
 
@@ -37,21 +43,28 @@ export const InventoryCommand: FleetBotCommand = async (
       firstUserFound = firstUserFound
         ? firstUserFound
         : group[1][0].owner.lastKnownTag;
-      return firstUserFound === group[1][0].owner.lastKnownTag
+      return firstUserFound === group[1][0].owner.lastKnownTag ||
+        commandArgs.includes("-org")
         ? `**${ship?.rsiName}**` + (shipCount > 1 ? " x " + shipCount : "")
         : "";
     })
     .sort()
+    .filter((s) => s.length > 0)
     .join("\n");
 
+  const currentGuild = getUserGuilds(message).get(guildId);
   let header;
 
-  if (firstUserFound) {
-    header = `${
-      firstUserFound.split("#")[0]
-    }'s inventory (**${totalUec} UEC**):\n`;
+  if (commandArgs.includes("-org")) {
+    header = `${currentGuild?.name}'s inventory:\n`;
   } else {
-    header = "User not found or has no ships.";
+    if (firstUserFound) {
+      header = `${
+        firstUserFound.split("#")[0]
+      }'s inventory (**${totalUec} UEC**):\n`;
+    } else {
+      header = "User not found or has no ships.";
+    }
   }
 
   replyTo(message, header + shipStr);
