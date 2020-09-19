@@ -1,4 +1,4 @@
-import Discord from "discord.js";
+import Discord, { TextChannel } from "discord.js";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
 import * as Utils from "../utils";
@@ -6,7 +6,7 @@ import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
 const token = require("../../botconfig.json");
 export const client = new Discord.Client();
-export const PREFIX = () => "!fb ";
+export const PREFIX = () => "!";
 
 export function login() {
   if (!client.login(token)) {
@@ -18,6 +18,26 @@ export function registerOnReady() {
   client.once("ready", () => {
     User.sync();
     ShipDao.sync();
+  });
+}
+
+export function registerOnGuildMemberAdd() {
+  client.on("guildMemberAdd", async (member) => {
+    // Send the message to a designated channel on a server:
+    const channel = member.guild.channels.cache.find(
+      (ch) => ch.name === "recruitment_info"
+    );
+
+    // Do nothing if the channel wasn't found on this server
+    if (!channel) return;
+
+    if (
+      !((channel): channel is TextChannel => channel.type === "text")(channel)
+    )
+      return;
+
+    // Send the message, mentioning the member
+    await channel.send(`A user has joined the server: ${member}`);
   });
 }
 
