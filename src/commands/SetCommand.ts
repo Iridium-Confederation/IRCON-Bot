@@ -28,7 +28,7 @@ export const SetCommand: FleetBotCommand = async (message: Discord.Message) => {
   } else {
     replyTo(
       message,
-      `**Usage**: ${PREFIX()}{set|clear} default_guild [GUILD_ID]`
+      `**Usage**: ${PREFIX(message)}{set|clear} default_guild [GUILD_ID]`
     );
   }
 };
