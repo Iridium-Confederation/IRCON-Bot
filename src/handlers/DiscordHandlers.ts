@@ -6,7 +6,13 @@ import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
 const token = require("../../botconfig.json");
 export const client = new Discord.Client();
-export const PREFIX = () => "!";
+export const PREFIX = (message: Discord.Message) => {
+  if (message.guild?.id == "226021087996149772") {
+    return "!";
+  } else {
+    return "!fb ";
+  }
+};
 
 export function login() {
   if (!client.login(token)) {
@@ -23,21 +29,24 @@ export function registerOnReady() {
 
 export function registerOnGuildMemberAdd() {
   client.on("guildMemberAdd", async (member) => {
-    // Send the message to a designated channel on a server:
-    const channel = member.guild.channels.cache.find(
-      (ch) => ch.name === "recruitment_info"
-    );
+    // iridium-only feature
+    if (member.guild.id == "226021087996149772") {
+      // Send the message to a designated channel on a server:
+      const channel = member.guild.channels.cache.find(
+        (ch) => ch.name === "recruitment_info"
+      );
 
-    // Do nothing if the channel wasn't found on this server
-    if (!channel) return;
+      // Do nothing if the channel wasn't found on this server
+      if (!channel) return;
 
-    if (
-      !((channel): channel is TextChannel => channel.type === "text")(channel)
-    )
-      return;
+      if (
+        !((channel): channel is TextChannel => channel.type === "text")(channel)
+      )
+        return;
 
-    // Send the message, mentioning the member
-    await channel.send(`A user has joined the server: ${member}`);
+      // Send the message, mentioning the member
+      await channel.send(`A user has joined the server: ${member}`);
+    }
   });
 }
 
@@ -56,7 +65,7 @@ export function registerOnUserUpdate() {
 export function registerOnMessage() {
   client.on("message", async (message: Discord.Message) => {
     // Disables PM support for now.
-    if (message.content.startsWith(PREFIX())) {
+    if (message.content.startsWith(PREFIX(message))) {
       const { command } = Utils.getCommand(message);
 
       commandsLogger.info(
