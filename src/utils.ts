@@ -43,9 +43,9 @@ export function replyTo(
   }
 }
 
-export function getCommand(message: Discord.Message) {
+export async function getCommand(message: Discord.Message) {
   const input = message.content
-    .substr(PREFIX(message).length)
+    .substr((await PREFIX(message)).length)
     .trimLeft()
     .split(" ");
   const command = input.shift();
@@ -174,7 +174,7 @@ export async function getGuildId(
         "You have joined multiple Discord guilds serviced by FleetBot.\n\n" +
           guilds.map((g) => `**${g.name}** (id: ${g.id})`).join("\n") +
           "\n\n" +
-          `Select one as your default for private messaging using: **${PREFIX(
+          `Select one as your default for private messaging using: **${await PREFIX(
             message
           )}{set|clear} default_guild [GUILD_ID]**`
       );

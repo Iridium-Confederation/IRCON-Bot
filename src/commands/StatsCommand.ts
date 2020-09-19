@@ -18,7 +18,7 @@ export const StatsCommand: FleetBotCommand = async (
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
-  const { commandArgs } = getCommand(message);
+  const { commandArgs } = await getCommand(message);
 
   if (commandArgs) {
     const ship = findShip(commandArgs);
