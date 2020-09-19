@@ -11,7 +11,33 @@ export function replyTo(
   ...contents: Parameters<Discord.TextChannel["send"]>
 ) {
   if (contents[0].length >= 2000) {
-    message.channel.send("Reply too long. Try a smaller query.").then(() => {});
+    const msg: string = contents[0];
+
+    let start = 0;
+    const chunkSize = 1500;
+
+    while (true) {
+      // The remaining chunk can be smaller.
+      if (start + chunkSize >= msg.length) {
+        message.channel.send(msg.substring(start)).then(() => {});
+        return;
+      }
+
+      // Create a chunkSize chunk, reducing it to find a newline.
+      for (let index = start + chunkSize - 1; index >= start; index--) {
+        if (msg[index] == "\n") {
+          // newline found
+          message.channel.send(msg.substring(start, index + 1)).then(() => {});
+          start = index + 1;
+          break;
+        } else if (index == start) {
+          // newline not found. Send whole chunk.
+          message.channel.send(msg.substr(start, chunkSize)).then(() => {});
+          start += chunkSize;
+          break;
+        }
+      }
+    }
   } else {
     message.channel.send(...contents).then(() => {});
   }
@@ -28,11 +54,25 @@ export function sanitizeSlug(shipName: string) {
   return shipName.replace(/[.']/g, "-");
 }
 
-export function findShip(shipName: string): FleetViewShip | undefined {
+export function findShip(
+  shipName: string,
+  ship: Ships | null = null
+): FleetViewShip | undefined {
   // A list of tokens people shouldn't be able to search on. This helps keep searches accurate.
   const blacklist = ["pirate", "edition", "explorer"];
   if (blacklist.find((item) => item === shipName) || shipName.length <= 1) {
     return;
+  }
+
+  // Skip search if there's a cache hit.
+  if (ship && ship.fleetyardsId) {
+    const cache = allowedShips.find((s) => s.id == ship.fleetyardsId);
+    if (cache) {
+      return cache;
+    } else {
+      ship.fleetyardsId = null;
+      ship.save();
+    }
   }
 
   shipName = shipName?.toLowerCase();
