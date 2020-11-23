@@ -191,12 +191,29 @@ export async function getGuildId(
   }
 }
 
+export async function addShipCheck(
+  message: Discord.Message,
+  guildId: Snowflake
+): Promise<boolean> {
+  let orgCount = await ShipDao.count(guildId);
+  if (orgCount > 3_000) {
+    replyTo(
+      message,
+      "Org limit reached. Contact developers to increase limit."
+    );
+    return false;
+  } else {
+    return true;
+  }
+}
+
 export function addShip(
   shipName: string,
   message: Discord.Message,
   guildId: Snowflake
-) {
+): FleetViewShip | undefined {
   const foundShip = findShip(shipName);
+
   if (foundShip) {
     ShipDao.create({
       shipname: foundShip.name,
