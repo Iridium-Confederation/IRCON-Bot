@@ -1,6 +1,6 @@
 import Discord from "discord.js";
 import fetch from "node-fetch";
-import { addShip, getGuildId, replyTo } from "../utils";
+import { addShip, addShipCheck, getGuildId, replyTo } from "../utils";
 import { FleetBotCommand } from "./FleetBotCommand";
 import { PREFIX } from "../handlers/DiscordHandlers";
 
@@ -31,14 +31,19 @@ export const ImportCommand: FleetBotCommand = async (
       ? "fleetview"
       : "hangar-explorer";
 
-    body
+    const valid = await addShipCheck(message, guildId);
+    if (!valid) {
+      return;
+    }
+
+    let result = body
       .filter(
         (item: any) =>
           (format === "fleetview" && item.type && item.type === "ship") ||
           format === "hangar-explorer"
       )
       .map(async (item: any) => {
-        let isSuccess = addShip(
+        let isSuccess = await addShip(
           item.name.toLowerCase().trim(),
           message,
           guildId
@@ -51,6 +56,8 @@ export const ImportCommand: FleetBotCommand = async (
           successCount++;
         }
       });
+
+    await Promise.all(result);
 
     if (successCount) {
       replyTo(message, `Successfully imported **${successCount}** items.`);
