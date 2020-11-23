@@ -113,8 +113,16 @@ export class ShipDao {
     });
   }
 
-  static async count() {
-    return Ships.count();
+  static async count(guildId?: Snowflake) {
+    if (guildId) {
+      return Ships.count({
+        where: {
+          guildId: guildId,
+        },
+      });
+    } else {
+      return Ships.count();
+    }
   }
 
   static sync() {
