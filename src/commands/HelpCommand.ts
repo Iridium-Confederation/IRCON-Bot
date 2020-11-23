@@ -14,7 +14,7 @@ export const HelpCommand: FleetBotCommand = async (
     `**${await PREFIX(message)}add SHIP** \n\t Add a ship to your fleet.\n` +
     `**${await PREFIX(
       message
-    )}remove {SHIP|-all}** \n\t Remove ships from your fleet.\n` +
+    )}remove {SHIP|-all}** \n\t Remove some or all from your fleet.\n` +
     `**${await PREFIX(
       message
     )}search SHIP** \n\t List all owners of a certain ship.\n` +
