@@ -13,6 +13,7 @@ if [ -z "$(ls -A /bot)" ]; then
   echo "Successfully pulled source."
 fi
 
+git checkout master
 git reset --hard
 git pull
 npm install 
