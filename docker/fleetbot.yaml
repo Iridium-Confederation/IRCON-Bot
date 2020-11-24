@@ -23,7 +23,7 @@ spec:
             secretName: bot-config
       containers:
         - name: fleetbot
-          image: monestri/iridium-fleetbot-iron:latest
+          image: monestri/iridium-fleetbot-ircon:latest
           imagePullPolicy: Always
           volumeMounts:
             - mountPath: "/bot"
@@ -78,7 +78,7 @@ spec:
       backoffLimit: 0
       template:
         spec:
-          restartPolicy: Never
+          restartPolicy: OnFailure
           volumes:
             - name: bot-pv-storage
               persistentVolumeClaim:

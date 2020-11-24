@@ -8,7 +8,8 @@ import { getCommand, getGuildId } from "../utils";
 const token = require("../../botconfig.json");
 export const client = new Discord.Client();
 export const PREFIX = async (message: Discord.Message) => {
-  if ((await getGuildId(message)) == "226021087996149772") {
+  const guildId = await getGuildId(message, false);
+  if (guildId == "226021087996149772") {
     return "!";
   } else {
     return "!fb ";
@@ -65,8 +66,12 @@ export function registerOnUserUpdate() {
 
 export function registerOnMessage() {
   client.on("message", async (message: Discord.Message) => {
-    // Disables PM support for now.
     if (message.content.startsWith(await PREFIX(message))) {
+      const guildId = await getGuildId(message);
+      if (!guildId) {
+        return;
+      }
+
       const { command } = await getCommand(message);
 
       commandsLogger.info(
