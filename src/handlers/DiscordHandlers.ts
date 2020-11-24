@@ -70,7 +70,7 @@ export function registerOnMessage() {
       const { command } = await getCommand(message);
 
       const guildId = await getGuildId(message);
-      if (!guildId || command === "set") {
+      if (!guildId && command != "set") {
         return;
       }
 
