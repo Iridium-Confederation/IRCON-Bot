@@ -147,7 +147,8 @@ export function getUserGuilds(message: Discord.Message) {
 }
 
 export async function getGuildId(
-  message: Discord.Message
+  message: Discord.Message,
+  reply: boolean = true
 ): Promise<string | null> {
   if (message.guild) {
     return message.guild.id;
@@ -157,10 +158,12 @@ export async function getGuildId(
 
     if (user.defaultGuildId) {
       if (guilds.get(user.defaultGuildId) == null) {
-        replyTo(
-          message,
-          "You are no longer connected to your default guild. Please set a new one.\n"
-        );
+        if (reply) {
+          replyTo(
+            message,
+            "You are no longer connected to your default guild. Please set a new one.\n"
+          );
+        }
         user.defaultGuildId = null;
         user.save();
       } else {
@@ -169,22 +172,24 @@ export async function getGuildId(
     }
 
     if (guilds.size > 1 && user.defaultGuildId == null) {
-      replyTo(
-        message,
-        "You have joined multiple Discord guilds serviced by FleetBot.\n\n" +
-          guilds.map((g) => `**${g.name}** (id: ${g.id})`).join("\n") +
-          "\n\n" +
-          `Select one as your default for private messaging using: **${await PREFIX(
-            message
-          )}{set|clear} default_guild [GUILD_ID]**`
-      );
+      if (reply) {
+        replyTo(
+          message,
+          "You have joined multiple Discord guilds serviced by FleetBot.\n\n" +
+            guilds.map((g) => `**${g.name}** (id: ${g.id})`).join("\n") +
+            "\n\n" +
+            `Select one as your default for private messaging using: !fb {set|clear} default_guild [GUILD_ID]**`
+        );
+      }
     } else if (guilds.size == 1) {
       return guilds.values().next()?.value.id;
     } else {
-      replyTo(
-        message,
-        "You are not part of any Discord guilds serviced by FleetBot."
-      );
+      if (reply) {
+        replyTo(
+          message,
+          "You are not part of any Discord guilds serviced by FleetBot."
+        );
+      }
     }
 
     return null;
