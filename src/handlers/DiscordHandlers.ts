@@ -67,12 +67,12 @@ export function registerOnUserUpdate() {
 export function registerOnMessage() {
   client.on("message", async (message: Discord.Message) => {
     if (message.content.startsWith(await PREFIX(message))) {
+      const { command } = await getCommand(message);
+
       const guildId = await getGuildId(message);
-      if (!guildId) {
+      if (!guildId || command === "set") {
         return;
       }
-
-      const { command } = await getCommand(message);
 
       commandsLogger.info(
         `[${message.author.tag}-${message.author.id}] executed command [${message.content}]`
