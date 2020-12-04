@@ -63,6 +63,7 @@ spec:
               mountPath: "/bot"
             - name: secret-volume
               mountPath: "/etc/botconfig"
+
 ---
 apiVersion: batch/v1beta1
 kind: CronJob
@@ -109,6 +110,54 @@ spec:
                 - name: secret-volume
                   mountPath: /root/.ssh/id_rsa.pub
                   subPath: id_rsa.pub
+
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: ircon-bot-backup
+spec:
+  schedule: "* * * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: OnFailure
+          volumes:
+            - name: ircon-pv-storage
+              persistentVolumeClaim:
+                claimName: ircon-pv-claim
+            - name: secret-volume
+              secret:
+                defaultMode: 0600
+                secretName: backup-key
+          containers:
+            - name: bot-backup
+              image: monestri/dev-tools:latest
+              imagePullPolicy: Always
+              args:
+                - rsync
+                - "-v"
+                - "-a"
+                - "--no-links"
+                - "-e"
+                - "ssh -o StrictHostKeyChecking=no"
+                - /bot
+                - root@185.136.234.126:/bot-ircon
+              volumeMounts:
+                - mountPath: "/bot"
+                  name: ircon-pv-storage
+                - name: secret-volume
+                  mountPath: /root/.ssh/id_rsa
+                  subPath: id_rsa
+                - name: secret-volume
+                  mountPath: /root/.ssh/id_rsa.pub
+                  subPath: id_rsa.pub
+
 
 ---
 apiVersion: v1
