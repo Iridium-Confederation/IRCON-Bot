@@ -8,4 +8,5 @@ shipList.txt
 admins.json
 *.log
 *.secret
+*botconfig*
 id_rsa*
