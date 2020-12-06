@@ -6,6 +6,7 @@ import {
   getGuildId,
   getTotalUec,
   getUserGuilds,
+  loanersMap,
   replyTo,
 } from "../utils";
 import { ShipDao } from "../models/Ships";
@@ -39,14 +40,25 @@ export const InventoryCommand: FleetBotCommand = async (
       const shipNameDb = group[0];
       const shipCount = group[1].length;
       const ship = findShip(shipNameDb);
+      const loaners = loanersMap.get(ship?.id);
 
       firstUserFound = firstUserFound
         ? firstUserFound
         : group[1][0].owner.lastKnownTag;
-      return firstUserFound === group[1][0].owner.lastKnownTag ||
-        commandArgs.includes("-org")
-        ? `**${ship?.rsiName}**` + (shipCount > 1 ? " x " + shipCount : "")
+
+      const showItem =
+        firstUserFound === group[1][0].owner.lastKnownTag ||
+        commandArgs.includes("-org");
+
+      const loanerStr = loaners
+        ? `*(${loaners.map((l) => l.rsiName).join(", ")})*`
         : "";
+
+      const line =
+        `**${ship?.rsiName} ${shipCount > 1 ? " x " + shipCount : ""}** ` +
+        loanerStr;
+
+      return showItem ? line : "";
     })
     .sort()
     .filter((s) => s.length > 0)
