@@ -3,8 +3,10 @@ import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
 import { client, PREFIX } from "./handlers/DiscordHandlers";
+const tabletojson = require("tabletojson").Tabletojson;
 
 let allowedShips: FleetViewShip[];
+export let loanersMap = new Map<string | undefined, FleetViewShip[]>();
 
 export function replyTo(
   message: Discord.Message,
@@ -108,6 +110,51 @@ export function findShip(
   }
 }
 
+export function isNotNullOrUndefined<T extends Object>(
+  input: null | undefined | T
+): input is T {
+  return input != null;
+}
+
+function getLoaners() {
+  interface Loaner {
+    "Your Ship": string;
+    "Loaner(s)": string;
+  }
+
+  return tabletojson.convertUrl(
+    "https://www.citizen-logbook.com/loaner-ship-matrix.html",
+    function (tablesAsJson: any) {
+      const conceptShips: Loaner[] = tablesAsJson[0];
+      const convertedLoaners = conceptShips
+        .map((l) => {
+          const ship = l["Your Ship"];
+          const loaners = l["Loaner(s)"]
+            .split(", ")
+            .map((loaner) => {
+              const convertedLoaner = findShip(loaner);
+              if (convertedLoaner) {
+                return convertedLoaner;
+              } else {
+                console.log("Loaner match failed: " + loaner);
+              }
+            })
+            .filter(isNotNullOrUndefined);
+
+          const conceptShip = findShip(ship);
+          if (!conceptShip) {
+            console.log("Concept ship match failed: " + ship);
+          } else {
+            return { key: conceptShip.id, val: loaners };
+          }
+        })
+        .filter(isNotNullOrUndefined);
+
+      loanersMap = new Map(convertedLoaners.map((obj) => [obj.key, obj.val]));
+    }
+  );
+}
+
 export async function refreshShipList() {
   try {
     const p1 = await fetch(
@@ -121,6 +168,12 @@ export async function refreshShipList() {
   } catch (e) {
     console.log(`Failed to fetch ship list: ${e}`);
     process.exit(1);
+  }
+
+  try {
+    await getLoaners();
+  } catch (e) {
+    console.warn(`Failed to fetch loaner list: ${e}`);
   }
 }
 
