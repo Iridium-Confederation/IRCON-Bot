@@ -1,5 +1,5 @@
 import { ShipDao } from "./models/Ships";
-import { findShip, refreshShipList } from "./utils";
+import { refreshShipList } from "./utils";
 import * as discordHandlers from "./handlers/DiscordHandlers";
 import { initializeLogging, logger } from "./logging/logging";
 
@@ -14,7 +14,6 @@ ShipDao.initialize();
 
 // Background job for ship list
 refreshShipList().then(() => {});
-
 setInterval(refreshShipList, 900_000);
 
 discordHandlers.login();
