@@ -5,6 +5,7 @@ import * as Utils from "../utils";
 import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
 import { getCommand, getGuildId } from "../utils";
+import fs from "fs";
 const token = require("../../botconfig.json");
 export const client = new Discord.Client();
 export const PREFIX = async (message: Discord.Message) => {
@@ -22,10 +23,25 @@ export function login() {
   }
 }
 
+// Do a database backup over discord
+async function doBackup() {
+  const backupUser = client.users.cache.get("122191318037430276");
+  if (backupUser) {
+    const data = fs.readFileSync("database.sqlite");
+    await backupUser.send(
+      new Discord.MessageAttachment(data, "database.sqlite")
+    );
+  }
+}
+
 export function registerOnReady() {
-  client.once("ready", () => {
+  client.once("ready", async () => {
     User.sync();
     ShipDao.sync();
+
+    // Schedule daily backups.
+    doBackup();
+    setInterval(doBackup, 86_400_000);
   });
 }
 
@@ -66,7 +82,10 @@ export function registerOnUserUpdate() {
 
 export function registerOnMessage() {
   client.on("message", async (message: Discord.Message) => {
-    if (message.content.startsWith(await PREFIX(message))) {
+    if (
+      client.user?.id != message.author.id &&
+      message.content.startsWith(await PREFIX(message))
+    ) {
       const { command } = await getCommand(message);
 
       const guildId = await getGuildId(message);

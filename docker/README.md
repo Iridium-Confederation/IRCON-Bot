@@ -16,7 +16,14 @@ Initialize the cluster.
 kubectl apply -f fleetbot.yaml
 ```
 
-Copy database to cluster. 
+Copy database to cluster (old method)  
 ```
 kubectl cp database.sqlite <some-pod>:/bot/database.sqlite
 ```
+
+Copy database to cluster (new method) 
+```
+// In a DM with the bot, upload the database and specify this comment. 
+!fb db 
+```
+
