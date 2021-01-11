@@ -2,10 +2,11 @@
 
 set -e
 
-cd /bot
+mkdir -p /bot/app
+cd /bot/app
 
 # Clone if empty
-if [ -z "$(ls -A /bot)" ]; then
+if [ -z "$(ls -A /bot/app)" ]; then
   echo "Checking out code."
   git clone https://github.com/Iridium-Confederation/IRCON-Bot.git .
   ln -s /etc/botconfig/botconfig.json botconfig.json

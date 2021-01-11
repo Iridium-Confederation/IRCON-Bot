@@ -1,16 +1,5 @@
 version: "3.3"
 services:
-  fleetbot:
-    build: fleetbot
-    image: monestri/iridium-fleetbot:latest
-    networks:
-      - default
-    volumes:
-      - data:/bot
-      - ./admins.json:/admins.json
-      - ./botconfig.json:/botconfig.json
-    restart: unless-stopped
-
   fleetbot-ircon:
     build: fleetbot-ircon
     image: monestri/iridium-fleetbot-ircon
