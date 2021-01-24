@@ -79,5 +79,10 @@ export const InventoryCommand: FleetBotCommand = async (
     }
   }
 
-  replyTo(message, header + shipStr);
+  replyTo(
+    message,
+    "**Ship x Quantity** *(Loaners)*\n\n" + shipStr,
+    undefined,
+    header
+  );
 };
