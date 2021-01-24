@@ -34,10 +34,7 @@ export const FleetViewCommand: FleetBotCommand = async (
   } else {
     replyTo(
       message,
-      "Click <https://www.starship42.com/fleetview/> -> Choose File -> Upload this attachment.\n"
-    );
-    replyTo(
-      message,
+      "Click <https://www.starship42.com/fleetview/> -> Choose File -> Upload this attachment.\n",
       new Discord.MessageAttachment(
         Buffer.from(JSON.stringify(fleetview)),
         "fleetview.json"

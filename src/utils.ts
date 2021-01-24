@@ -1,4 +1,4 @@
-import Discord, { Snowflake } from "discord.js";
+import Discord, { MessageAttachment, Snowflake } from "discord.js";
 import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
@@ -8,12 +8,35 @@ const tabletojson = require("tabletojson").Tabletojson;
 let allowedShips: FleetViewShip[];
 export let loanersMap = new Map<string | undefined, FleetViewShip[]>();
 
+function reply(
+  message: Discord.Message,
+  body: string,
+  attachment: MessageAttachment | undefined,
+  title?: string
+) {
+  PREFIX(message).then((prefix) => {
+    const command = message.content.replace(prefix, "").split(" ")[0];
+    const embed = new Discord.MessageEmbed()
+      .setColor("#0099ff")
+      .setTitle(title ? title : command)
+      .setDescription(body);
+
+    if (attachment) {
+      embed.attachFiles([attachment]);
+    }
+
+    message.channel.send(embed).then(() => {});
+  });
+}
+
 export function replyTo(
   message: Discord.Message,
-  ...contents: Parameters<Discord.TextChannel["send"]>
+  contents: string,
+  attachment?: MessageAttachment,
+  title?: string
 ) {
-  if (contents[0].length >= 2000) {
-    const msg: string = contents[0];
+  if (contents.length >= 2000) {
+    const msg: string = contents;
 
     let start = 0;
     const chunkSize = 1500;
@@ -21,7 +44,8 @@ export function replyTo(
     while (true) {
       // The remaining chunk can be smaller.
       if (start + chunkSize >= msg.length) {
-        message.channel.send(msg.substring(start)).then(() => {});
+        const body = msg.substring(start);
+        reply(message, body, attachment, title);
         return;
       }
 
@@ -29,19 +53,21 @@ export function replyTo(
       for (let index = start + chunkSize - 1; index >= start; index--) {
         if (msg[index] == "\n") {
           // newline found
-          message.channel.send(msg.substring(start, index + 1)).then(() => {});
+          const body = msg.substring(start, index + 1);
+          reply(message, body, attachment, title);
           start = index + 1;
           break;
         } else if (index == start) {
           // newline not found. Send whole chunk.
-          message.channel.send(msg.substr(start, chunkSize)).then(() => {});
+          const body = msg.substr(start, chunkSize);
+          reply(message, body, attachment, title);
           start += chunkSize;
           break;
         }
       }
     }
   } else {
-    message.channel.send(...contents).then(() => {});
+    reply(message, contents, attachment, title);
   }
 }
 

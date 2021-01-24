@@ -40,7 +40,7 @@ export function registerOnReady() {
     ShipDao.sync();
 
     // Schedule daily backups.
-    doBackup();
+    await doBackup();
     setInterval(doBackup, 86_400_000);
   });
 }
