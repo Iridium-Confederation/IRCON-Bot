@@ -39,7 +39,7 @@ export function replyTo(
     const msg: string = contents;
 
     let start = 0;
-    const chunkSize = 1500;
+    const chunkSize = 1800;
 
     while (true) {
       // The remaining chunk can be smaller.
