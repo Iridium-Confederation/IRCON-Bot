@@ -18,6 +18,10 @@ export const DownloadDBCommand: FleetBotCommand = async (
     );
   } else {
     const data = fs.readFileSync("database.sqlite");
-    replyTo(message, new Discord.MessageAttachment(data, "database.sqlite"));
+    replyTo(
+      message,
+      "Successfully fetched database.",
+      new Discord.MessageAttachment(data, "database.sqlite")
+    );
   }
 };

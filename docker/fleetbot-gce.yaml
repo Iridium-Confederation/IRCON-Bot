@@ -30,56 +30,11 @@ spec:
               name: bot-pv-storage
             - name: secret-volume
               mountPath: "/etc/botconfig"
-
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ircon-fleetbot-deployment
-  labels:
-    app: ircon-fleetbot
-spec:
-  selector:
-    matchLabels:
-      app: ircon-fleetbot
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: ircon-fleetbot
-    spec:
-      volumes:
-        - name: ircon-pv-storage
-          persistentVolumeClaim:
-            claimName: ircon-pv-claim
-        - name: secret-volume
-          secret:
-            secretName: ircon-config
-      containers:
-        - name: fleetbot
-          image: monestri/iridium-fleetbot-ircon:latest
-          imagePullPolicy: Always
-          volumeMounts:
-            - name: ircon-pv-storage
-              mountPath: "/bot"
-            - name: secret-volume
-              mountPath: "/etc/botconfig"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: bot-pv-claim
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ircon-pv-claim
 spec:
   accessModes:
     - ReadWriteOnce

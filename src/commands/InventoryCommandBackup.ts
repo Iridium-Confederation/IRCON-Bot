@@ -9,8 +9,9 @@ import {
   loanersMap,
   replyTo,
 } from "../utils";
-import { ShipDao } from "../models/Ships";
+import { ShipDao, Ships } from "../models/Ships";
 import _ from "lodash";
+import { table } from "table";
 
 export const InventoryCommand: FleetBotCommand = async (
   message: Discord.Message
@@ -20,7 +21,7 @@ export const InventoryCommand: FleetBotCommand = async (
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
-  let ships;
+  let ships: Ships[];
   if (commandArgs.includes("-org")) {
     ships = await ShipDao.findAll(guildId);
   } else {
@@ -39,6 +40,7 @@ export const InventoryCommand: FleetBotCommand = async (
     .map((group) => {
       const shipNameDb = group[0];
       const shipCount = group[1].length;
+      const shipDb = group[1][0];
       const ship = findShip(shipNameDb);
       const loaners = loanersMap.get(ship?.id);
 
@@ -51,18 +53,21 @@ export const InventoryCommand: FleetBotCommand = async (
         commandArgs.includes("-org");
 
       const loanerStr = loaners
-        ? `*(${loaners.map((l) => l.rsiName).join(", ")})*`
+        ? `${loaners.map((l) => l.rsiName).join("\n")}`
         : "";
 
-      const line =
-        `**${ship?.rsiName} ${shipCount > 1 ? " x " + shipCount : ""}** ` +
-        loanerStr;
+      const uec = getTotalUec(shipDb ? [shipDb] : []);
 
-      return showItem ? line : "";
+      const shipName = `${ship?.rsiName} ${
+        shipCount > 1 ? " x " + shipCount : ""
+      }`;
+
+      return showItem
+        ? [shipName, loanerStr + "\n", uec.toString()]
+        : ["", "", ""];
     })
     .sort()
-    .filter((s) => s.length > 0)
-    .join("\n");
+    .filter((s) => s[0].length > 0);
 
   const currentGuild = getUserGuilds(message).get(guildId);
   let header;
@@ -71,18 +76,43 @@ export const InventoryCommand: FleetBotCommand = async (
     header = `${currentGuild?.name}'s inventory:\n`;
   } else {
     if (firstUserFound) {
-      header = `${
-        firstUserFound.split("#")[0]
-      }'s inventory (**${totalUec} UEC**):\n`;
+      header = `${firstUserFound.split("#")[0]}'s inventory`;
     } else {
       header = "User not found or has no ships.";
     }
   }
 
-  replyTo(
-    message,
-    "**Ship x Quantity** *(Loaners)*\n\n" + shipStr,
-    undefined,
-    header
-  );
+  // replyTo(message, header + shipStr);
+
+  let data, output, options;
+
+  options = {
+    border: {
+      topBody: "",
+      topLeft: "",
+      topRight: "",
+      topJoin: "",
+      bodyLeft: "",
+      bodyRight: "",
+      joinRight: "",
+      joinLeft: "",
+      bottomLeft: "",
+      bottomBody: "",
+      bottomJoin: "",
+      bottomRight: "",
+    },
+
+    drawHorizontalLine: function (index: number) {
+      return index === 1;
+    },
+  };
+
+  shipStr.splice(0, 0, [
+    `Ship (${ships.length})`,
+    "Loaners",
+    `UEC (${totalUec})`,
+  ]);
+  output = table(shipStr, options);
+
+  replyTo(message, "```" + output + "```", undefined, header);
 };
