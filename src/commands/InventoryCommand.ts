@@ -51,7 +51,7 @@ export const InventoryCommand: FleetBotCommand = async (
         commandArgs.includes("-org");
 
       const loanerStr = loaners
-        ? `*(${loaners.map((l) => l.rsiName).join(", ")})*`
+        ? `\nLoaner: *${loaners.map((l) => l.rsiName).join(", ")}*`
         : "";
 
       const line =

@@ -90,7 +90,7 @@ export function findShip(
   ship: Ships | null = null
 ): FleetViewShip | undefined {
   // A list of tokens people shouldn't be able to search on. This helps keep searches accurate.
-  const blacklist = ["pirate", "edition", "explorer"];
+  const blacklist = ["pirate", "edition", "explorer", "executive"];
   if (blacklist.find((item) => item === shipName) || shipName.length <= 1) {
     return;
   }
@@ -191,6 +191,12 @@ export async function refreshShipList() {
     );
 
     allowedShips = (await p1.json()).concat(await p2.json());
+    allowedShips = allowedShips.sort((a, b) => {
+      return (
+        a.rsiName.split(" ")[0].localeCompare(b.rsiName.split(" ")[0]) ||
+        a.rsiName.length - b.rsiName.length
+      );
+    });
   } catch (e) {
     console.log(`Failed to fetch ship list: ${e}`);
     process.exit(1);
