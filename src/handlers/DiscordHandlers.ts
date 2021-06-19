@@ -25,7 +25,7 @@ export function login() {
 
 // Do a database backup over discord
 async function doBackup() {
-  const backupUser = client.users.cache.get("122191318037430276");
+  const backupUser = client.users.cache.get("855908206672609310");
   if (backupUser) {
     const data = fs.readFileSync("database.sqlite");
     await backupUser.send(
