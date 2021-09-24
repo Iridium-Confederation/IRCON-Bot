@@ -1,10 +1,16 @@
 import Discord from "discord.js";
-import { getCommand, getGuildId, replyTo } from "../utils";
+import {
+  Communication,
+  getCommand,
+  getGuildId,
+  getUserTag,
+  replyTo,
+} from "../utils";
 import { ShipDao, Ships } from "../models/Ships";
 import { FleetBotCommand } from "./FleetBotCommand";
 
 export const FleetViewCommand: FleetBotCommand = async (
-  message: Discord.Message
+  message: Communication
 ) => {
   const { commandArgs } = await getCommand(message);
 
@@ -17,7 +23,7 @@ export const FleetViewCommand: FleetBotCommand = async (
   } else if (Boolean(commandArgs)) {
     username = commandArgs + "#%";
   } else {
-    username = message.author.tag;
+    username = getUserTag(message);
   }
 
   const fleetview = (await ShipDao.findShipsByOwnerLike(username, guildId)).map(

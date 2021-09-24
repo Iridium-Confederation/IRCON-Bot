@@ -1,5 +1,6 @@
 import Discord from "discord.js";
 import {
+  Communication,
   findShip,
   getCommand,
   getGuildId,
@@ -12,9 +13,7 @@ import { ShipDao, Ships } from "../models/Ships";
 import _ from "lodash";
 import { FleetBotCommand } from "./FleetBotCommand";
 
-export const StatsCommand: FleetBotCommand = async (
-  message: Discord.Message
-) => {
+export const StatsCommand: FleetBotCommand = async (message: Communication) => {
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 

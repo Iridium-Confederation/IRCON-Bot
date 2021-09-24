@@ -6,31 +6,56 @@ import { client, PREFIX } from "./handlers/DiscordHandlers";
 const tabletojson = require("tabletojson").Tabletojson;
 
 let allowedShips: FleetViewShip[];
+
 export let loanersMap = new Map<string | undefined, FleetViewShip[]>();
 
+export type Communication = Discord.Message | Discord.CommandInteraction;
+
 function reply(
-  message: Discord.Message,
+  message: Communication,
   body: string,
   attachment: MessageAttachment | undefined,
   title?: string
 ) {
   PREFIX(message).then((prefix) => {
-    const command = message.content.replace(prefix, "").split(" ")[0];
+    if (message.channel == null) return;
+
+    const command =
+      message instanceof Discord.Message
+        ? message.content.replace(prefix, "").split(" ")[0]
+        : message.commandName;
+
     const embed = new Discord.MessageEmbed()
       .setColor("#0099ff")
       .setTitle(title ? title : command)
       .setDescription(body);
 
-    if (attachment) {
-      embed.attachFiles([attachment]);
+    if (message instanceof Discord.Message) {
+      if (attachment) {
+        message.channel
+          .send({ embeds: [embed], files: [attachment] })
+          .then(() => {});
+      } else {
+        message.channel.send({ embeds: [embed] }).then(() => {});
+      }
+    } else {
+      if (attachment) {
+        message
+          .reply({ embeds: [embed], files: [attachment] })
+          .catch((e) => console.log(e))
+          .then(() => {});
+      } else {
+        message
+          .reply({ embeds: [embed] })
+          .catch((e) => console.log(e))
+          .then(() => {});
+      }
     }
-
-    message.channel.send(embed).then(() => {});
   });
 }
 
 export function replyTo(
-  message: Discord.Message,
+  message: Communication,
   contents: string,
   attachment?: MessageAttachment,
   title?: string
@@ -71,14 +96,22 @@ export function replyTo(
   }
 }
 
-export async function getCommand(message: Discord.Message) {
-  const input = message.content
-    .substr((await PREFIX(message)).length)
-    .trimLeft()
-    .split(" ");
-  const command = input.shift();
-  const commandArgs = input.join(" ");
-  return { command, commandArgs };
+export async function getCommand(message: Communication) {
+  if (message instanceof Discord.Message) {
+    const input = message.content
+      .substr((await PREFIX(message)).length)
+      .trimLeft()
+      .split(" ");
+    const command = input.shift();
+    const commandArgs = input.join(" ");
+    return { command, commandArgs };
+  } else {
+    const command = message.commandName;
+    // let commandArgs = message.options.get("test")?.value;
+
+    let commandArgs = "";
+    return { command, commandArgs };
+  }
 }
 
 export function sanitizeSlug(shipName: string) {
@@ -102,7 +135,7 @@ export function findShip(
       return cache;
     } else {
       ship.fleetyardsId = null;
-      ship.save();
+      ship.save().then(() => {});
     }
   }
 
@@ -225,21 +258,33 @@ export function getTotalUec(ships: Ships[]): Number {
   return total ? total : 0;
 }
 
-export function getUserGuilds(message: Discord.Message) {
+export function getUserGuilds(message: Communication) {
   return client.guilds.cache.filter(
-    (g) => g.members.cache.get(message.author.id) != null
+    (g) => g.members.cache.get(getUserId(message)) != null
   );
 }
 
+export function getUserTag(message: Communication) {
+  return message instanceof Discord.Message
+    ? message.author.tag
+    : message.user.tag;
+}
+
+export function getUserId(message: Communication) {
+  return message instanceof Discord.Message
+    ? message.author.id
+    : message.user.id;
+}
+
 export async function getGuildId(
-  message: Discord.Message,
+  message: Communication,
   reply: boolean = true
 ): Promise<string | null> {
   if (message.guild) {
     return message.guild.id;
   } else {
     const guilds = getUserGuilds(message);
-    const user = (await User.findById(message.author.id))[0];
+    const user = (await User.findById(getUserId(message)))[0];
 
     if (user.defaultGuildId) {
       if (guilds.get(user.defaultGuildId) == null) {
@@ -250,7 +295,7 @@ export async function getGuildId(
           );
         }
         user.defaultGuildId = null;
-        user.save();
+        await user.save();
       } else {
         return user.defaultGuildId;
       }
@@ -282,7 +327,7 @@ export async function getGuildId(
 }
 
 export async function addShipCheck(
-  message: Discord.Message,
+  message: Communication,
   guildId: Snowflake
 ): Promise<boolean> {
   let orgCount = await ShipDao.count(guildId);
@@ -299,7 +344,7 @@ export async function addShipCheck(
 
 export function addShip(
   shipName: string,
-  message: Discord.Message,
+  message: Communication,
   guildId: Snowflake
 ): FleetViewShip | undefined {
   const foundShip = findShip(shipName);
@@ -307,7 +352,7 @@ export function addShip(
   if (foundShip) {
     ShipDao.create({
       shipname: foundShip.name,
-      discordUserId: message.author.id,
+      discordUserId: getUserId(message),
       guildId: guildId,
     });
     return foundShip;
@@ -324,14 +369,14 @@ export async function updateUser(newUser: Discord.User | Discord.PartialUser) {
   }
   dbUser.discordUserId = newUser.id;
   dbUser.lastKnownTag = newUser.tag ? newUser.tag : "";
-  dbUser.save();
+  await dbUser.save();
 }
 
-export function hasRole(message: Discord.Message, role: string) {
+export function hasRole(message: Communication, role: string) {
   const hasRole = client.guilds.cache
     .map((g) => g.roles.cache.find((r) => r.name === role))
     .find(
-      (r) => r && r.members.find((member) => member.id === message.author.id)
+      (r) => r && r.members.find((member) => member.id === getUserId(message))
     );
 
   return hasRole != null;

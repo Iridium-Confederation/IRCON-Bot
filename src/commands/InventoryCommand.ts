@@ -1,11 +1,12 @@
-import Discord from "discord.js";
 import { FleetBotCommand } from "./FleetBotCommand";
 import {
+  Communication,
   findShip,
   getCommand,
   getGuildId,
   getTotalUec,
   getUserGuilds,
+  getUserId,
   loanersMap,
   replyTo,
 } from "../utils";
@@ -13,7 +14,7 @@ import { ShipDao } from "../models/Ships";
 import _ from "lodash";
 
 export const InventoryCommand: FleetBotCommand = async (
-  message: Discord.Message
+  message: Communication
 ) => {
   const { commandArgs } = await getCommand(message);
 
@@ -26,7 +27,7 @@ export const InventoryCommand: FleetBotCommand = async (
   } else {
     ships =
       commandArgs === ""
-        ? await ShipDao.findShipsByOwnerId(message.author.id, guildId)
+        ? await ShipDao.findShipsByOwnerId(getUserId(message), guildId)
         : await ShipDao.findShipsByOwnerLike(`%${commandArgs}%#%`, guildId);
   }
 

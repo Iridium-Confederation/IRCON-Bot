@@ -1,7 +1,7 @@
-import Discord from "discord.js";
 import {
   addShip,
   addShipCheck,
+  Communication,
   getCommand,
   getGuildId,
   replyTo,
@@ -9,7 +9,7 @@ import {
 import { FleetBotCommand } from "./FleetBotCommand";
 
 export const AddShipCommand: FleetBotCommand = async (
-  message: Discord.Message
+  message: Communication
 ) => {
   const { commandArgs } = await getCommand(message);
 

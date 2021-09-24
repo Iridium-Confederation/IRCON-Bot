@@ -1,10 +1,15 @@
-import Discord from "discord.js";
-import { getCommand, getGuildId, replyTo } from "../utils";
+import {
+  Communication,
+  getCommand,
+  getGuildId,
+  getUserTag,
+  replyTo,
+} from "../utils";
 import { FleetBotCommand } from "./FleetBotCommand";
 import { deleteShips } from "../models/Ships";
 
 export const RemoveShipCommand: FleetBotCommand = async (
-  message: Discord.Message
+  message: Communication
 ) => {
   const { commandArgs } = await getCommand(message);
 
@@ -14,7 +19,7 @@ export const RemoveShipCommand: FleetBotCommand = async (
   const shipName = commandArgs.toLowerCase();
   const removedShips = await deleteShips(
     shipName,
-    message.author.tag,
+    getUserTag(message),
     guildId,
     commandArgs === "-all"
   );

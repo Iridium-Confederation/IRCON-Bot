@@ -1,14 +1,28 @@
-import Discord, { TextChannel } from "discord.js";
+import Discord, { DiscordAPIError, Intents, TextChannel } from "discord.js";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
 import * as Utils from "../utils";
+import {
+  Communication,
+  getCommand,
+  getGuildId,
+  getUserId,
+  getUserTag,
+} from "../utils";
 import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
-import { getCommand, getGuildId } from "../utils";
 import fs from "fs";
+
 const token = require("../../botconfig.json");
-export const client = new Discord.Client();
-export const PREFIX = async (message: Discord.Message) => {
+export const client = new Discord.Client({
+  intents: [
+    Intents.FLAGS.GUILDS,
+    Intents.FLAGS.GUILD_MEMBERS,
+    Intents.FLAGS.DIRECT_MESSAGES,
+    Intents.FLAGS.GUILD_MESSAGES,
+  ],
+});
+export const PREFIX = async (message: Communication) => {
   const guildId = await getGuildId(message, false);
   if (guildId == "226021087996149772") {
     return "!";
@@ -27,16 +41,14 @@ export function login() {
 async function doBackup() {
   const backupUser = client.users.cache.get("855908206672609310");
   if (backupUser) {
-    const data = fs.readFileSync("database.sqlite");
-    await backupUser.send(
-      new Discord.MessageAttachment(data, "database.sqlite")
-    );
+    fs.readFileSync("database.sqlite");
+    await backupUser.send({ files: ["database.sqlite"] });
   }
 }
 
 export function registerOnReady() {
   client.once("ready", async () => {
-    User.sync();
+    await User.sync();
     ShipDao.sync();
 
     // Schedule daily backups.
@@ -58,7 +70,9 @@ export function registerOnGuildMemberAdd() {
       if (!channel) return;
 
       if (
-        !((channel): channel is TextChannel => channel.type === "text")(channel)
+        !((channel): channel is TextChannel => channel.type === "GUILD_TEXT")(
+          channel
+        )
       )
         return;
 
@@ -80,53 +94,82 @@ export function registerOnUserUpdate() {
   );
 }
 
+function getMessageContent(message: Communication) {
+  return message instanceof Discord.Message
+    ? message.content
+    : message.commandName;
+}
+
+async function processCommand(message: Communication) {
+  const { command } = await getCommand(message);
+
+  const guildId = await getGuildId(message);
+  if (!guildId && command != "set") {
+    return;
+  }
+
+  commandsLogger.info(
+    `[${getUserTag(message)}-${getUserId(
+      message
+    )}] executed command [${getMessageContent(message)}]`
+  );
+
+  await Utils.updateUser(
+    message instanceof Discord.Message ? message.author : message.user
+  );
+
+  if (command === "add") {
+    await Commands.AddShipCommand(message);
+  } else if (command === "remove") {
+    await Commands.RemoveShipCommand(message);
+  } else if ((command === "inventory") | (command === "inventory_org")) {
+    await Commands.InventoryCommand(message);
+  } else if (command === "search") {
+    await Commands.SearchCommand(message);
+  } else if (
+    (command === "removeall" || command === "remove_all") &&
+    Utils.hasRole(message, "Management")
+  ) {
+    await Commands.RemoveAllCommand(message);
+  } else if (command === "fleetview") {
+    await Commands.FleetViewCommand(message);
+  } else if (command === "update" && User.isAdmin(getUserId(message))) {
+    await Commands.UpdateFleetBotCommand(message);
+  } else if (command === "import") {
+    await Commands.ImportCommand(message);
+  } else if (command === "db" && User.isAdmin(getUserId(message))) {
+    await Commands.DownloadDBCommand(message);
+  } else if (command === "stats" || command === "stats_org") {
+    await Commands.StatsCommand(message);
+  } else if (command === "help") {
+    await Commands.HelpCommand(message);
+  } else if (command === "set" || command === "clear") {
+    await Commands.SetCommand(message);
+  }
+}
+
 export function registerOnMessage() {
-  client.on("message", async (message: Discord.Message) => {
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isCommand()) return;
+
+    try {
+      await processCommand(interaction);
+    } catch (e) {
+      if (e instanceof DiscordAPIError) {
+        console.log(e);
+      } else {
+        throw e;
+      }
+    }
+  });
+
+  client.on("message", async (message: Communication) => {
     if (
+      message instanceof Discord.Message &&
       client.user?.id != message.author.id &&
       message.content.startsWith(await PREFIX(message))
     ) {
-      const { command } = await getCommand(message);
-
-      const guildId = await getGuildId(message);
-      if (!guildId && command != "set") {
-        return;
-      }
-
-      commandsLogger.info(
-        `[${message.author.tag}-${message.author.id}] executed command [${message.content}]`
-      );
-
-      await Utils.updateUser(message.author);
-
-      if (command === "add") {
-        await Commands.AddShipCommand(message);
-      } else if (command === "remove") {
-        await Commands.RemoveShipCommand(message);
-      } else if (command === "inventory") {
-        await Commands.InventoryCommand(message);
-      } else if (command === "search") {
-        await Commands.SearchCommand(message);
-      } else if (
-        command === "removeall" &&
-        Utils.hasRole(message, "Management")
-      ) {
-        await Commands.RemoveAllCommand(message);
-      } else if (command === "fleetview") {
-        await Commands.FleetViewCommand(message);
-      } else if (command === "update" && User.isAdmin(message.author.id)) {
-        await Commands.UpdateFleetBotCommand(message);
-      } else if (command === "import") {
-        await Commands.ImportCommand(message);
-      } else if (command === "db" && User.isAdmin(message.author.id)) {
-        await Commands.DownloadDBCommand(message);
-      } else if (command === "stats") {
-        await Commands.StatsCommand(message);
-      } else if (command === "help") {
-        await Commands.HelpCommand(message);
-      } else if (command === "set" || command === "clear") {
-        await Commands.SetCommand(message);
-      }
+      await processCommand(message);
     }
   });
 }

@@ -1,11 +1,8 @@
-import Discord from "discord.js";
-import { getGuildId, replyTo } from "../utils";
+import { Communication, getGuildId, replyTo } from "../utils";
 import { FleetBotCommand } from "./FleetBotCommand";
 import { PREFIX } from "../handlers/DiscordHandlers";
 
-export const HelpCommand: FleetBotCommand = async (
-  message: Discord.Message
-) => {
+export const HelpCommand: FleetBotCommand = async (message: Communication) => {
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
