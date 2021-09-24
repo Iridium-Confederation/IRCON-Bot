@@ -1,11 +1,10 @@
-import Discord from "discord.js";
 import { FleetBotCommand } from "./FleetBotCommand";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
-import { getCommand, getGuildId, replyTo } from "../utils";
+import { Communication, getCommand, getGuildId, replyTo } from "../utils";
 
 export const RemoveAllCommand: FleetBotCommand = async (
-  message: Discord.Message
+  message: Communication
 ) => {
   const { commandArgs } = await getCommand(message);
 

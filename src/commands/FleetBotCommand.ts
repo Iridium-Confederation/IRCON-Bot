@@ -1,3 +1,3 @@
-import * as Discord from "discord.js";
+import { Communication } from "../utils";
 
-export type FleetBotCommand = (message: Discord.Message) => Promise<any>;
+export type FleetBotCommand = (message: Communication) => Promise<any>;
