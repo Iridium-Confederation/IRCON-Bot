@@ -14,6 +14,7 @@ import { commandsLogger } from "../logging/logging";
 import fs from "fs";
 
 const token = require("../../botconfig.json");
+
 export const client = new Discord.Client({
   intents: [
     Intents.FLAGS.GUILDS,
@@ -21,6 +22,7 @@ export const client = new Discord.Client({
     Intents.FLAGS.DIRECT_MESSAGES,
     Intents.FLAGS.GUILD_MESSAGES,
   ],
+  partials: ["CHANNEL"],
 });
 export const PREFIX = async (message: Communication) => {
   const guildId = await getGuildId(message, false);
@@ -100,8 +102,22 @@ function getMessageContent(message: Communication) {
     : message.commandName;
 }
 
+async function updateCache(message: Communication) {
+  await client.guilds.fetch();
+
+  for (const guild of client.guilds.cache.values()) {
+    await guild.members.fetch();
+  }
+
+  await Utils.updateUser(
+    message instanceof Discord.Message ? message.author : message.user
+  );
+}
+
 async function processCommand(message: Communication) {
-  const { command } = await getCommand(message);
+  await updateCache(message);
+
+  const { command, subCommand } = await getCommand(message);
 
   const guildId = await getGuildId(message);
   if (!guildId && command != "set") {
@@ -114,15 +130,16 @@ async function processCommand(message: Communication) {
     )}] executed command [${getMessageContent(message)}]`
   );
 
-  await Utils.updateUser(
-    message instanceof Discord.Message ? message.author : message.user
-  );
-
-  if (command === "add") {
+  if (command === "add" || subCommand === "add") {
     await Commands.AddShipCommand(message);
-  } else if (command === "remove") {
+  } else if (
+    command === "remove" ||
+    subCommand === "remove" ||
+    subCommand === "clear" ||
+    command === "delete_inventory"
+  ) {
     await Commands.RemoveShipCommand(message);
-  } else if ((command === "inventory") | (command === "inventory_org")) {
+  } else if (command === "inventory" || subCommand === "view") {
     await Commands.InventoryCommand(message);
   } else if (command === "search") {
     await Commands.SearchCommand(message);
@@ -149,6 +166,12 @@ async function processCommand(message: Communication) {
 }
 
 export function registerOnMessage() {
+  client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isButton()) return;
+
+    await Commands.ClearConfirmationHandler(interaction);
+  });
+
   client.on("interactionCreate", async (interaction) => {
     if (!interaction.isCommand()) return;
 

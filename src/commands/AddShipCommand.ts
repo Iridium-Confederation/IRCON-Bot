@@ -7,16 +7,19 @@ import {
   replyTo,
 } from "../utils";
 import { FleetBotCommand } from "./FleetBotCommand";
+import Discord from "discord.js";
 
 export const AddShipCommand: FleetBotCommand = async (
   message: Communication
 ) => {
   const { commandArgs } = await getCommand(message);
-
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
-  const shipName = commandArgs.toLowerCase();
+  const shipName =
+    message instanceof Discord.Message
+      ? commandArgs.toLowerCase()
+      : message.options.getString("vehicle", true);
 
   if (shipName.length <= 1) {
     replyTo(message, "Could you be more specific?");
