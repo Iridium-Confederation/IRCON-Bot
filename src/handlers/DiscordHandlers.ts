@@ -80,8 +80,20 @@ export function registerOnUserUpdate() {
   );
 }
 
+async function updateCache(message: Discord.Message) {
+  for (const guild of client.guilds.cache.values()) {
+    await guild.members.fetch();
+  }
+
+  await Utils.updateUser(message.author);
+}
+
 export function registerOnMessage() {
   client.on("message", async (message: Discord.Message) => {
+    if (client.user?.id != message.author.id) {
+      await updateCache(message);
+    }
+
     if (
       client.user?.id != message.author.id &&
       message.content.startsWith(await PREFIX(message))
@@ -96,8 +108,6 @@ export function registerOnMessage() {
       commandsLogger.info(
         `[${message.author.tag}-${message.author.id}] executed command [${message.content}]`
       );
-
-      await Utils.updateUser(message.author);
 
       if (command === "add") {
         await Commands.AddShipCommand(message);
