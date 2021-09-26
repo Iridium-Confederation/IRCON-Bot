@@ -48,6 +48,10 @@ async function doBackup() {
   }
 }
 
+async function cacheGuildMembers() {
+  await Promise.all(client.guilds.cache.map((g) => g.members.fetch()));
+}
+
 export function registerOnReady() {
   client.once("ready", async () => {
     await User.sync();
@@ -56,11 +60,17 @@ export function registerOnReady() {
     // Schedule daily backups.
     await doBackup();
     setInterval(doBackup, 86_400_000);
+
+    // Cache guild members (to support PM features)
+    await cacheGuildMembers();
+    setInterval(cacheGuildMembers, 300_000);
   });
 }
 
 export function registerOnGuildMemberAdd() {
   client.on("guildMemberAdd", async (member) => {
+    await cacheGuildMembers();
+
     // iridium-only feature
     if (member.guild.id == "226021087996149772") {
       // Send the message to a designated channel on a server:
@@ -103,20 +113,18 @@ function getMessageContent(message: Communication) {
 }
 
 async function updateCache(message: Communication) {
-  await client.guilds.fetch();
-
-  for (const guild of client.guilds.cache.values()) {
-    await guild.members.fetch();
-  }
-
   await Utils.updateUser(
     message instanceof Discord.Message ? message.author : message.user
   );
 }
 
 async function processCommand(message: Communication) {
+  if (message instanceof Discord.Message) {
+    if (!message.content.startsWith("!")) {
+      return;
+    }
+  }
   await updateCache(message);
-
   const { command, subCommand } = await getCommand(message);
 
   const guildId = await getGuildId(message);
