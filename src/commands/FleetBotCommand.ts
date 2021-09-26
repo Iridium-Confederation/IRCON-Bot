@@ -1,3 +1,8 @@
-import * as Discord from "discord.js";
+import { Communication } from "../utils";
+import Discord from "discord.js";
 
-export type FleetBotCommand = (message: Discord.Message) => Promise<any>;
+export type FleetBotCommand = (message: Communication) => Promise<any>;
+
+export type ButtonHandler = (
+  interaction: Discord.ButtonInteraction
+) => Promise<any>;

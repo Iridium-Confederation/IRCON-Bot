@@ -131,7 +131,7 @@ export class ShipDao {
 }
 
 @Table
-export class Ships extends Model<Ships> {
+export class Ships extends Model {
   @Column
   shipname!: string;
 

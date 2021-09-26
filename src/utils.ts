@@ -1,39 +1,68 @@
-import Discord, { MessageAttachment, Snowflake } from "discord.js";
+import Discord, {
+  ButtonInteraction,
+  MessageActionRow,
+  MessageAttachment,
+  Snowflake,
+} from "discord.js";
 import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
 import { client, PREFIX } from "./handlers/DiscordHandlers";
+
 const tabletojson = require("tabletojson").Tabletojson;
 
 let allowedShips: FleetViewShip[];
+
 export let loanersMap = new Map<string | undefined, FleetViewShip[]>();
 
+export type Communication = Discord.Message | Discord.CommandInteraction;
+
 function reply(
-  message: Discord.Message,
+  message: Communication | ButtonInteraction,
   body: string,
   attachment: MessageAttachment | undefined,
-  title?: string
+  title?: string,
+  rows?: [MessageActionRow],
+  ephemeral?: boolean
 ) {
-  PREFIX(message).then((prefix) => {
-    const command = message.content.replace(prefix, "").split(" ")[0];
-    const embed = new Discord.MessageEmbed()
-      .setColor("#0099ff")
-      .setTitle(title ? title : command)
-      .setDescription(body);
+  if (message.channel == null) return;
 
+  const embed = new Discord.MessageEmbed()
+    .setColor("#0099ff")
+    .setDescription(body);
+
+  if (title) {
+    embed.setTitle(title);
+  }
+
+  if (message instanceof Discord.Message) {
     if (attachment) {
-      embed.attachFiles([attachment]);
+      message.channel
+        .send({ embeds: [embed], files: [attachment] })
+        .then(() => {});
+    } else {
+      message.channel.send({ embeds: [embed] }).then(() => {});
     }
-
-    message.channel.send(embed).then(() => {});
-  });
+  } else {
+    message
+      .reply({
+        embeds: [embed],
+        files: attachment ? [attachment] : [],
+        components: rows ? rows : [],
+        ephemeral: ephemeral,
+      })
+      .catch((e) => console.log(e))
+      .then(() => {});
+  }
 }
 
 export function replyTo(
-  message: Discord.Message,
+  message: Communication | ButtonInteraction,
   contents: string,
   attachment?: MessageAttachment,
-  title?: string
+  title?: string,
+  rows?: [MessageActionRow],
+  ephemeral?: boolean
 ) {
   if (contents.length >= 2000) {
     const msg: string = contents;
@@ -67,18 +96,25 @@ export function replyTo(
       }
     }
   } else {
-    reply(message, contents, attachment, title);
+    reply(message, contents, attachment, title, rows, ephemeral);
   }
 }
 
-export async function getCommand(message: Discord.Message) {
-  const input = message.content
-    .substr((await PREFIX(message)).length)
-    .trimLeft()
-    .split(" ");
-  const command = input.shift();
-  const commandArgs = input.join(" ");
-  return { command, commandArgs };
+export async function getCommand(message: Communication) {
+  if (message instanceof Discord.Message) {
+    const input = message.content
+      .substr((await PREFIX(message)).length)
+      .trimLeft()
+      .split(" ");
+    const command = input.shift();
+    const commandArgs = input.join(" ");
+    return { command, commandArgs };
+  } else {
+    const command = message.commandName;
+    const subCommand = message.options.getSubcommand(false);
+    const commandArgs = "";
+    return { command, commandArgs, subCommand };
+  }
 }
 
 export function sanitizeSlug(shipName: string) {
@@ -102,7 +138,7 @@ export function findShip(
       return cache;
     } else {
       ship.fleetyardsId = null;
-      ship.save();
+      ship.save().then(() => {});
     }
   }
 
@@ -225,21 +261,35 @@ export function getTotalUec(ships: Ships[]): Number {
   return total ? total : 0;
 }
 
-export function getUserGuilds(message: Discord.Message) {
+export async function getUserGuilds(
+  message: Communication | ButtonInteraction
+) {
   return client.guilds.cache.filter(
-    (g) => g.members.cache.get(message.author.id) != null
+    (g) => g.members.cache.get(getUserId(message)) != null
   );
 }
 
+export function getUserTag(message: Communication | ButtonInteraction) {
+  return message instanceof Discord.Message
+    ? message.author.tag
+    : message.user.tag;
+}
+
+export function getUserId(message: Communication | ButtonInteraction) {
+  return message instanceof Discord.Message
+    ? message.author.id
+    : message.user.id;
+}
+
 export async function getGuildId(
-  message: Discord.Message,
+  message: Communication | ButtonInteraction,
   reply: boolean = true
 ): Promise<string | null> {
   if (message.guild) {
     return message.guild.id;
   } else {
-    const guilds = getUserGuilds(message);
-    const user = (await User.findById(message.author.id))[0];
+    const guilds = await getUserGuilds(message);
+    const user = (await User.findById(getUserId(message)))[0];
 
     if (user.defaultGuildId) {
       if (guilds.get(user.defaultGuildId) == null) {
@@ -250,7 +300,7 @@ export async function getGuildId(
           );
         }
         user.defaultGuildId = null;
-        user.save();
+        await user.save();
       } else {
         return user.defaultGuildId;
       }
@@ -282,7 +332,7 @@ export async function getGuildId(
 }
 
 export async function addShipCheck(
-  message: Discord.Message,
+  message: Communication,
   guildId: Snowflake
 ): Promise<boolean> {
   let orgCount = await ShipDao.count(guildId);
@@ -299,7 +349,7 @@ export async function addShipCheck(
 
 export function addShip(
   shipName: string,
-  message: Discord.Message,
+  message: Communication,
   guildId: Snowflake
 ): FleetViewShip | undefined {
   const foundShip = findShip(shipName);
@@ -307,7 +357,7 @@ export function addShip(
   if (foundShip) {
     ShipDao.create({
       shipname: foundShip.name,
-      discordUserId: message.author.id,
+      discordUserId: getUserId(message),
       guildId: guildId,
     });
     return foundShip;
@@ -324,14 +374,14 @@ export async function updateUser(newUser: Discord.User | Discord.PartialUser) {
   }
   dbUser.discordUserId = newUser.id;
   dbUser.lastKnownTag = newUser.tag ? newUser.tag : "";
-  dbUser.save();
+  await dbUser.save();
 }
 
-export function hasRole(message: Discord.Message, role: string) {
+export function hasRole(message: Communication, role: string) {
   const hasRole = client.guilds.cache
     .map((g) => g.roles.cache.find((r) => r.name === role))
     .find(
-      (r) => r && r.members.find((member) => member.id === message.author.id)
+      (r) => r && r.members.find((member) => member.id === getUserId(message))
     );
 
   return hasRole != null;
