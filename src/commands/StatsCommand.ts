@@ -1,5 +1,6 @@
 import Discord from "discord.js";
 import {
+  Communication,
   findShip,
   getCommand,
   getGuildId,
@@ -12,13 +13,14 @@ import { ShipDao, Ships } from "../models/Ships";
 import _ from "lodash";
 import { FleetBotCommand } from "./FleetBotCommand";
 
-export const StatsCommand: FleetBotCommand = async (
-  message: Discord.Message
-) => {
+export const StatsCommand: FleetBotCommand = async (message: Communication) => {
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
-  const { commandArgs } = await getCommand(message);
+  const commandArgs =
+    message instanceof Discord.Message
+      ? (await getCommand(message)).commandArgs
+      : message.options.getString("vehicle", false);
 
   if (commandArgs) {
     const ship = findShip(commandArgs);
@@ -58,7 +60,7 @@ export const StatsCommand: FleetBotCommand = async (
 
     const totalUsd = getTotalUsd(ships).toLocaleString();
     const totalUec = getTotalUec(ships).toLocaleString();
-    const currentGuild = getUserGuilds(message).get(guildId);
+    const currentGuild = (await getUserGuilds(message)).get(guildId);
 
     let reply =
       `**${currentGuild?.name}** currently has **${totalShips}** ships contributed by **${owners.length}** owners ` +

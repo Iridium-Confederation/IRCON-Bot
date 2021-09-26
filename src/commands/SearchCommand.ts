@@ -1,18 +1,28 @@
-import Discord from "discord.js";
-import { findShip, getCommand, getGuildId, replyTo } from "../utils";
+import {
+  Communication,
+  findShip,
+  getCommand,
+  getGuildId,
+  replyTo,
+} from "../utils";
 import { ShipDao } from "../models/Ships";
 import _ from "lodash";
 import { FleetBotCommand } from "./FleetBotCommand";
+import Discord from "discord.js";
 
 export const SearchCommand: FleetBotCommand = async (
-  message: Discord.Message
+  message: Communication
 ) => {
   const guildId = await getGuildId(message);
 
   const { commandArgs } = await getCommand(message);
   if (guildId == null) return;
 
-  const shipName = commandArgs.toLowerCase();
+  const shipName =
+    message instanceof Discord.Message
+      ? commandArgs.toLowerCase()
+      : message.options.getString("vehicle", true);
+
   const matches = await ShipDao.findShipsByName(`%${shipName}%`, guildId);
 
   const reply = Object.entries(
