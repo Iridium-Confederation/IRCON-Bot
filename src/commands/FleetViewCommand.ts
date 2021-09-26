@@ -18,12 +18,21 @@ export const FleetViewCommand: FleetBotCommand = async (
   if (guildId == null) return;
 
   let username;
-  if (commandArgs === "-org") {
-    username = "%";
-  } else if (Boolean(commandArgs)) {
-    username = commandArgs + "#%";
+  if (message instanceof Discord.Message) {
+    if (commandArgs === "-org") {
+      username = "%";
+    } else if (Boolean(commandArgs)) {
+      username = commandArgs + "#%";
+    } else {
+      username = getUserTag(message);
+    }
   } else {
-    username = getUserTag(message);
+    const user = message.options.getUser("user");
+    if (user) {
+      username = user.tag;
+    } else {
+      username = getUserTag(message);
+    }
   }
 
   const fleetview = (await ShipDao.findShipsByOwnerLike(username, guildId)).map(

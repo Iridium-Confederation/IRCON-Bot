@@ -1,8 +1,14 @@
-import Discord, { MessageAttachment, Snowflake } from "discord.js";
+import Discord, {
+  ButtonInteraction,
+  MessageActionRow,
+  MessageAttachment,
+  Snowflake,
+} from "discord.js";
 import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
 import { client, PREFIX } from "./handlers/DiscordHandlers";
+
 const tabletojson = require("tabletojson").Tabletojson;
 
 let allowedShips: FleetViewShip[];
@@ -12,53 +18,51 @@ export let loanersMap = new Map<string | undefined, FleetViewShip[]>();
 export type Communication = Discord.Message | Discord.CommandInteraction;
 
 function reply(
-  message: Communication,
+  message: Communication | ButtonInteraction,
   body: string,
   attachment: MessageAttachment | undefined,
-  title?: string
+  title?: string,
+  rows?: [MessageActionRow],
+  ephemeral?: boolean
 ) {
-  PREFIX(message).then((prefix) => {
-    if (message.channel == null) return;
+  if (message.channel == null) return;
 
-    const command =
-      message instanceof Discord.Message
-        ? message.content.replace(prefix, "").split(" ")[0]
-        : message.commandName;
+  const embed = new Discord.MessageEmbed()
+    .setColor("#0099ff")
+    .setDescription(body);
 
-    const embed = new Discord.MessageEmbed()
-      .setColor("#0099ff")
-      .setTitle(title ? title : command)
-      .setDescription(body);
+  if (title) {
+    embed.setTitle(title);
+  }
 
-    if (message instanceof Discord.Message) {
-      if (attachment) {
-        message.channel
-          .send({ embeds: [embed], files: [attachment] })
-          .then(() => {});
-      } else {
-        message.channel.send({ embeds: [embed] }).then(() => {});
-      }
+  if (message instanceof Discord.Message) {
+    if (attachment) {
+      message.channel
+        .send({ embeds: [embed], files: [attachment] })
+        .then(() => {});
     } else {
-      if (attachment) {
-        message
-          .reply({ embeds: [embed], files: [attachment] })
-          .catch((e) => console.log(e))
-          .then(() => {});
-      } else {
-        message
-          .reply({ embeds: [embed] })
-          .catch((e) => console.log(e))
-          .then(() => {});
-      }
+      message.channel.send({ embeds: [embed] }).then(() => {});
     }
-  });
+  } else {
+    message
+      .reply({
+        embeds: [embed],
+        files: attachment ? [attachment] : [],
+        components: rows ? rows : [],
+        ephemeral: ephemeral,
+      })
+      .catch((e) => console.log(e))
+      .then(() => {});
+  }
 }
 
 export function replyTo(
-  message: Communication,
+  message: Communication | ButtonInteraction,
   contents: string,
   attachment?: MessageAttachment,
-  title?: string
+  title?: string,
+  rows?: [MessageActionRow],
+  ephemeral?: boolean
 ) {
   if (contents.length >= 2000) {
     const msg: string = contents;
@@ -92,7 +96,7 @@ export function replyTo(
       }
     }
   } else {
-    reply(message, contents, attachment, title);
+    reply(message, contents, attachment, title, rows, ephemeral);
   }
 }
 
@@ -107,10 +111,9 @@ export async function getCommand(message: Communication) {
     return { command, commandArgs };
   } else {
     const command = message.commandName;
-    // let commandArgs = message.options.get("test")?.value;
-
-    let commandArgs = "";
-    return { command, commandArgs };
+    const subCommand = message.options.getSubcommand(false);
+    const commandArgs = "";
+    return { command, commandArgs, subCommand };
   }
 }
 
@@ -258,32 +261,34 @@ export function getTotalUec(ships: Ships[]): Number {
   return total ? total : 0;
 }
 
-export function getUserGuilds(message: Communication) {
+export async function getUserGuilds(
+  message: Communication | ButtonInteraction
+) {
   return client.guilds.cache.filter(
     (g) => g.members.cache.get(getUserId(message)) != null
   );
 }
 
-export function getUserTag(message: Communication) {
+export function getUserTag(message: Communication | ButtonInteraction) {
   return message instanceof Discord.Message
     ? message.author.tag
     : message.user.tag;
 }
 
-export function getUserId(message: Communication) {
+export function getUserId(message: Communication | ButtonInteraction) {
   return message instanceof Discord.Message
     ? message.author.id
     : message.user.id;
 }
 
 export async function getGuildId(
-  message: Communication,
+  message: Communication | ButtonInteraction,
   reply: boolean = true
 ): Promise<string | null> {
   if (message.guild) {
     return message.guild.id;
   } else {
-    const guilds = getUserGuilds(message);
+    const guilds = await getUserGuilds(message);
     const user = (await User.findById(getUserId(message)))[0];
 
     if (user.defaultGuildId) {

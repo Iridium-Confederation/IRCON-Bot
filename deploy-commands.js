@@ -8,26 +8,46 @@ const guildId = "450060203845484554";
 
 const commands = [
   new SlashCommandBuilder()
-    .setName("add")
-    .setDescription("Add a vehicle to your inventory.")
-    .addStringOption((option) =>
-      option
-        .setName("vehicle")
-        .setRequired(true)
-        .setDescription("Add a vehicle")
+    .setName("inventory")
+    .setDescription("Manager your inventory.")
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("add")
+        .setDescription("Add a vehicle to your fleet.")
+        .addStringOption((option) =>
+          option
+            .setName("vehicle")
+            .setDescription("Vehicle to add")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("remove")
+        .setDescription("Remove a vehicle from your fleet.")
+        .addStringOption((option) =>
+          option
+            .setName("vehicle")
+            .setDescription("Vehicle to remove")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("clear")
+        .setDescription("Remove all vehicles from your inventory.")
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("view")
+        .setDescription("View a user's inventory.")
+        .addUserOption((option) =>
+          option
+            .setName("user")
+            .setDescription("User to search for")
+            .setRequired(false)
+        )
     ),
-  new SlashCommandBuilder()
-    .setName("remove")
-    .setDescription("Remove a vehicle from your inventory.")
-    .addStringOption((option) =>
-      option
-        .setName("vehicle")
-        .setRequired(true)
-        .setDescription("Remove a vehicle")
-    ),
-  new SlashCommandBuilder()
-    .setName("remove_all")
-    .setDescription("Removes all vehicles from your fleet."),
   new SlashCommandBuilder()
     .setName("search")
     .setDescription("Search your organization for a vehicle.")
@@ -37,15 +57,6 @@ const commands = [
         .setRequired(true)
         .setDescription("Search for a vehicle")
     ),
-  new SlashCommandBuilder()
-    .setName("inventory")
-    .setDescription("Display your inventory or someone else's inventory.")
-    .addUserOption((option) =>
-      option.setName("user").setDescription("Search for a user")
-    ),
-  // new SlashCommandBuilder()
-  //   .setName("inventory_org")
-  //   .setDescription("List all org vehicles."),
   new SlashCommandBuilder()
     .setName("fleetview")
     .setDescription("Generates a FleetView file for yourself or others.")
@@ -57,8 +68,21 @@ const commands = [
     .setDescription(
       "Display org fleet statistics or show detailed info about a single vehicle."
     )
-    .addStringOption((option) =>
-      option.setName("user").setDescription("Vehicle to search for.")
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("vehicle")
+        .setDescription("Get information about a specific vehicle.")
+        .addStringOption((option) =>
+          option
+            .setName("vehicle")
+            .setDescription("Vehicle to search for.")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("org")
+        .setDescription("Get statistics about this organization.")
     ),
 ].map((command) => command.toJSON());
 
@@ -69,11 +93,11 @@ const rest = new REST({ version: "9" }).setToken(token);
     console.log("Started refreshing application (/) commands.");
 
     await rest.put(Routes.applicationCommands(clientId), {
-      body: [],
+      body: commands,
     });
 
     await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
-      body: commands,
+      body: [],
     });
 
     console.log("Successfully reloaded application (/) commands.");

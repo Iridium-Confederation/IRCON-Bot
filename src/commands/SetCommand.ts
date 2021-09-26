@@ -15,7 +15,7 @@ export const SetCommand: FleetBotCommand = async (message: Communication) => {
   const user = (await User.findById(getUserId(message)))[0];
   const re = /^\W*default_guild\W*(?<id>\d+)\W*$/;
   const match = commandArgs.match(re);
-  const guilds = getUserGuilds(message);
+  const guilds = await getUserGuilds(message);
 
   if (command === "clear") {
     user.defaultGuildId = null;
