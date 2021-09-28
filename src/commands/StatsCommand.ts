@@ -4,6 +4,7 @@ import {
   findShip,
   getCommand,
   getGuildId,
+  getGuildUser,
   getTotalUec,
   getTotalUsd,
   getUserGuilds,
@@ -12,10 +13,11 @@ import {
 import { ShipDao, Ships } from "../models/Ships";
 import _ from "lodash";
 import { FleetBotCommand } from "./FleetBotCommand";
+import { User } from "../models/User";
 
 export const StatsCommand: FleetBotCommand = async (message: Communication) => {
   const guildId = await getGuildId(message);
-  if (guildId == null) return;
+  if (!guildId) return;
 
   const commandArgs =
     message instanceof Discord.Message
@@ -55,7 +57,7 @@ export const StatsCommand: FleetBotCommand = async (message: Communication) => {
     const totalShips = ships.length;
 
     const owners = Object.entries(
-      _.groupBy(ships, (ship: Ships) => ship.owner.lastKnownTag)
+      _.groupBy(ships, (ship: Ships) => ship.owner.discordUserId)
     );
 
     const totalUsd = getTotalUsd(ships).toLocaleString();
@@ -67,17 +69,26 @@ export const StatsCommand: FleetBotCommand = async (message: Communication) => {
       `with a total ship value of **$${totalUsd}** ` +
       `(**${totalUec} UEC** for ships available for in-game purchase).\n\n`;
 
-    reply +=
-      "**Contributors**: " +
-      owners
-        .map((o) => o[0].split("#")[0])
-        .sort()
-        .join(", ");
-
-    if (owners.length == 0) {
-      reply += "None yet. Why not be the first?";
-    }
-
-    replyTo(message, reply);
+    Promise.all(
+      owners.map(async (o) => {
+        const dbId = o[0];
+        const member = await getGuildUser(dbId, guildId);
+        const retVal =
+          member && member.nickname
+            ? member.nickname
+            : (await User.findById(dbId))[0].lastKnownTag.split("#")[0];
+        console.log(member);
+        console.log(retVal);
+        return retVal;
+      })
+    ).then((values) => {
+      console.log(values);
+      reply += "**Contributors**: ";
+      reply += values.sort().join(", ");
+      if (owners.length == 0) {
+        reply += "None yet. Why not be the first?";
+      }
+      replyTo(message, reply);
+    });
   }
 };
