@@ -1,39 +1,32 @@
-import {
-  Communication,
-  getCommand,
-  getUserGuilds,
-  getUserId,
-  replyTo,
-} from "../utils";
-import { FleetBotCommand } from "./FleetBotCommand";
+import { Communication, getUserId, replyTo } from "../utils";
+import { FleetBotCommand, SelectHandler } from "./FleetBotCommand";
 import { User } from "../models/User";
-import { PREFIX } from "../handlers/DiscordHandlers";
+import { client } from "../handlers/DiscordHandlers";
+import { SelectMenuInteraction } from "discord.js";
 
-export const SetCommand: FleetBotCommand = async (message: Communication) => {
-  const { command, commandArgs } = await getCommand(message);
-
+export const DefaultGuildSelect: SelectHandler = async (
+  message: SelectMenuInteraction
+) => {
   const user = (await User.findById(getUserId(message)))[0];
-  const re = /^\W*default_guild\W*(?<id>\d+)\W*$/;
-  const match = commandArgs.match(re);
-  const guilds = await getUserGuilds(message);
-
-  if (command === "clear") {
-    user.defaultGuildId = null;
+  const guildId = message.values[0];
+  const guildName = client.guilds.cache.find((g) => g.id === guildId)?.name;
+  if (guildName) {
+    user.defaultGuildId = guildId;
     await user.save();
-    replyTo(message, "default_guild successfully cleared.");
-  } else if (match) {
-    const guildId = match[1];
-    if (guilds.get(guildId)) {
-      user.defaultGuildId = guildId;
-      await user.save();
-      replyTo(message, "default_guild successfully saved.");
-    } else {
-      replyTo(message, "Invalid GUILD_ID.");
-    }
-  } else {
-    replyTo(
-      message,
-      `**Usage**: ${await PREFIX(message)}{set|clear} default_guild [GUILD_ID]`
-    );
+
+    await message.update({
+      embeds: [],
+      content: `Default guild set to **${guildName}**`,
+      components: [],
+    });
   }
+};
+
+export const ClearDefaultGuild: FleetBotCommand = async (
+  message: Communication
+) => {
+  const user = (await User.findById(getUserId(message)))[0];
+  user.defaultGuildId = null;
+  await user.save();
+  replyTo(message, "Default guild successfully cleared.");
 };
