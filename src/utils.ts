@@ -1,7 +1,9 @@
 import Discord, {
   ButtonInteraction,
+  Interaction,
   MessageActionRow,
   MessageAttachment,
+  MessageSelectMenu,
   Snowflake,
 } from "discord.js";
 import fetch from "node-fetch";
@@ -36,13 +38,14 @@ function reply(
   }
 
   if (message instanceof Discord.Message) {
-    if (attachment) {
-      message.channel
-        .send({ embeds: [embed], files: [attachment] })
-        .then(() => {});
-    } else {
-      message.channel.send({ embeds: [embed] }).then(() => {});
-    }
+    message
+      .reply({
+        embeds: [embed],
+        files: attachment ? [attachment] : [],
+        components: rows ? rows : [],
+      })
+      .catch((e) => console.log(e))
+      .then(() => {});
   } else {
     message
       .reply({
@@ -103,7 +106,7 @@ export function replyTo(
 export async function getCommand(message: Communication) {
   if (message instanceof Discord.Message) {
     const input = message.content
-      .substr((await PREFIX(message)).length)
+      .substr((await PREFIX()).length)
       .trimLeft()
       .split(" ");
     const command = input.shift();
@@ -261,21 +264,19 @@ export function getTotalUec(ships: Ships[]): Number {
   return total ? total : 0;
 }
 
-export async function getUserGuilds(
-  message: Communication | ButtonInteraction
-) {
+export async function getUserGuilds(message: Communication | Interaction) {
   return client.guilds.cache.filter(
     (g) => g.members.cache.get(getUserId(message)) != null
   );
 }
 
-export function getUserTag(message: Communication | ButtonInteraction) {
+export function getUserTag(message: Communication | Interaction) {
   return message instanceof Discord.Message
     ? message.author.tag
     : message.user.tag;
 }
 
-export function getUserId(message: Communication | ButtonInteraction) {
+export function getUserId(message: Communication | Interaction) {
   return message instanceof Discord.Message
     ? message.author.id
     : message.user.id;
@@ -308,12 +309,28 @@ export async function getGuildId(
 
     if (guilds.size > 1 && user.defaultGuildId == null) {
       if (reply) {
+        const row = new MessageActionRow();
+        const menu = new MessageSelectMenu().setCustomId(
+          "default_guild_select"
+        );
+        guilds.forEach((g) => {
+          menu.addOptions([
+            {
+              label: g.name,
+              value: g.id,
+            },
+          ]);
+        });
+        row.addComponents(menu);
+
         replyTo(
           message,
-          "You have joined multiple Discord guilds serviced by FleetBot.\n\n" +
-            guilds.map((g) => `**${g.name}** (id: ${g.id})`).join("\n") +
-            "\n\n" +
-            `Select one as your default for private messaging using: !fb {set|clear} default_guild [GUILD_ID]**`
+          "You have joined multiple Discord guilds serviced by FleetBot. " +
+            "Select one as your default for private messaging. You can clear your default guild " +
+            "by typing:\n **/options reset_default_guild**.",
+          undefined,
+          undefined,
+          [row]
         );
       }
     } else if (guilds.size == 1) {

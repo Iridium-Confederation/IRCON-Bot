@@ -8,6 +8,7 @@ import {
   getGuildId,
   getUserId,
   getUserTag,
+  replyTo,
 } from "../utils";
 import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
@@ -24,13 +25,8 @@ export const client = new Discord.Client({
   ],
   partials: ["CHANNEL"],
 });
-export const PREFIX = async (message: Communication) => {
-  const guildId = await getGuildId(message, false);
-  if (guildId == "226021087996149772") {
-    return "!";
-  } else {
-    return "!fb ";
-  }
+export const PREFIX = async () => {
+  return "!fb ";
 };
 
 export function login() {
@@ -128,7 +124,7 @@ async function processCommand(message: Communication) {
   const { command, subCommand } = await getCommand(message);
 
   const guildId = await getGuildId(message);
-  if (!guildId && command != "set") {
+  if (!guildId && command != "options") {
     return;
   }
 
@@ -168,23 +164,21 @@ async function processCommand(message: Communication) {
     await Commands.StatsCommand(message);
   } else if (command === "help") {
     await Commands.HelpCommand(message);
-  } else if (command === "set" || command === "clear") {
-    await Commands.SetCommand(message);
+  } else if (command === "options") {
+    await Commands.ClearDefaultGuild(message);
   }
 }
 
 export function registerOnMessage() {
   client.on("interactionCreate", async (interaction) => {
-    if (!interaction.isButton()) return;
-
-    await Commands.ClearConfirmationHandler(interaction);
-  });
-
-  client.on("interactionCreate", async (interaction) => {
-    if (!interaction.isCommand()) return;
-
     try {
-      await processCommand(interaction);
+      if (interaction.isCommand()) {
+        await processCommand(interaction);
+      } else if (interaction.isButton()) {
+        await Commands.ClearConfirmationHandler(interaction);
+      } else if (interaction.isSelectMenu()) {
+        await Commands.DefaultGuildSelect(interaction);
+      }
     } catch (e) {
       if (e instanceof DiscordAPIError) {
         console.log(e);
@@ -197,10 +191,17 @@ export function registerOnMessage() {
   client.on("message", async (message: Communication) => {
     if (
       message instanceof Discord.Message &&
-      client.user?.id != message.author.id &&
-      message.content.startsWith(await PREFIX(message))
+      client.user?.id != message.author.id
     ) {
-      await processCommand(message);
+      if (message.content.startsWith(await PREFIX())) {
+        await processCommand(message);
+      } else if (
+        (message.content.startsWith("!") &&
+          message.guildId === "226021087996149772") ||
+        message.guild === null
+      ) {
+        replyTo(message, "Use !fb help or type / to see valid commands.");
+      }
     }
   });
 }

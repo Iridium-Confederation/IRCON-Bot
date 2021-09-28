@@ -4,7 +4,7 @@ const { Routes } = require("discord-api-types/v9");
 const token = require("./botconfig.json");
 
 const clientId = "712862078389583953";
-const guildId = "450060203845484554";
+// const guildId = "744366532636967085";
 
 const commands = [
   new SlashCommandBuilder()
@@ -84,6 +84,14 @@ const commands = [
         .setName("org")
         .setDescription("Get statistics about this organization.")
     ),
+  new SlashCommandBuilder()
+    .setName("options")
+    .setDescription("Set application options")
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("reset_default_guild")
+        .setDescription("Resets your default guild for PM communication.")
+    ),
 ].map((command) => command.toJSON());
 
 const rest = new REST({ version: "9" }).setToken(token);
@@ -96,9 +104,9 @@ const rest = new REST({ version: "9" }).setToken(token);
       body: commands,
     });
 
-    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
-      body: [],
-    });
+    // await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+    //   body: [],
+    // });
 
     console.log("Successfully reloaded application (/) commands.");
   } catch (error) {
