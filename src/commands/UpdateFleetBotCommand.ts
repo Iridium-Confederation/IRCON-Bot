@@ -7,5 +7,5 @@ export const UpdateFleetBotCommand: FleetBotCommand = async (
 ) => {
   await replyTo(message, "Starting docker update. Party time.");
   console.log("Starting docker update...");
-  exec("kill $(pidof npm)");
+  exec("kill $(pidof node)");
 };
