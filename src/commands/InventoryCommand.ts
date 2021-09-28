@@ -4,6 +4,7 @@ import {
   findShip,
   getCommand,
   getGuildId,
+  getGuildUser,
   getTotalUec,
   getUserGuilds,
   getUserId,
@@ -13,14 +14,18 @@ import {
 import { ShipDao } from "../models/Ships";
 import _ from "lodash";
 import Discord from "discord.js";
+import { client } from "../handlers/DiscordHandlers";
+import { User } from "../models/User";
 
 export const InventoryCommand: FleetBotCommand = async (
   message: Communication
 ) => {
-  const { command, commandArgs, subCommand } = await getCommand(message);
+  const { command, commandArgs } = await getCommand(message);
 
   const guildId = await getGuildId(message);
   if (guildId == null) return;
+  const guild = await client.guilds.cache.get(guildId);
+  if (!guild) return;
 
   let ships;
   if (commandArgs.includes("-org") || command === "inventory_all") {
@@ -52,10 +57,10 @@ export const InventoryCommand: FleetBotCommand = async (
 
       firstUserFound = firstUserFound
         ? firstUserFound
-        : group[1][0].owner.lastKnownTag;
+        : group[1][0].owner.discordUserId;
 
       const showItem =
-        firstUserFound === group[1][0].owner.lastKnownTag ||
+        firstUserFound === group[1][0].owner.discordUserId ||
         commandArgs.includes("-org");
 
       const loanerStr = loaners
@@ -80,8 +85,12 @@ export const InventoryCommand: FleetBotCommand = async (
     header = `${currentGuild?.name}'s inventory:\n`;
   } else {
     if (firstUserFound) {
+      const discordUser = await getGuildUser(firstUserFound, guildId);
+
       header = `${
-        firstUserFound.split("#")[0]
+        discordUser?.nickname
+          ? discordUser.nickname
+          : (await User.findById(firstUserFound))[0].lastKnownTag.split("#")[0]
       }'s inventory (**${totalUec} UEC**):\n`;
     } else {
       header = "User not found or has no ships.";

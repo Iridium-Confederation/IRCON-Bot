@@ -282,6 +282,13 @@ export function getUserId(message: Communication | Interaction) {
     : message.user.id;
 }
 
+export async function getGuildUser(userid: string, guildId: string) {
+  const guild = client.guilds.cache.get(guildId);
+  return guild
+    ? guild.members.cache.find((member) => member.id === userid)
+    : null;
+}
+
 export async function getGuildId(
   message: Communication | ButtonInteraction,
   reply: boolean = true
