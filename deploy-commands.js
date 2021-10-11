@@ -9,7 +9,7 @@ const clientId = "712862078389583953";
 const commands = [
   new SlashCommandBuilder()
     .setName("inventory")
-    .setDescription("Manager your inventory.")
+    .setDescription("Manager inventory")
     .addSubcommand((subcommand) =>
       subcommand
         .setName("add")
@@ -40,7 +40,7 @@ const commands = [
     .addSubcommand((subcommand) =>
       subcommand
         .setName("view")
-        .setDescription("View a user's inventory.")
+        .setDescription("View an inventory.")
         .addUserOption((option) =>
           option
             .setName("user")
@@ -75,7 +75,7 @@ const commands = [
         .addStringOption((option) =>
           option
             .setName("vehicle")
-            .setDescription("Vehicle to search for.")
+            .setDescription("Vehicle to search for")
             .setRequired(true)
         )
     )
@@ -104,6 +104,7 @@ const rest = new REST({ version: "9" }).setToken(token);
       body: commands,
     });
 
+    await rest.put(Routes.comma);
     // await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
     //   body: [],
     // });

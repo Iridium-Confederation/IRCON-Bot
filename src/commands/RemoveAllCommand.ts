@@ -2,6 +2,7 @@ import { FleetBotCommand } from "./FleetBotCommand";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
 import { Communication, getCommand, getGuildId, replyTo } from "../utils";
+import { CommandInteraction } from "discord.js";
 
 export const RemoveAllCommand: FleetBotCommand = async (
   message: Communication
@@ -11,7 +12,15 @@ export const RemoveAllCommand: FleetBotCommand = async (
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
-  const user = (await User.findByTag(commandArgs))[0];
+  let user;
+
+  if (message instanceof CommandInteraction) {
+    const discordUser = message.options.getUser("user", true);
+    user = (await User.findById(discordUser.id))[0];
+  } else {
+    user = (await User.findByTag(commandArgs))[0];
+  }
+
   if (user) {
     const ships = await ShipDao.findShipsByOwnerId(user.discordUserId, guildId);
 
@@ -20,8 +29,11 @@ export const RemoveAllCommand: FleetBotCommand = async (
       count++;
       s.destroy();
     });
-    replyTo(message, `${count} ships deleted.`);
+    replyTo(
+      message,
+      count > 0 ? `${count} ships deleted.` : `User has no ships.`
+    );
   } else {
-    replyTo(message, `User not found.`);
+    replyTo(message, `User has no ships.`);
   }
 };

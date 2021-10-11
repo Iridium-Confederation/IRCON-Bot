@@ -44,6 +44,20 @@ export class User extends Model<User> {
     });
   }
 
+  static async findByGuild(guildId: string): Promise<User[]> {
+    return User.findAll({
+      include: [
+        {
+          model: Ships,
+          required: true,
+          where: {
+            guildId: guildId,
+          },
+        },
+      ],
+    });
+  }
+
   static async findById(discordUserId: string): Promise<User[]> {
     return User.findAll({
       where: {

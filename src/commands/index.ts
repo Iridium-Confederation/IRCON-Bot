@@ -11,3 +11,4 @@ export * from "./DownloadDBCommand";
 export * from "./RemoveShipCommand";
 export * from "./UpdateFleetBotCommand";
 export * from "./SetCommand";
+export * from "./AdminUsers";

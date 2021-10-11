@@ -1,9 +1,12 @@
 import Discord, {
   ButtonInteraction,
+  CommandInteraction,
   Interaction,
+  InteractionReplyOptions,
   MessageActionRow,
   MessageAttachment,
   MessageSelectMenu,
+  SelectMenuInteraction,
   Snowflake,
 } from "discord.js";
 import fetch from "node-fetch";
@@ -20,11 +23,11 @@ export let loanersMap = new Map<string | undefined, FleetViewShip[]>();
 export type Communication = Discord.Message | Discord.CommandInteraction;
 
 function reply(
-  message: Communication | ButtonInteraction,
+  message: Communication | ButtonInteraction | SelectMenuInteraction,
   body: string,
   attachment: MessageAttachment | undefined,
   title?: string,
-  rows?: [MessageActionRow],
+  rows?: MessageActionRow[],
   ephemeral?: boolean
 ) {
   if (message.channel == null) return;
@@ -59,12 +62,37 @@ function reply(
   }
 }
 
+export function replyNew(
+  message: CommandInteraction | SelectMenuInteraction | ButtonInteraction,
+  options: InteractionReplyOptions,
+  update?: Boolean
+) {
+  const embed = new Discord.MessageEmbed()
+    .setColor("#0099ff")
+    .setDescription(options.content ? options.content : "");
+
+  options.content = null;
+  options.embeds = [embed];
+
+  if (update && (message.isSelectMenu() || message.isButton())) {
+    message
+      .update(options)
+      .catch((e) => console.log(e))
+      .then(() => {});
+  } else {
+    message
+      .reply(options)
+      .catch((e) => console.log(e))
+      .then(() => {});
+  }
+}
+
 export function replyTo(
-  message: Communication | ButtonInteraction,
+  message: Communication | ButtonInteraction | SelectMenuInteraction,
   contents: string,
   attachment?: MessageAttachment,
   title?: string,
-  rows?: [MessageActionRow],
+  rows?: MessageActionRow[],
   ephemeral?: boolean
 ) {
   if (contents.length >= 2000) {
@@ -286,11 +314,11 @@ export async function getGuildUser(userid: string, guildId: string) {
   const guild = client.guilds.cache.get(guildId);
   return guild
     ? guild.members.cache.find((member) => member.id === userid)
-    : null;
+    : undefined;
 }
 
 export async function getGuildId(
-  message: Communication | ButtonInteraction,
+  message: Communication | ButtonInteraction | SelectMenuInteraction,
   reply: boolean = true
 ): Promise<string | null> {
   if (message.guild) {
