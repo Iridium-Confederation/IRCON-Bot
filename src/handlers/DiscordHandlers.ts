@@ -52,16 +52,12 @@ async function doBackup() {
 async function cacheGuildMembers() {
   await Promise.all(
     client.guilds.cache.map((g) => {
-      g.members
-        .fetch()
-        .catch(() => console.log(`Failed to get members for ${g.id}`));
+      g.members.fetch().catch();
     })
   );
   await Promise.all(
     client.guilds.cache.map((g) => {
-      g.commands
-        .fetch()
-        .catch(() => console.log(`Failed to get commands for ${g.id}`));
+      g.commands.fetch().catch();
     })
   );
 }
