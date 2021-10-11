@@ -15,6 +15,7 @@ import { commandsLogger } from "../logging/logging";
 import fs from "fs";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
+import { AdminClearButton, AdminUsersDeleteButton } from "../commands";
 
 const { Routes } = require("discord-api-types/v9");
 
@@ -82,6 +83,13 @@ async function setGuildCommands() {
               .setName("user")
               .setDescription("User to delete")
               .setRequired(true)
+          )
+      )
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("clear")
+          .setDescription(
+            "Clear ALL data owned by your organization (Server Owner)"
           )
       ),
   ].map((command) => command.toJSON());
@@ -221,7 +229,7 @@ async function processCommand(message: Communication) {
   } else if (
     command === "remove" ||
     subCommand === "remove" ||
-    subCommand === "clear" ||
+    (command === "inventory" && subCommand === "clear") ||
     command === "delete_inventory"
   ) {
     await Commands.RemoveShipCommand(message);
@@ -254,6 +262,8 @@ async function processCommand(message: Communication) {
     await Commands.ClearDefaultGuild(message);
   } else if (subCommand === "disconnected") {
     await Commands.AdminUsersCommand(message);
+  } else if (command === "admin" && subCommand === "clear") {
+    await Commands.AdminClearCommand(message);
   }
 }
 
@@ -264,7 +274,7 @@ export function registerInteractionHandlers() {
   handlers["delete_inventory"] = Commands.ClearConfirmationHandler;
   handlers["delete_user_select"] = Commands.AdminUsersSelect;
   handlers["delete_user_button"] = Commands.AdminUsersDeleteButton;
-
+  handlers["delete_guild"] = Commands.AdminClearButton;
   return;
 }
 
