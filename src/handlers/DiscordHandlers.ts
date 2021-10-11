@@ -91,14 +91,15 @@ async function setGuildCommands() {
   ].map((command) => command.toJSON());
 
   if (client.isReady()) {
-    Promise.all(
+    Promise.allSettled(
       client.guilds.cache.map(async (guild) => {
-        await rest.put(
-          Routes.applicationGuildCommands(client.user.id, guild.id),
-          {
+        await rest
+          .put(Routes.applicationGuildCommands(client.user.id, guild.id), {
             body: commands,
-          }
-        );
+          })
+          .catch(() =>
+            console.log(`Error setting permissions for guild ${guild.id}`)
+          );
       })
     ).then(async () => {
       await cacheGuildMembers();
