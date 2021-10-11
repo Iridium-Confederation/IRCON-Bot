@@ -101,9 +101,7 @@ async function setGuildCommands() {
           .put(Routes.applicationGuildCommands(client.user.id, guild.id), {
             body: commands,
           })
-          .catch(() =>
-            console.log(`Error setting permissions for guild ${guild.id}`)
-          );
+          .catch(() => {});
       })
     ).then(async () => {
       await cacheGuildMembers();
