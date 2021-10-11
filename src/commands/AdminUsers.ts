@@ -75,6 +75,38 @@ export const AdminUsersSelect: SelectHandler = async (
   replyNew(message, { content: content, components: [row] }, true);
 };
 
+export const AdminClearButton: ButtonHandler = async (
+  message: ButtonInteraction
+) => {
+  const guildId = await getGuildId(message);
+  if (!guildId) return;
+
+  const ships = await ShipDao.findAll(guildId);
+
+  ships.map((s) => {
+    s.destroy();
+  });
+
+  const replyStr = "All guild data cleared.";
+  return replyNew(message, { content: replyStr, components: [] }, true);
+};
+
+export const AdminClearCommand: FleetBotCommand = async (
+  message: Communication
+) => {
+  const row = new MessageActionRow().addComponents(
+    new MessageButton()
+      .setCustomId("delete_guild")
+      .setLabel("Delete Everything")
+      .setStyle("DANGER")
+  );
+
+  const replyStr =
+    "**Warning: This will delete ALL data owned by your organization.**";
+
+  return replyTo(message, replyStr, undefined, undefined, [row], true);
+};
+
 export const AdminUsersCommand: FleetBotCommand = async (
   message: Communication
 ) => {
