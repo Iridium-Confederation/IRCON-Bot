@@ -53,12 +53,12 @@ async function doBackup() {
 async function cacheGuildMembers() {
   await Promise.all(
     client.guilds.cache.map((g) => {
-      g.members.fetch().catch();
+      g.members.fetch().catch(() => {});
     })
   );
   await Promise.all(
     client.guilds.cache.map((g) => {
-      g.commands.fetch().catch();
+      g.commands.fetch().catch(() => {});
     })
   );
 }
