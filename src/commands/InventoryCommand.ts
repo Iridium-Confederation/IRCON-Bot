@@ -88,8 +88,8 @@ export const InventoryCommand: FleetBotCommand = async (
       const discordUser = await getGuildUser(firstUserFound, guildId);
 
       header = `${
-        discordUser?.nickname
-          ? discordUser.nickname
+        discordUser?.displayName
+          ? discordUser.displayName
           : (await User.findById(firstUserFound))[0].lastKnownTag.split("#")[0]
       }'s inventory (**${totalUec} UEC**):\n`;
     } else {

@@ -13,8 +13,13 @@ import {
 import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
 import fs from "fs";
+import { SlashCommandBuilder } from "@discordjs/builders";
+import { REST } from "@discordjs/rest";
+
+const { Routes } = require("discord-api-types/v9");
 
 const token = require("../../botconfig.json");
+const rest = new REST({ version: "9" }).setToken(token);
 
 export const client = new Discord.Client({
   intents: [
@@ -45,7 +50,78 @@ async function doBackup() {
 }
 
 async function cacheGuildMembers() {
-  await Promise.all(client.guilds.cache.map((g) => g.members.fetch()));
+  await Promise.all(
+    client.guilds.cache.map((g) => {
+      g.members.fetch();
+    })
+  );
+  await Promise.all(
+    client.guilds.cache.map((g) => {
+      g.commands.fetch();
+    })
+  );
+}
+
+async function setGuildCommands() {
+  const commands = [
+    new SlashCommandBuilder()
+      .setName("admin")
+      .setDefaultPermission(false)
+      .setDescription("Privileged commands.")
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("disconnected")
+          .setDescription("Manager disconnected users (Server Owner)")
+      )
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("delete")
+          .setDescription("Delete a connected user (Server Owner)")
+          .addUserOption((option) =>
+            option
+              .setName("user")
+              .setDescription("User to delete")
+              .setRequired(true)
+          )
+      ),
+  ].map((command) => command.toJSON());
+
+  if (client.isReady()) {
+    Promise.all(
+      client.guilds.cache.map(async (guild) => {
+        await rest.put(
+          Routes.applicationGuildCommands(client.user.id, guild.id),
+          {
+            body: commands,
+          }
+        );
+      })
+    ).then(async () => {
+      await cacheGuildMembers();
+    });
+  }
+}
+
+async function updateGuildCommandPermissions() {
+  Promise.all(
+    client.guilds.cache.map(async (guild) => {
+      const command = guild.commands.cache.find(
+        (command) => command.name === "admin"
+      );
+
+      if (command) {
+        await command.permissions.set({
+          permissions: [
+            {
+              id: guild.ownerId,
+              type: "USER",
+              permission: true,
+            },
+          ],
+        });
+      }
+    })
+  ).then(() => {});
 }
 
 export function registerOnReady() {
@@ -59,7 +135,12 @@ export function registerOnReady() {
 
     // Cache guild members (to support PM features)
     await cacheGuildMembers();
-    setInterval(cacheGuildMembers, 300_000);
+    setInterval(cacheGuildMembers, 60_000);
+
+    await setGuildCommands();
+
+    await updateGuildCommandPermissions();
+    setInterval(updateGuildCommandPermissions, 50_000);
   });
 }
 
@@ -148,9 +229,13 @@ async function processCommand(message: Communication) {
   } else if (command === "search") {
     await Commands.SearchCommand(message);
   } else if (
-    (command === "removeall" || command === "remove_all") &&
+    (command === "removeall" ||
+      command === "remove_all" ||
+      subCommand === "delete") &&
     Utils.hasRole(message, "Management")
   ) {
+    await Commands.RemoveAllCommand(message);
+  } else if (subCommand === "delete") {
     await Commands.RemoveAllCommand(message);
   } else if (command === "fleetview") {
     await Commands.FleetViewCommand(message);
@@ -166,7 +251,20 @@ async function processCommand(message: Communication) {
     await Commands.HelpCommand(message);
   } else if (command === "options") {
     await Commands.ClearDefaultGuild(message);
+  } else if (subCommand === "disconnected") {
+    await Commands.AdminUsersCommand(message);
   }
+}
+
+export const handlers: { [key: string]: Function } = {};
+
+export function registerInteractionHandlers() {
+  handlers["default_guild_select"] = Commands.DefaultGuildSelect;
+  handlers["delete_inventory"] = Commands.ClearConfirmationHandler;
+  handlers["delete_user_select"] = Commands.AdminUsersSelect;
+  handlers["delete_user_button"] = Commands.AdminUsersDeleteButton;
+
+  return;
 }
 
 export function registerOnMessage() {
@@ -174,10 +272,12 @@ export function registerOnMessage() {
     try {
       if (interaction.isCommand()) {
         await processCommand(interaction);
-      } else if (interaction.isButton()) {
-        await Commands.ClearConfirmationHandler(interaction);
-      } else if (interaction.isSelectMenu()) {
-        await Commands.DefaultGuildSelect(interaction);
+      } else if (interaction.isButton() || interaction.isSelectMenu()) {
+        const id = interaction.customId.split("#")[0];
+        const handler = handlers[id];
+        if (handler) {
+          handler(interaction);
+        }
       }
     } catch (e) {
       if (e instanceof DiscordAPIError) {
