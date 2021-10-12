@@ -59,9 +59,23 @@ const commands = [
     ),
   new SlashCommandBuilder()
     .setName("fleetview")
-    .setDescription("Generates a FleetView file for yourself or others.")
-    .addUserOption((option) =>
-      option.setName("user").setDescription("Search for a user")
+    .setDescription("Generates a FleetView export file.")
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("user")
+        .setDescription(
+          "Generates a Fleetview export file for the specified user."
+        )
+        .addUserOption((option) =>
+          option.setName("user").setDescription("Search for a user")
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("org")
+        .setDescription(
+          "Generates a Fleetview export file for the entire organization."
+        )
     ),
   new SlashCommandBuilder()
     .setName("stats")
@@ -104,7 +118,6 @@ const rest = new REST({ version: "9" }).setToken(token);
       body: commands,
     });
 
-    await rest.put(Routes.comma);
     // await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
     //   body: [],
     // });
