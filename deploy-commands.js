@@ -3,6 +3,9 @@ const { REST } = require("@discordjs/rest");
 const { Routes } = require("discord-api-types/v9");
 const token = require("./botconfig.json");
 
+// production
+// const clientId = "744369194140958740";
+// development
 const clientId = "712862078389583953";
 // const guildId = "744366532636967085";
 
