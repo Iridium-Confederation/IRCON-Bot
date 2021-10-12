@@ -15,4 +15,5 @@ interface FleetViewShip {
   lastPledgePrice: number;
   onSale: boolean;
   brochure: string;
+  loaners: FleetViewShip[];
 }
