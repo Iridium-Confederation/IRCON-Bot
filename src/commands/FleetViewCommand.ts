@@ -47,11 +47,21 @@ export const FleetViewCommand: FleetBotCommand = async (
   );
 
   if (fleetview.length === 0) {
-    replyTo(message, "No results found.");
+    replyTo(message, "No vehicles found.");
   } else {
+    const replyStr =
+      "Export options:\n\n" +
+      "<https://www.starship42.com/fleetview/>\n" +
+      "1. Click **Choose File**\n" +
+      "2. Click **Upload this attachment**\n" +
+      "\n" +
+      "<https://fleet-manager.space>\n" +
+      "1. Login\n" +
+      "2. Click **Import**\n";
+
     replyTo(
       message,
-      "Click <https://www.starship42.com/fleetview/> -> Choose File -> Upload this attachment.\n",
+      replyStr,
       new Discord.MessageAttachment(
         Buffer.from(JSON.stringify(fleetview)),
         "fleetview"
