@@ -12,7 +12,7 @@ import { FleetBotCommand } from "./FleetBotCommand";
 export const FleetViewCommand: FleetBotCommand = async (
   message: Communication
 ) => {
-  const { commandArgs } = await getCommand(message);
+  const { commandArgs, subCommand } = await getCommand(message);
 
   const guildId = await getGuildId(message);
   if (guildId == null) return;
@@ -26,13 +26,15 @@ export const FleetViewCommand: FleetBotCommand = async (
     } else {
       username = getUserTag(message);
     }
-  } else {
+  } else if (subCommand === "user") {
     const user = message.options.getUser("user");
     if (user) {
       username = user.tag;
     } else {
       username = getUserTag(message);
     }
+  } else {
+    username = "%";
   }
 
   const fleetview = (await ShipDao.findShipsByOwnerLike(username, guildId)).map(
@@ -52,7 +54,7 @@ export const FleetViewCommand: FleetBotCommand = async (
       "Click <https://www.starship42.com/fleetview/> -> Choose File -> Upload this attachment.\n",
       new Discord.MessageAttachment(
         Buffer.from(JSON.stringify(fleetview)),
-        "fleetview.json"
+        "fleetview"
       )
     );
   }
