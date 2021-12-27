@@ -12,7 +12,11 @@ import Discord, {
 import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
-import { client, PREFIX } from "./handlers/DiscordHandlers";
+import {
+  client,
+  guildsIncorrectPermissions,
+  PREFIX,
+} from "./handlers/DiscordHandlers";
 
 let allowedShips: FleetViewShip[];
 
@@ -27,6 +31,18 @@ function reply(
   ephemeral?: boolean
 ) {
   if (message.channel == null) return;
+
+  if (message.guildId && guildsIncorrectPermissions.has(message.guildId)) {
+    body =
+      "**Warning:** FleetBot does not have permission to create or respond to application commands on this server. " +
+      "To fix this, kick the bot and reinvite it to your server using the following link: \n" +
+      "https://discord.com/oauth2/authorize?client_id=744369194140958740&permissions=51200&scope=bot%20applications.commands\n\n" +
+      "Once this is done, you should be able to access FleetBot's new command interface. Simply type / to view all bot commands available to you. \n" +
+      "This message should go away shortly after you have reinvited FleetBot. \n" +
+      "In the near future, FleetBot will stop responding to the !fb command. For more information on why Discord is requiring this change, visit the link below: \n" +
+      "https://dis.gd/mcfaq\n\n" +
+      body;
+  }
 
   const embed = new Discord.MessageEmbed()
     .setColor("#0099ff")
@@ -128,7 +144,14 @@ export function replyTo(
 }
 
 export async function getCommand(message: Communication) {
-  if (message instanceof Discord.Message) {
+  if (message instanceof Discord.Message && message.mentions.users.size > 0) {
+    const input = message.content.replaceAll(/<.*> /g, "").split(" ");
+
+    const command = input.shift();
+    const commandArgs = input.join(" ");
+
+    return { command, commandArgs };
+  } else if (message instanceof Discord.Message) {
     const input = message.content
       .substr((await PREFIX()).length)
       .trimLeft()
