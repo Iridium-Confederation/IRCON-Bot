@@ -308,7 +308,7 @@ export function registerOnMessage() {
     ) {
       if (
         message.content.startsWith(await PREFIX()) ||
-        message.mentions.users.size > 0
+        (client.user?.id && message.mentions.users.has(client.user.id))
       ) {
         await processCommand(message);
       } else if (
