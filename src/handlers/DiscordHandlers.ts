@@ -1,9 +1,4 @@
-import Discord, {
-  DiscordAPIError,
-  Intents,
-  Snowflake,
-  TextChannel,
-} from "discord.js";
+import Discord, { DiscordAPIError, Intents, TextChannel } from "discord.js";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
 import * as Utils from "../utils";
@@ -20,12 +15,12 @@ import { commandsLogger } from "../logging/logging";
 import fs from "fs";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
+import { AdminClearButton, AdminUsersDeleteButton } from "../commands";
 
 const { Routes } = require("discord-api-types/v9");
 
 const token = require("../../botconfig.json");
 const rest = new REST({ version: "9" }).setToken(token);
-export const guildsIncorrectPermissions = new Set<Snowflake>();
 
 export const client = new Discord.Client({
   intents: [
@@ -100,19 +95,17 @@ async function setGuildCommands() {
   ].map((command) => command.toJSON());
 
   if (client.isReady()) {
-    guildsIncorrectPermissions.clear();
-
-    await Promise.allSettled(
+    Promise.allSettled(
       client.guilds.cache.map(async (guild) => {
         await rest
           .put(Routes.applicationGuildCommands(client.user.id, guild.id), {
             body: commands,
           })
-          .catch(() => {
-            guildsIncorrectPermissions.add(guild.id);
-          });
+          .catch(() => {});
       })
-    );
+    ).then(async () => {
+      await cacheGuildMembers();
+    });
   }
 }
 
@@ -152,10 +145,9 @@ export function registerOnReady() {
     setInterval(cacheGuildMembers, 60_000);
 
     await setGuildCommands();
-    setInterval(setGuildCommands, 60_000);
 
     await updateGuildCommandPermissions();
-    setInterval(updateGuildCommandPermissions, 60_000);
+    setInterval(updateGuildCommandPermissions, 50_000);
   });
 }
 
@@ -211,8 +203,12 @@ async function updateCache(message: Communication) {
 }
 
 async function processCommand(message: Communication) {
+  if (message instanceof Discord.Message) {
+    if (!message.content.startsWith("!")) {
+      return;
+    }
+  }
   await updateCache(message);
-
   const { command, subCommand } = await getCommand(message);
 
   const guildId = await getGuildId(message);
@@ -306,10 +302,7 @@ export function registerOnMessage() {
       message instanceof Discord.Message &&
       client.user?.id != message.author.id
     ) {
-      if (
-        message.content.startsWith(await PREFIX()) ||
-        message.mentions.users.size > 0
-      ) {
+      if (message.content.startsWith(await PREFIX())) {
         await processCommand(message);
       } else if (
         (message.content.startsWith("!") &&

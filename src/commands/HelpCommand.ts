@@ -7,6 +7,11 @@ export const HelpCommand: FleetBotCommand = async (message: Communication) => {
   if (guildId == null) return;
 
   let msg =
+    "**IMPORTANT**: Discord is removing the ability for bots to read messages in April 2022. " +
+    "That means you will no longer be able to interact with fleetbot using the ! commands. " +
+    "To continue to interact with Fleetbot, use Discord's slash command interface (e.g. /inventory add carrack). " +
+    "To see all Fleetbot slash commands, start typing / and click the FleetBot logo in the top left of the popup. " +
+    "If you do not see the slash commands, please reinvite the bot using this invite link: https://discord.com/oauth2/authorize?client_id=744369194140958740&permissions=51200&scope=bot%20applications.commands\n\n" +
     "Looking for the exact name of your ship? See: <https://fleetyards.net/ships/>\n\n" +
     `**${await PREFIX()}add SHIP** \n\t Add a ship to your fleet.\n` +
     `**${await PREFIX()}remove {SHIP|-all}** \n\t Remove some or all from your fleet.\n` +
