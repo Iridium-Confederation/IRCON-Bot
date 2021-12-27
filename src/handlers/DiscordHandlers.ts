@@ -40,11 +40,11 @@ export const PREFIX = async () => {
   return "!fb ";
 };
 
-export function login() {
-  if (!client.login(token)) {
-    console.log("Failed to login.");
-  } else {
-    console.log("Successfully authenticated with discord.");
+export async function login() {
+  const output = await client.login(token);
+
+  if (!output) {
+    console.log("Failed to login");
   }
 }
 
