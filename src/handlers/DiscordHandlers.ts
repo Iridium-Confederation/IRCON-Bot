@@ -43,6 +43,8 @@ export const PREFIX = async () => {
 export function login() {
   if (!client.login(token)) {
     console.log("Failed to login.");
+  } else {
+    console.log("Successfully authenticated with discord.");
   }
 }
 
@@ -146,6 +148,8 @@ async function updateGuildCommandPermissions() {
 
 export function registerOnReady() {
   client.once("ready", async () => {
+    console.log("Discord client reports ready.");
+
     await User.sync();
     ShipDao.sync();
 
