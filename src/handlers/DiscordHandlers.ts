@@ -102,7 +102,7 @@ async function setGuildCommands() {
   if (client.isReady()) {
     guildsIncorrectPermissions.clear();
 
-    return Promise.allSettled(
+    await Promise.allSettled(
       client.guilds.cache.map(async (guild) => {
         await rest
           .put(Routes.applicationGuildCommands(client.user.id, guild.id), {
