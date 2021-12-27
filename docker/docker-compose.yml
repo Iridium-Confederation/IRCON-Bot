@@ -7,21 +7,9 @@ services:
       - default
     volumes:
       - data:/bot
-      - ./admins.json:/admins.json
-      - ./botconfig.json:/botconfig.json
+      - ./admins.json:/etc/botconfig/admins.json
+      - ./botconfig.json:/etc/botconfig/botconfig.json
     restart: unless-stopped
-
-  dev-tools:
-    build: devtools
-    image: monestri/dev-tools
-
-  portainer:
-    image: portainer/portainer
-    ports:
-      - 9000:9000
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-
 
 networks:
   default:

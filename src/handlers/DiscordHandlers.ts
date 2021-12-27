@@ -102,7 +102,7 @@ async function setGuildCommands() {
   if (client.isReady()) {
     guildsIncorrectPermissions.clear();
 
-    return Promise.allSettled(
+    Promise.allSettled(
       client.guilds.cache.map(async (guild) => {
         await rest
           .put(Routes.applicationGuildCommands(client.user.id, guild.id), {
@@ -112,7 +112,7 @@ async function setGuildCommands() {
             guildsIncorrectPermissions.add(guild.id);
           });
       })
-    );
+    ).then(() => {});
   }
 }
 
@@ -152,7 +152,7 @@ export function registerOnReady() {
     setInterval(cacheGuildMembers, 60_000);
 
     await setGuildCommands();
-    setInterval(setGuildCommands, 60_000);
+    setInterval(setGuildCommands, 300_000);
 
     await updateGuildCommandPermissions();
     setInterval(updateGuildCommandPermissions, 60_000);
