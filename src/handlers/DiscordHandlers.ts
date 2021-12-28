@@ -67,7 +67,9 @@ async function cacheGuildMembers() {
       numFailures++;
     });
   }
-  console.log(`Failed fetching members for ${numFailures} servers.`);
+  console.log(
+    `Failed fetching members for ${numFailures}/${client.guilds.cache.size} servers.`
+  );
 
   numFailures = 0;
   for (const g of client.guilds.cache.values()) {
@@ -77,7 +79,9 @@ async function cacheGuildMembers() {
       numFailures++;
     });
   }
-  console.log(`Failed fetching commands for ${numFailures} servers.`);
+  console.log(
+    `Failed fetching commands for ${numFailures}/${client.guilds.cache.size} servers.`
+  );
 }
 
 async function setGuildCommands() {
