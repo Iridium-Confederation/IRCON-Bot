@@ -22,6 +22,10 @@ let allowedShips: FleetViewShip[];
 
 export type Communication = Discord.Message | Discord.CommandInteraction;
 
+export function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function reply(
   message: Communication | ButtonInteraction | SelectMenuInteraction,
   body: string,

@@ -14,6 +14,7 @@ import {
   getUserId,
   getUserTag,
   replyTo,
+  sleep,
 } from "../utils";
 import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
@@ -61,12 +62,16 @@ async function cacheGuildMembers() {
   await Promise.all(
     client.guilds.cache.map((g) => {
       g.members.fetch().catch(() => {
+        await sleep(100);
+
         console.log("Failed fetching members for: " + g.id);
       });
     })
   );
   await Promise.all(
     client.guilds.cache.map((g) => {
+      await sleep(100);
+
       g.commands.fetch().catch(() => {
         console.log("Failed fetching commands for: " + g.id);
       });
@@ -110,6 +115,8 @@ async function setGuildCommands() {
 
     Promise.allSettled(
       client.guilds.cache.map(async (guild) => {
+        await sleep(100);
+
         await rest
           .put(Routes.applicationGuildCommands(client.user.id, guild.id), {
             body: commands,
@@ -130,6 +137,8 @@ async function updateGuildCommandPermissions() {
       );
 
       if (command) {
+        await sleep(100);
+
         await command.permissions.set({
           permissions: [
             {
@@ -154,13 +163,6 @@ export function registerOnReady() {
   client.once("ready", async () => {
     console.log("Discord client reports ready.");
 
-    await User.sync();
-    ShipDao.sync();
-
-    // Schedule daily backups.
-    await doBackup();
-    setInterval(doBackup, 86_400_000);
-
     // Cache guild members (to support PM features)
     await cacheGuildMembers();
     setInterval(cacheGuildMembers, 120_000);
@@ -170,6 +172,12 @@ export function registerOnReady() {
 
     await updateGuildCommandPermissions();
     setInterval(updateGuildCommandPermissions, 120_000);
+
+    await User.sync();
+    ShipDao.sync();
+
+    // Schedule daily backups.
+    setInterval(doBackup, 86_400_000);
   });
 }
 
