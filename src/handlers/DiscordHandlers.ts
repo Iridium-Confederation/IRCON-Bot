@@ -60,19 +60,15 @@ async function doBackup() {
 async function cacheGuildMembers() {
   await Promise.all(
     client.guilds.cache.map((g) => {
-      console.log("Fetching members for: " + g.id);
       g.members.fetch().catch((e) => {
-        console.log(e);
-        console.log("Failed to fetch members: " + g.id);
+        console.log("Failed fetching members for: " + g.id);
       });
     })
   );
   await Promise.all(
     client.guilds.cache.map((g) => {
-      console.log("Fetching commands for: " + g.id);
       g.commands.fetch().catch((e) => {
-        console.log(e);
-        console.log("Failed to fetch commands: " + g.id);
+        console.log("Failed fetching commands for: " + g.id);
       });
     })
   );
@@ -119,7 +115,6 @@ async function setGuildCommands() {
             body: commands,
           })
           .catch((e) => {
-            console.log(e);
             guildsIncorrectPermissions.add(guild.id);
           });
       })
@@ -147,6 +142,12 @@ async function updateGuildCommandPermissions() {
       }
     })
   ).then(() => {});
+}
+
+export function registerRateLimit() {
+  client.once("rateLimit", async (limitData) => {
+    console.log("Rate limit: " + limitData);
+  });
 }
 
 export function registerOnReady() {
