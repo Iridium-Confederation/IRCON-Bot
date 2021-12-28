@@ -161,8 +161,8 @@ export function registerOnReady() {
     await cacheGuildMembers();
     setInterval(cacheGuildMembers, 60_000);
 
-    // await setGuildCommands();
-    // setInterval(setGuildCommands, 300_000);
+    await setGuildCommands();
+    setInterval(setGuildCommands, 60_000);
 
     await updateGuildCommandPermissions();
     setInterval(updateGuildCommandPermissions, 60_000);
