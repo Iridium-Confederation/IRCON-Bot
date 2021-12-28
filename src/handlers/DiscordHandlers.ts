@@ -21,6 +21,7 @@ import { commandsLogger } from "../logging/logging";
 import fs from "fs";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
+import _ from "lodash";
 
 const { Routes } = require("discord-api-types/v9");
 
@@ -59,25 +60,36 @@ async function doBackup() {
 }
 
 async function cacheGuildMembers() {
-  let numFailures = 0;
-  for (const g of client.guilds.cache.values()) {
-    await sleep(100);
+  const guilds = Array.from(client.guilds.cache.values());
 
-    await g.members.fetch().catch(() => {
-      numFailures++;
-    });
+  const chunks = _.chunk(guilds, 20);
+  let numFailures = 0;
+  for (const chunk of chunks) {
+    await sleep(1000);
+
+    await Promise.all(
+      chunk.map((g) => {
+        g.members.fetch().catch(() => {
+          numFailures++;
+        });
+      })
+    );
   }
   console.log(
     `Failed fetching members for ${numFailures}/${client.guilds.cache.size} servers.`
   );
 
   numFailures = 0;
-  for (const g of client.guilds.cache.values()) {
-    await sleep(100);
+  for (const chunk of chunks) {
+    await sleep(1000);
 
-    await g.commands.fetch().catch(() => {
-      numFailures++;
-    });
+    await Promise.all(
+      chunk.map((g) => {
+        g.commands.fetch().catch(() => {
+          numFailures++;
+        });
+      })
+    );
   }
   console.log(
     `Failed fetching commands for ${numFailures}/${client.guilds.cache.size} servers.`
@@ -118,39 +130,51 @@ async function setGuildCommands() {
   if (client.isReady()) {
     guildsIncorrectPermissions.clear();
 
-    for (const g of client.guilds.cache.values()) {
-      await sleep(100);
+    const chunks = _.chunk(Array.from(client.guilds.cache.values()), 20);
 
-      await rest
-        .put(Routes.applicationGuildCommands(client.user.id, g.id), {
-          body: commands,
+    for (const chunk of chunks) {
+      await sleep(1000);
+
+      await Promise.all(
+        chunk.map((g) => {
+          rest
+            .put(Routes.applicationGuildCommands(client.user.id, g.id), {
+              body: commands,
+            })
+            .catch(() => {
+              guildsIncorrectPermissions.add(g.id);
+            });
         })
-        .catch(() => {
-          guildsIncorrectPermissions.add(g.id);
-        });
+      );
     }
   }
 }
 
 async function updateGuildCommandPermissions() {
-  for (const guild of client.guilds.cache.values()) {
-    const command = guild.commands.cache.find(
-      (command) => command.name === "admin"
+  const chunks = _.chunk(Array.from(client.guilds.cache.values()), 20);
+
+  for (const chunk of chunks) {
+    await sleep(1000);
+
+    await Promise.all(
+      chunk.map((guild) => {
+        const command = guild.commands.cache.find(
+          (command) => command.name === "admin"
+        );
+
+        if (command) {
+          command.permissions.set({
+            permissions: [
+              {
+                id: guild.ownerId,
+                type: "USER",
+                permission: true,
+              },
+            ],
+          });
+        }
+      })
     );
-
-    if (command) {
-      await sleep(100);
-
-      await command.permissions.set({
-        permissions: [
-          {
-            id: guild.ownerId,
-            type: "USER",
-            permission: true,
-          },
-        ],
-      });
-    }
   }
 }
 
@@ -166,13 +190,13 @@ export function registerOnReady() {
 
     // Cache guild members (to support PM features)
     await cacheGuildMembers();
-    setInterval(cacheGuildMembers, 120_000);
+    setInterval(cacheGuildMembers, 60_000);
 
     await setGuildCommands();
-    setInterval(setGuildCommands, 120_000);
+    setInterval(setGuildCommands, 60_000);
 
     await updateGuildCommandPermissions();
-    setInterval(updateGuildCommandPermissions, 120_000);
+    setInterval(updateGuildCommandPermissions, 60_000);
 
     await User.sync();
     ShipDao.sync();
