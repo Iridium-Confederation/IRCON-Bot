@@ -60,30 +60,23 @@ async function doBackup() {
 
 async function cacheGuildMembers() {
   let numFailures = 0;
+  for (const g of client.guilds.cache.values()) {
+    await sleep(100);
 
-  await Promise.all(
-    client.guilds.cache.map(async (g) => {
-      await sleep(200);
-
-      g.members.fetch().catch(() => {
-        numFailures++;
-      });
-    })
-  );
-
+    await g.members.fetch().catch(() => {
+      numFailures++;
+    });
+  }
   console.log(`Failed fetching members for ${numFailures} servers.`);
 
   numFailures = 0;
-  await Promise.all(
-    client.guilds.cache.map(async (g) => {
-      await sleep(200);
+  for (const g of client.guilds.cache.values()) {
+    await sleep(100);
 
-      g.commands.fetch().catch(() => {
-        numFailures++;
-      });
-    })
-  );
-
+    await g.commands.fetch().catch(() => {
+      numFailures++;
+    });
+  }
   console.log(`Failed fetching commands for ${numFailures} servers.`);
 }
 
@@ -121,44 +114,40 @@ async function setGuildCommands() {
   if (client.isReady()) {
     guildsIncorrectPermissions.clear();
 
-    Promise.allSettled(
-      client.guilds.cache.map(async (guild) => {
-        await sleep(200);
+    for (const g of client.guilds.cache.values()) {
+      await sleep(100);
 
-        await rest
-          .put(Routes.applicationGuildCommands(client.user.id, guild.id), {
-            body: commands,
-          })
-          .catch(() => {
-            guildsIncorrectPermissions.add(guild.id);
-          });
-      })
-    ).then(() => {});
+      await rest
+        .put(Routes.applicationGuildCommands(client.user.id, g.id), {
+          body: commands,
+        })
+        .catch(() => {
+          guildsIncorrectPermissions.add(g.id);
+        });
+    }
   }
 }
 
 async function updateGuildCommandPermissions() {
-  Promise.all(
-    client.guilds.cache.map(async (guild) => {
-      const command = guild.commands.cache.find(
-        (command) => command.name === "admin"
-      );
+  for (const guild of client.guilds.cache.values()) {
+    const command = guild.commands.cache.find(
+      (command) => command.name === "admin"
+    );
 
-      if (command) {
-        await sleep(200);
+    if (command) {
+      await sleep(100);
 
-        await command.permissions.set({
-          permissions: [
-            {
-              id: guild.ownerId,
-              type: "USER",
-              permission: true,
-            },
-          ],
-        });
-      }
-    })
-  ).then(() => {});
+      await command.permissions.set({
+        permissions: [
+          {
+            id: guild.ownerId,
+            type: "USER",
+            permission: true,
+          },
+        ],
+      });
+    }
+  }
 }
 
 export function registerRateLimit() {
