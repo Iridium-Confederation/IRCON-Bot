@@ -60,14 +60,14 @@ async function doBackup() {
 async function cacheGuildMembers() {
   await Promise.all(
     client.guilds.cache.map((g) => {
-      g.members.fetch().catch((e) => {
+      g.members.fetch().catch(() => {
         console.log("Failed fetching members for: " + g.id);
       });
     })
   );
   await Promise.all(
     client.guilds.cache.map((g) => {
-      g.commands.fetch().catch((e) => {
+      g.commands.fetch().catch(() => {
         console.log("Failed fetching commands for: " + g.id);
       });
     })
@@ -146,7 +146,7 @@ async function updateGuildCommandPermissions() {
 
 export function registerRateLimit() {
   client.once("rateLimit", async (limitData) => {
-    console.log("Rate limit: " + limitData);
+    console.log("Rate limit: " + JSON.stringify(limitData));
   });
 }
 
@@ -163,13 +163,13 @@ export function registerOnReady() {
 
     // Cache guild members (to support PM features)
     await cacheGuildMembers();
-    setInterval(cacheGuildMembers, 60_000);
+    setInterval(cacheGuildMembers, 120_000);
 
     await setGuildCommands();
-    setInterval(setGuildCommands, 60_000);
+    setInterval(setGuildCommands, 120_000);
 
     await updateGuildCommandPermissions();
-    setInterval(updateGuildCommandPermissions, 60_000);
+    setInterval(updateGuildCommandPermissions, 120_000);
   });
 }
 
