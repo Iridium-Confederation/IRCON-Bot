@@ -148,6 +148,10 @@ async function setGuildCommands() {
       );
     }
   }
+
+  console.log(
+    `Failed creating commands for ${guildsIncorrectPermissions.size}/${client.guilds.cache.size} servers.`
+  );
 }
 
 async function updateGuildCommandPermissions() {
