@@ -61,20 +61,24 @@ async function doBackup() {
 async function cacheGuildMembers() {
   await Promise.all(
     client.guilds.cache.map(async (g) => {
-      await sleep(100);
+      await sleep(200);
 
+      let numFailures = 0;
       g.members.fetch().catch(() => {
-        console.log("Failed fetching members for: " + g.id);
+        numFailures++;
       });
+      console.log(`Failed fetching members for ${numFailures} servers.`);
     })
   );
   await Promise.all(
     client.guilds.cache.map(async (g) => {
-      await sleep(100);
+      await sleep(200);
 
+      let numFailures = 0;
       g.commands.fetch().catch(() => {
-        console.log("Failed fetching commands for: " + g.id);
+        numFailures++;
       });
+      console.log(`Failed fetching commands for ${numFailures} servers.`);
     })
   );
 }
@@ -115,7 +119,7 @@ async function setGuildCommands() {
 
     Promise.allSettled(
       client.guilds.cache.map(async (guild) => {
-        await sleep(100);
+        await sleep(200);
 
         await rest
           .put(Routes.applicationGuildCommands(client.user.id, guild.id), {
@@ -137,7 +141,7 @@ async function updateGuildCommandPermissions() {
       );
 
       if (command) {
-        await sleep(100);
+        await sleep(200);
 
         await command.permissions.set({
           permissions: [
