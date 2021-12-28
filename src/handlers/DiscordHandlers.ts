@@ -61,7 +61,8 @@ async function cacheGuildMembers() {
   await Promise.all(
     client.guilds.cache.map((g) => {
       console.log("Fetching members for: " + g.id);
-      g.members.fetch().catch(() => {
+      g.members.fetch().catch((e) => {
+        console.log(e);
         console.log("Failed to fetch members: " + g.id);
       });
     })
@@ -69,7 +70,8 @@ async function cacheGuildMembers() {
   await Promise.all(
     client.guilds.cache.map((g) => {
       console.log("Fetching commands for: " + g.id);
-      g.commands.fetch().catch(() => {
+      g.commands.fetch().catch((e) => {
+        console.log(e);
         console.log("Failed to fetch commands: " + g.id);
       });
     })
@@ -116,7 +118,8 @@ async function setGuildCommands() {
           .put(Routes.applicationGuildCommands(client.user.id, guild.id), {
             body: commands,
           })
-          .catch(() => {
+          .catch((e) => {
+            console.log(e);
             guildsIncorrectPermissions.add(guild.id);
           });
       })
