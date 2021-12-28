@@ -59,28 +59,32 @@ async function doBackup() {
 }
 
 async function cacheGuildMembers() {
+  let numFailures = 0;
+
   await Promise.all(
     client.guilds.cache.map(async (g) => {
       await sleep(200);
 
-      let numFailures = 0;
       g.members.fetch().catch(() => {
         numFailures++;
       });
-      console.log(`Failed fetching members for ${numFailures} servers.`);
     })
   );
+
+  console.log(`Failed fetching members for ${numFailures} servers.`);
+
+  numFailures = 0;
   await Promise.all(
     client.guilds.cache.map(async (g) => {
       await sleep(200);
 
-      let numFailures = 0;
       g.commands.fetch().catch(() => {
         numFailures++;
       });
-      console.log(`Failed fetching commands for ${numFailures} servers.`);
     })
   );
+
+  console.log(`Failed fetching commands for ${numFailures} servers.`);
 }
 
 async function setGuildCommands() {
