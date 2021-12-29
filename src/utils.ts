@@ -229,10 +229,10 @@ export function findShip(
 export async function refreshShipList() {
   try {
     const p1 = await fetch(
-      "https://api.fleetyards.net/v1/models?perPage=200&page=1"
+      "https://api.fleetyards.net/v1/models?perPage=240&page=1"
     );
     const p2 = await fetch(
-      "https://api.fleetyards.net/v1/models?perPage=200&page=2"
+      "https://api.fleetyards.net/v1/models?perPage=240&page=2"
     );
 
     allowedShips = (await p1.json()).concat(await p2.json());
