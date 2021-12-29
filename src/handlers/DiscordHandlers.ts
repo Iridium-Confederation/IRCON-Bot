@@ -62,7 +62,7 @@ async function doBackup() {
 async function cacheGuildMembers() {
   const guilds = Array.from(client.guilds.cache.values());
 
-  const chunks = _.chunk(guilds, 20);
+  const chunks = _.chunk(guilds, 25);
   let numFailures = 0;
   for (const chunk of chunks) {
     await sleep(1000);
@@ -130,7 +130,7 @@ async function setGuildCommands() {
   if (client.isReady()) {
     guildsIncorrectPermissions.clear();
 
-    const chunks = _.chunk(Array.from(client.guilds.cache.values()), 20);
+    const chunks = _.chunk(Array.from(client.guilds.cache.values()), 25);
 
     for (const chunk of chunks) {
       await sleep(1000);
@@ -155,7 +155,7 @@ async function setGuildCommands() {
 }
 
 async function updateGuildCommandPermissions() {
-  const chunks = _.chunk(Array.from(client.guilds.cache.values()), 20);
+  const chunks = _.chunk(Array.from(client.guilds.cache.values()), 25);
 
   for (const chunk of chunks) {
     await sleep(1000);
@@ -188,19 +188,19 @@ export function registerRateLimit() {
   });
 }
 
+async function doIntervalActions() {
+  await cacheGuildMembers();
+  await setGuildCommands();
+  await updateGuildCommandPermissions();
+}
+
 export function registerOnReady() {
   client.once("ready", async () => {
     console.log("Discord client reports ready.");
 
     // Cache guild members (to support PM features)
-    await cacheGuildMembers();
-    setInterval(cacheGuildMembers, 60_000);
-
-    await setGuildCommands();
-    setInterval(setGuildCommands, 60_000);
-
-    await updateGuildCommandPermissions();
-    setInterval(updateGuildCommandPermissions, 60_000);
+    await doIntervalActions();
+    setInterval(doIntervalActions, 60_000);
 
     await User.sync();
     ShipDao.sync();
