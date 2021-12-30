@@ -62,7 +62,7 @@ async function doBackup() {
 async function cacheGuildMembers() {
   const guilds = Array.from(client.guilds.cache.values());
 
-  const chunks = _.chunk(guilds, 25);
+  const chunks = _.chunk(guilds, 10);
   let numFailures = 0;
   for (const chunk of chunks) {
     await sleep(1000);
@@ -155,7 +155,7 @@ async function setGuildCommands() {
 }
 
 async function updateGuildCommandPermissions() {
-  const chunks = _.chunk(Array.from(client.guilds.cache.values()), 25);
+  const chunks = _.chunk(Array.from(client.guilds.cache.values()), 10);
 
   for (const chunk of chunks) {
     await sleep(1000);
@@ -202,7 +202,7 @@ export function registerOnReady() {
 
     // Cache guild members (to support PM features)
     await doIntervalActions();
-    setInterval(doIntervalActions, 60_000);
+    setInterval(doIntervalActions, 120_000);
 
     await User.sync();
     ShipDao.sync();
