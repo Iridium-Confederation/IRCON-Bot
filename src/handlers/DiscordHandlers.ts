@@ -363,13 +363,14 @@ export function registerOnMessage() {
         message.content.startsWith(await PREFIX()) ||
         (client.user?.id && message.mentions.users.has(client.user.id))
       ) {
-        await processCommand(message);
-      } else if (
-        (message.content.startsWith("!") &&
-          message.guildId === "226021087996149772") ||
-        message.guild === null
-      ) {
-        replyTo(message, "Use !fb help or type / to see valid commands.");
+        replyTo(
+          message,
+          "The !fb prefix is being retired. Type / to see valid commands.\n\n" +
+            "If you do not see any commands listed after typing /, the bot may need to be kicked and reinvited using this link:\n" +
+            "https://discord.com/oauth2/authorize?client_id=744369194140958740&permissions=51200&scope=bot%20applications.commands\n\n" +
+            "Questions? Join the Fleetbot development Discord server.\n" +
+            "https://discord.gg/Ru8WqyG"
+        );
       }
     }
   });
