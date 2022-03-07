@@ -1,14 +1,17 @@
 import {
-  Communication,
   getCommand,
   getGuildId,
   getUserTag,
   replyTo,
 } from "../utils";
-import { ButtonHandler, FleetBotCommand } from "./FleetBotCommand";
+import {
+  ButtonHandler,
+  FleetBotCommandInteraction,
+} from "./FleetBotCommand";
 import { deleteShips } from "../models/Ships";
-import Discord, {
+import {
   ButtonInteraction,
+  CommandInteraction,
   MessageActionRow,
   MessageButton,
 } from "discord.js";
@@ -22,31 +25,26 @@ export const ClearConfirmationHandler: ButtonHandler = async (
 
   await deleteShips("", getUserTag(interaction), guildId, true);
 
-  interaction.update({
+  await interaction.update({
     embeds: [],
     content: "Your inventory has been cleared",
     components: [],
   });
 };
-export const RemoveShipCommand: FleetBotCommand = async (
-  message: Communication
+export const RemoveShipCommand: FleetBotCommandInteraction = async (
+  message: CommandInteraction
 ) => {
   let { command, commandArgs } = await getCommand(message);
 
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
-  if (message instanceof Discord.Interaction) {
-    const clear = message.options.getSubcommand(false) === "clear";
-    if (clear) {
-      commandArgs = "clear";
-    }
+  const clear = message.options.getSubcommand(false) === "clear";
+  if (clear) {
+    commandArgs = "clear";
   }
 
-  let shipName =
-    message instanceof Discord.Message
-      ? commandArgs.toLowerCase()
-      : message.options.getString("vehicle", false);
+  let shipName = message.options.getString("vehicle", false);
 
   if (!shipName) {
     shipName = "";
@@ -69,21 +67,7 @@ export const RemoveShipCommand: FleetBotCommand = async (
       true
     );
   } else if (command === "delete_inventory") {
-    const removedShips = await deleteShips(
-      shipName,
-      getUserTag(message),
-      guildId,
-      true
-    );
-  } else if (commandArgs === "-all") {
-    await deleteShips(
-      shipName,
-      getUserTag(message),
-      guildId,
-      commandArgs === "-all"
-    );
-
-    replyTo(message, `Your inventory has been cleared.`);
+    await deleteShips(shipName, getUserTag(message), guildId, true);
   } else if (shipName.length <= 1) {
     replyTo(message, "Could you be more specific?");
   } else {

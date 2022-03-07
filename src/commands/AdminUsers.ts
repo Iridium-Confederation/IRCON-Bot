@@ -8,10 +8,12 @@ import {
 import {
   ButtonHandler,
   FleetBotCommand,
+  FleetBotCommandInteraction,
   SelectHandler,
 } from "./FleetBotCommand";
 import {
   ButtonInteraction,
+  CommandInteraction,
   MessageActionRow,
   MessageButton,
   MessageSelectMenu,
@@ -107,8 +109,8 @@ export const AdminClearCommand: FleetBotCommand = async (
   return replyTo(message, replyStr, undefined, undefined, [row], true);
 };
 
-export const AdminUsersCommand: FleetBotCommand = async (
-  message: Communication
+export const AdminUsersCommand: FleetBotCommandInteraction = async (
+  message: CommandInteraction
 ) => {
   const guildId = await getGuildId(message);
   if (!guildId) return;

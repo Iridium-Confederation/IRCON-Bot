@@ -1,4 +1,5 @@
 import Discord, {
+  CommandInteraction,
   DiscordAPIError,
   Intents,
   Snowflake,
@@ -29,6 +30,8 @@ const token = require("../../botconfig.json");
 const rest = new REST({ version: "9" }).setToken(token);
 export const guildsIncorrectPermissions = new Set<Snowflake>();
 
+const admins = require("../../admins.json");
+
 export const client = new Discord.Client({
   intents: [
     Intents.FLAGS.GUILDS,
@@ -50,13 +53,16 @@ export async function login() {
   }
 }
 
-// Do a database backup over discord
+// Do a database backup over )discord
 async function doBackup() {
-  const backupUser = client.users.cache.get("855908206672609310");
-  if (backupUser) {
-    fs.readFileSync("database.sqlite");
-    await backupUser.send({ files: ["database.sqlite"] });
-  }
+  admins
+    .map((a: any) => client.users.cache.get(a.discordId))
+    .forEach((backupUser: Discord.User) => {
+      if (backupUser) {
+        fs.readFileSync("database.sqlite");
+        backupUser.send({ files: ["database.sqlite"] });
+      }
+    });
 }
 
 async function cacheGuildMembers() {
@@ -204,11 +210,12 @@ export function registerOnReady() {
     await doIntervalActions();
     setInterval(doIntervalActions, 120_000);
 
+    // Schedule daily backups.
+    await doBackup();
+    setInterval(doBackup, 86_400_000);
+
     await User.sync();
     ShipDao.sync();
-
-    // Schedule daily backups.
-    setInterval(doBackup, 86_400_000);
   });
 }
 
@@ -263,7 +270,7 @@ async function updateCache(message: Communication) {
   );
 }
 
-async function processCommand(message: Communication) {
+async function processCommand(message: CommandInteraction) {
   await updateCache(message);
 
   const { command, subCommand } = await getCommand(message);
@@ -279,46 +286,46 @@ async function processCommand(message: Communication) {
     )}] executed command [${getMessageContent(message)}]`
   );
 
-  if (command === "add" || subCommand === "add") {
-    await Commands.AddShipCommand(message);
-  } else if (
-    command === "remove" ||
-    subCommand === "remove" ||
-    (command === "inventory" && subCommand === "clear") ||
-    command === "delete_inventory"
-  ) {
-    await Commands.RemoveShipCommand(message);
-  } else if (command === "inventory" || subCommand === "view") {
-    await Commands.InventoryCommand(message);
-  } else if (command === "search") {
-    await Commands.SearchCommand(message);
-  } else if (
-    (command === "removeall" ||
-      command === "remove_all" ||
-      subCommand === "delete") &&
-    Utils.hasRole(message, "Management")
-  ) {
-    await Commands.RemoveAllCommand(message);
-  } else if (subCommand === "delete") {
-    await Commands.RemoveAllCommand(message);
-  } else if (command === "fleetview") {
-    await Commands.FleetViewCommand(message);
-  } else if (command === "update" && User.isAdmin(getUserId(message))) {
-    await Commands.UpdateFleetBotCommand(message);
-  } else if (command === "import") {
-    await Commands.ImportCommand(message);
-  } else if (command === "db" && User.isAdmin(getUserId(message))) {
-    await Commands.DownloadDBCommand(message);
-  } else if (command === "stats" || command === "stats_org") {
-    await Commands.StatsCommand(message);
-  } else if (command === "help") {
-    await Commands.HelpCommand(message);
-  } else if (command === "options") {
-    await Commands.ClearDefaultGuild(message);
-  } else if (subCommand === "disconnected") {
-    await Commands.AdminUsersCommand(message);
-  } else if (command === "admin" && subCommand === "clear") {
-    await Commands.AdminClearCommand(message);
+  switch (command) {
+    case "inventory":
+      switch (subCommand) {
+        case "add":
+          await Commands.AddShipCommand(message);
+          break;
+        case "remove":
+        case "clear":
+          await Commands.RemoveShipCommand(message);
+          break;
+        case "view":
+          await Commands.InventoryCommand(message);
+          break;
+      }
+      break;
+    case "search":
+      await Commands.SearchCommand(message);
+      break;
+    case "fleetview":
+      await Commands.FleetViewCommand(message);
+      break;
+    case "admin":
+      switch (subCommand) {
+        case "delete":
+          await Commands.RemoveAllCommand(message);
+          break;
+        case "disconnected":
+          await Commands.AdminUsersCommand(message);
+          break;
+        case "clear":
+          await Commands.AdminClearCommand(message);
+          break;
+      }
+      break;
+    case "stats":
+      await Commands.StatsCommand(message);
+      break;
+    case "options":
+      await Commands.ClearDefaultGuild(message);
+      break;
   }
 }
 
@@ -363,14 +370,28 @@ export function registerOnMessage() {
         message.content.startsWith(await PREFIX()) ||
         (client.user?.id && message.mentions.users.has(client.user.id))
       ) {
-        replyTo(
-          message,
-          "The !fb prefix is being retired. Type / to see valid commands.\n\n" +
-            "If you do not see any commands listed after typing /, the bot may need to be kicked and reinvited using this link:\n" +
-            "https://discord.com/oauth2/authorize?client_id=744369194140958740&permissions=51200&scope=bot%20applications.commands\n\n" +
-            "Questions? Join the Fleetbot development Discord server.\n" +
-            "https://discord.gg/Ru8WqyG"
+        commandsLogger.info(
+          `[${getUserTag(message)}-${getUserId(
+            message
+          )}] executed command [${getMessageContent(message)}]`
         );
+
+        const { command } = await getCommand(message);
+
+        if (command === "db" && User.isAdmin(getUserId(message))) {
+          await Commands.DownloadDBCommand(message);
+        } else if (command === "update" && User.isAdmin(getUserId(message))) {
+          await Commands.UpdateFleetBotCommand(message);
+        } else {
+          replyTo(
+            message,
+            "The !fb prefix is being retired. Type / to see valid commands.\n\n" +
+              "If you do not see any commands listed after typing /, the bot may need to be kicked and reinvited using this link:\n" +
+              "https://discord.com/oauth2/authorize?client_id=744369194140958740&permissions=51200&scope=bot%20applications.commands\n\n" +
+              "Questions? Join the Fleetbot development Discord server.\n" +
+              "https://discord.gg/Ru8WqyG"
+          );
+        }
       }
     }
   });
