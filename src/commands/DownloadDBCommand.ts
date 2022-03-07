@@ -1,14 +1,9 @@
 import Discord from "discord.js";
 import fs from "fs";
-import { Communication, replyTo } from "../utils";
-import { FleetBotCommand } from "./FleetBotCommand";
+import { replyTo } from "../utils";
 import fetch from "node-fetch";
 
-export const DownloadDBCommand: FleetBotCommand = async (
-  message: Communication
-) => {
-  if (!(message instanceof Discord.Message)) return;
-
+export const DownloadDBCommand = async (message: Discord.Message) => {
   const attachment = message.attachments.find(() => true);
 
   if (attachment) {

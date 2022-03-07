@@ -1,8 +1,6 @@
-import Discord from "discord.js";
+import { CommandInteraction } from "discord.js";
 import {
-  Communication,
   findShip,
-  getCommand,
   getGuildId,
   getGuildUser,
   getTotalUec,
@@ -12,17 +10,14 @@ import {
 } from "../utils";
 import { ShipDao, Ships } from "../models/Ships";
 import _ from "lodash";
-import { FleetBotCommand } from "./FleetBotCommand";
+import { FleetBotCommandInteraction } from "./FleetBotCommand";
 import { User } from "../models/User";
 
-export const StatsCommand: FleetBotCommand = async (message: Communication) => {
+export const StatsCommand: FleetBotCommandInteraction = async (message: CommandInteraction) => {
   const guildId = await getGuildId(message);
   if (!guildId) return;
 
-  const commandArgs =
-    message instanceof Discord.Message
-      ? (await getCommand(message)).commandArgs
-      : message.options.getString("vehicle", false);
+  const commandArgs = message.options.getString("vehicle", false);
 
   if (commandArgs) {
     const ship = findShip(commandArgs);

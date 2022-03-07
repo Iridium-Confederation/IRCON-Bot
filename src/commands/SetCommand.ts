@@ -1,8 +1,8 @@
-import { Communication, getUserId, replyTo } from "../utils";
-import { FleetBotCommand, SelectHandler } from "./FleetBotCommand";
+import { getUserId, replyTo } from "../utils";
+import { FleetBotCommandInteraction, SelectHandler } from "./FleetBotCommand";
 import { User } from "../models/User";
 import { client } from "../handlers/DiscordHandlers";
-import { SelectMenuInteraction } from "discord.js";
+import { CommandInteraction, SelectMenuInteraction } from "discord.js";
 
 export const DefaultGuildSelect: SelectHandler = async (
   message: SelectMenuInteraction
@@ -22,8 +22,8 @@ export const DefaultGuildSelect: SelectHandler = async (
   }
 };
 
-export const ClearDefaultGuild: FleetBotCommand = async (
-  message: Communication
+export const ClearDefaultGuild: FleetBotCommandInteraction = async (
+  message: CommandInteraction
 ) => {
   const user = (await User.findById(getUserId(message)))[0];
   user.defaultGuildId = null;

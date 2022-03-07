@@ -1,32 +1,19 @@
-import Discord from "discord.js";
-import {
-  Communication,
-  getCommand,
-  getGuildId,
-  getUserTag,
-  replyTo,
-} from "../utils";
+import Discord, { CommandInteraction } from "discord.js";
+import { getCommand, getGuildId, getUserTag, replyTo } from "../utils";
 import { ShipDao, Ships } from "../models/Ships";
-import { FleetBotCommand } from "./FleetBotCommand";
+import { FleetBotCommandInteraction } from "./FleetBotCommand";
 
-export const FleetViewCommand: FleetBotCommand = async (
-  message: Communication
+export const FleetViewCommand: FleetBotCommandInteraction = async (
+  message: CommandInteraction
 ) => {
-  const { commandArgs, subCommand } = await getCommand(message);
+  const { subCommand } = await getCommand(message);
 
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
   let username;
-  if (message instanceof Discord.Message) {
-    if (commandArgs === "-org") {
-      username = "%";
-    } else if (Boolean(commandArgs)) {
-      username = commandArgs + "#%";
-    } else {
-      username = getUserTag(message);
-    }
-  } else if (subCommand === "user") {
+
+  if (subCommand === "user") {
     const user = message.options.getUser("user");
     if (user) {
       username = user.tag;

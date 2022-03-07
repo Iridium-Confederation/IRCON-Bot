@@ -1,6 +1,5 @@
-import { FleetBotCommand } from "./FleetBotCommand";
+import { FleetBotCommandInteraction } from "./FleetBotCommand";
 import {
-  Communication,
   findShip,
   getCommand,
   getGuildId,
@@ -12,35 +11,25 @@ import {
 } from "../utils";
 import { ShipDao } from "../models/Ships";
 import _ from "lodash";
-import Discord from "discord.js";
+import { CommandInteraction } from "discord.js";
 import { client } from "../handlers/DiscordHandlers";
 import { User } from "../models/User";
 
-export const InventoryCommand: FleetBotCommand = async (
-  message: Communication
+export const InventoryCommand: FleetBotCommandInteraction = async (
+  message: CommandInteraction
 ) => {
-  const { command, commandArgs } = await getCommand(message);
+  const { commandArgs } = await getCommand(message);
 
   const guildId = await getGuildId(message);
   if (guildId == null) return;
   const guild = await client.guilds.cache.get(guildId);
   if (!guild) return;
 
-  let ships;
-  if (commandArgs.includes("-org") || command === "inventory_all") {
-    ships = await ShipDao.findAll(guildId);
-  } else if (message instanceof Discord.Message) {
-    ships =
-      commandArgs === ""
-        ? await ShipDao.findShipsByOwnerId(getUserId(message), guildId)
-        : await ShipDao.findShipsByOwnerLike(`%${commandArgs}%#%`, guildId);
-  } else {
-    const opUser = message.options.getUser("user", false);
-    ships = await ShipDao.findShipsByOwnerId(
-      opUser ? opUser.id : getUserId(message),
-      guildId
-    );
-  }
+  const opUser = message.options.getUser("user", false);
+  const ships = await ShipDao.findShipsByOwnerId(
+    opUser ? opUser.id : getUserId(message),
+    guildId
+  );
 
   const totalUec = getTotalUec(ships).toLocaleString();
 

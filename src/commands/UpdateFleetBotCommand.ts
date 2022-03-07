@@ -1,9 +1,9 @@
-import { Communication, replyTo } from "../utils";
+import { replyTo } from "../utils";
 import { exec } from "child_process";
-import { FleetBotCommand } from "./FleetBotCommand";
+import Discord from "discord.js";
 
-export const UpdateFleetBotCommand: FleetBotCommand = async (
-  message: Communication
+export const UpdateFleetBotCommand = async (
+  message: Discord.Message
 ) => {
   await replyTo(message, "Starting docker update. Party time.");
   console.log("Starting docker update...");

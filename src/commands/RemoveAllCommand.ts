@@ -1,25 +1,19 @@
-import { FleetBotCommand } from "./FleetBotCommand";
+import { FleetBotCommand, FleetBotCommandInteraction } from "./FleetBotCommand";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
 import { Communication, getCommand, getGuildId, replyTo } from "../utils";
 import { CommandInteraction } from "discord.js";
 
-export const RemoveAllCommand: FleetBotCommand = async (
-  message: Communication
+export const RemoveAllCommand: FleetBotCommandInteraction = async (
+  message: CommandInteraction
 ) => {
   const { commandArgs } = await getCommand(message);
 
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
-  let user;
-
-  if (message instanceof CommandInteraction) {
-    const discordUser = message.options.getUser("user", true);
-    user = (await User.findById(discordUser.id))[0];
-  } else {
-    user = (await User.findByTag(commandArgs))[0];
-  }
+  const discordUser = message.options.getUser("user", true);
+  const user = (await User.findById(discordUser.id))[0];
 
   if (user) {
     const ships = await ShipDao.findShipsByOwnerId(user.discordUserId, guildId);

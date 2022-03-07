@@ -1,4 +1,3 @@
-export * from "./HelpCommand";
 export * from "./StatsCommand";
 export * from "./ImportCommand";
 export * from "./SearchCommand";
