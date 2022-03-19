@@ -181,7 +181,7 @@ async function updateGuildCommandPermissions() {
                 permission: true,
               },
             ],
-          });
+a          }).catch();
         }
       })
     );
