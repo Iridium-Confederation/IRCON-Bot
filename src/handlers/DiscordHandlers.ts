@@ -173,17 +173,17 @@ async function updateGuildCommandPermissions() {
         );
 
         if (command) {
-          command.permissions
-            .set({
-              permissions: [
-                {
-                  id: guild.ownerId,
-                  type: "USER",
-                  permission: true,
-                },
-              ],
-            })
-            .catch();
+          // command.permissions
+          //   .set({
+          //     permissions: [
+          //       {
+          //         id: guild.ownerId,
+          //         type: "USER",
+          //         permission: true,
+          //       },
+          //     ],
+          //   })
+          //   .catch();
         }
       })
     );
