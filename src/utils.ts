@@ -3,6 +3,7 @@ import Discord, {
   CommandInteraction,
   Interaction,
   InteractionReplyOptions,
+  InteractionUpdateOptions,
   MessageActionRow,
   MessageAttachment,
   MessageSelectMenu,
@@ -22,7 +23,7 @@ let allowedShips: FleetViewShip[];
 
 export type Communication = Discord.Message | Discord.CommandInteraction;
 
-export function sleep(ms : number) {
+export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -78,10 +79,19 @@ function reply(
   }
 }
 
+export function update(
+  message: SelectMenuInteraction | ButtonInteraction,
+  updateOptions: InteractionUpdateOptions
+) {
+  message
+    .update(updateOptions)
+    .catch((e) => console.log(e))
+    .then(() => {});
+}
+
 export function replyNew(
   message: CommandInteraction | SelectMenuInteraction | ButtonInteraction,
-  options: InteractionReplyOptions,
-  update?: Boolean
+  options: InteractionReplyOptions
 ) {
   const embed = new Discord.MessageEmbed()
     .setColor("#0099ff")
@@ -90,17 +100,10 @@ export function replyNew(
   options.content = null;
   options.embeds = [embed];
 
-  if (update && (message.isSelectMenu() || message.isButton())) {
-    message
-      .update(options)
-      .catch((e) => console.log(e))
-      .then(() => {});
-  } else {
-    message
-      .reply(options)
-      .catch((e) => console.log(e))
-      .then(() => {});
-  }
+  message
+    .reply(options)
+    .catch((e) => console.log(e))
+    .then(() => {});
 }
 
 export function replyTo(

@@ -2,8 +2,8 @@ import {
   Communication,
   getGuildId,
   getGuildUser,
-  replyNew,
   replyTo,
+  update,
 } from "../utils";
 import {
   ButtonHandler,
@@ -37,11 +37,10 @@ export const AdminUsersDeleteButton: ButtonHandler = async (
     s.destroy();
   });
 
-  replyNew(
-    message,
-    { content: `${count} ships deleted.`, components: [] },
-    true
-  );
+  update(message, {
+    content: `${count} ships deleted.`,
+    components: [],
+  });
 };
 
 export const AdminUsersSelect: SelectHandler = async (
@@ -74,7 +73,7 @@ export const AdminUsersSelect: SelectHandler = async (
       .setStyle("PRIMARY")
   );
 
-  replyNew(message, { content: content, components: [row] }, true);
+  update(message, { content: content, components: [row] });
 };
 
 export const AdminClearButton: ButtonHandler = async (
@@ -90,7 +89,7 @@ export const AdminClearButton: ButtonHandler = async (
   });
 
   const replyStr = "All guild data cleared.";
-  return replyNew(message, { content: replyStr, components: [] }, true);
+  return update(message, { content: replyStr, components: [] });
 };
 
 export const AdminClearCommand: FleetBotCommand = async (
