@@ -61,6 +61,15 @@ const commands = [
         .setDescription("Search for a vehicle")
     ),
   new SlashCommandBuilder()
+    .setName("import")
+    .setDescription("Uplaod a FleetView or Hangar XPLORer JSON file")
+    .addAttachmentOption((option) =>
+      option
+        .setName("file")
+        .setRequired(true)
+        .setDescription("FleetView or Hangar XPLORer JSON file")
+    ),
+  new SlashCommandBuilder()
     .setName("fleetview")
     .setDescription("Generates a FleetView export file.")
     .addSubcommand((subcommand) =>
