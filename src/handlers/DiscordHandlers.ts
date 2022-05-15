@@ -309,6 +309,9 @@ async function processCommand(message: CommandInteraction) {
     case "fleetview":
       await Commands.FleetViewCommand(message);
       break;
+    case "import":
+      await Commands.ImportCommand(message);
+      break;
     case "admin":
       switch (subCommand) {
         case "delete":
