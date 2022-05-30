@@ -178,6 +178,13 @@ export function sanitizeSlug(shipName: string) {
   return shipName.replace(/[.']/g, "-");
 }
 
+export function findShipAutocomplete(shipName: string): FleetViewShip[] {
+  return allowedShips
+    .filter((s) => s.name.toLowerCase().startsWith(shipName.toLowerCase()))
+    .sort()
+    .slice(0, 20);
+}
+
 export function findShip(
   shipName: string,
   ship: Ships | null = null

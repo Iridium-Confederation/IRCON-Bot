@@ -22,6 +22,7 @@ const commands = [
             .setName("vehicle")
             .setDescription("Vehicle to add")
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
@@ -33,6 +34,7 @@ const commands = [
             .setName("vehicle")
             .setDescription("Vehicle to remove")
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
@@ -59,6 +61,7 @@ const commands = [
         .setName("vehicle")
         .setRequired(true)
         .setDescription("Search for a vehicle")
+        .setAutocomplete(true)
     ),
   new SlashCommandBuilder()
     .setName("import")
