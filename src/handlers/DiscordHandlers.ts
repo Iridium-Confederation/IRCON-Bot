@@ -23,6 +23,7 @@ import fs from "fs";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import _ from "lodash";
+import { findShipAutocomplete } from "../utils";
 
 const { Routes } = require("discord-api-types/v9");
 
@@ -356,6 +357,17 @@ export function registerOnMessage() {
         if (handler) {
           handler(interaction);
         }
+      } else if (interaction.isAutocomplete()) {
+        const value = interaction.options.getFocused(true).value.toString();
+
+        const options = findShipAutocomplete(value).map((s) => {
+          return {
+            name: s.name,
+            value: s.name,
+          };
+        });
+
+        await interaction.respond(options);
       }
     } catch (e) {
       if (e instanceof DiscordAPIError) {
