@@ -300,6 +300,7 @@ async function processCommand(message: CommandInteraction) {
           await Commands.RemoveShipCommand(message);
           break;
         case "view":
+        case "org":
           await Commands.InventoryCommand(message);
           break;
       }
