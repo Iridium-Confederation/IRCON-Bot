@@ -1,6 +1,7 @@
 import Discord, {
   ButtonInteraction,
   CommandInteraction,
+  DMChannel,
   Interaction,
   InteractionReplyOptions,
   InteractionUpdateOptions,
@@ -9,6 +10,7 @@ import Discord, {
   MessageSelectMenu,
   SelectMenuInteraction,
   Snowflake,
+  TextChannel,
 } from "discord.js";
 import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
@@ -33,7 +35,8 @@ function reply(
   attachment: MessageAttachment | undefined,
   title?: string,
   rows?: MessageActionRow[],
-  ephemeral?: boolean
+  ephemeral?: boolean,
+  paginated?: boolean
 ) {
   if (message.channel == null) return;
 
@@ -57,7 +60,20 @@ function reply(
     embed.setTitle(title);
   }
 
-  if (message instanceof Discord.Message) {
+  if (
+    paginated &&
+    (message.channel instanceof TextChannel ||
+      message.channel instanceof DMChannel)
+  ) {
+    message.channel
+      .send({
+        embeds: [embed],
+        files: attachment ? [attachment] : [],
+        components: rows ? rows : [],
+      })
+      .catch((e) => console.log(e))
+      .then(() => {});
+  } else if (message instanceof Discord.Message) {
     message
       .reply({
         embeds: [embed],
@@ -124,7 +140,7 @@ export function replyTo(
       // The remaining chunk can be smaller.
       if (start + chunkSize >= msg.length) {
         const body = msg.substring(start);
-        reply(message, body, attachment, title);
+        reply(message, body, attachment, title, undefined, false, true);
         return;
       }
 
@@ -133,13 +149,13 @@ export function replyTo(
         if (msg[index] == "\n") {
           // newline found
           const body = msg.substring(start, index + 1);
-          reply(message, body, attachment, title);
+          reply(message, body, attachment, title, undefined, false, true);
           start = index + 1;
           break;
         } else if (index == start) {
           // newline not found. Send whole chunk.
           const body = msg.substr(start, chunkSize);
-          reply(message, body, attachment, title);
+          reply(message, body, attachment, title, undefined, false, true);
           start += chunkSize;
           break;
         }
