@@ -52,6 +52,9 @@ const commands = [
             .setDescription("User to search for")
             .setRequired(false)
         )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand.setName("org").setDescription("View org inventory.")
     ),
   new SlashCommandBuilder()
     .setName("search")

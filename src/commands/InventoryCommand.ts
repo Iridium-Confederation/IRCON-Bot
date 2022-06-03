@@ -49,7 +49,7 @@ export const InventoryCommand: FleetBotCommandInteraction = async (
 
       const showItem =
         firstUserFound === group[1][0].owner.discordUserId ||
-        commandArgs.includes("-org");
+        message.options.getSubcommand() == "org";
 
       const loanerStr =
         loaners && loaners.length > 0
@@ -73,7 +73,7 @@ export const InventoryCommand: FleetBotCommandInteraction = async (
   let header;
   let subHeader = "**Ship x Quantity** *(Loaners)*\n\n";
 
-  if (commandArgs.includes("-org")) {
+  if (message.options.getSubcommand() == "org") {
     header = `${currentGuild?.name}'s inventory:\n`;
   } else {
     if (firstUserFound) {
