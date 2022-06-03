@@ -1,7 +1,6 @@
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
 import {
   findShip,
-  getCommand,
   getGuildId,
   getGuildUser,
   getTotalUec,
@@ -18,18 +17,23 @@ import { User } from "../models/User";
 export const InventoryCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
 ) => {
-  const { commandArgs } = await getCommand(message);
-
   const guildId = await getGuildId(message);
   if (guildId == null) return;
   const guild = await client.guilds.cache.get(guildId);
   if (!guild) return;
 
-  const opUser = message.options.getUser("user", false);
-  const ships = await ShipDao.findShipsByOwnerId(
-    opUser ? opUser.id : getUserId(message),
-    guildId
-  );
+  const viewAllOrg = message.options.getSubcommand() == "org";
+
+  let ships;
+  if (viewAllOrg) {
+    ships = await ShipDao.findAll(guildId);
+  } else {
+    const opUser = message.options.getUser("user", false);
+    ships = await ShipDao.findShipsByOwnerId(
+      opUser ? opUser.id : getUserId(message),
+      guildId
+    );
+  }
 
   const totalUec = getTotalUec(ships).toLocaleString();
 
@@ -42,14 +46,12 @@ export const InventoryCommand: FleetBotCommandInteraction = async (
       const shipCount = group[1].length;
       const ship = findShip(shipNameDb);
       const loaners = ship?.loaners;
-
       firstUserFound = firstUserFound
         ? firstUserFound
         : group[1][0].owner.discordUserId;
 
       const showItem =
-        firstUserFound === group[1][0].owner.discordUserId ||
-        message.options.getSubcommand() == "org";
+        firstUserFound === group[1][0].owner.discordUserId || viewAllOrg;
 
       const loanerStr =
         loaners && loaners.length > 0
