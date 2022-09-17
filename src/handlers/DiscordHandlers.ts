@@ -131,6 +131,10 @@ export function registerRateLimit() {
 async function doIntervalActions() {
   // TODO: find a more elegant solution to rate limiting.
   // Each method here should exceed no more than 25 requests/s (out of global limit of 50).
+
+  // Cache all guilds.
+  client.guilds.fetch();
+
   await cacheGuildMembers();
   await setGuildCommands();
 }
