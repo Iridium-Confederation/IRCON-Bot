@@ -82,29 +82,6 @@ async function cacheGuildMembers(guilds: Discord.Guild[]) {
   );
 }
 
-async function setGuildCommands(guilds: Discord.Guild[]) {
-  if (client.isReady()) {
-    const chunks = _.chunk(guilds, 25);
-
-    for (const chunk of chunks) {
-      await sleep(1000);
-
-      await Promise.all(
-        chunk.map((g) => {
-          rest
-            .put(Routes.applicationGuildCommands(client.user.id, g.id), {
-              body: [],
-            })
-            .catch(() => {});
-        })
-      );
-    }
-  }
-
-  // console.log(
-  //   `Failed creating commands for ${guildsIncorrectPermissions.size}/${client.guilds.cache.size} servers.`
-  // );
-}
 
 export function registerRateLimit() {
   client.once("rateLimit", async (limitData) => {
@@ -120,7 +97,6 @@ async function doIntervalActions() {
   const guilds = Array.from((await client.guilds.cache).values());
 
   await cacheGuildMembers(guilds);
-  await setGuildCommands(guilds);
 }
 
 async function registerCommands() {
