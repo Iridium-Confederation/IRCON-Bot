@@ -1,4 +1,4 @@
-import Discord from "discord.js";
+import Discord, { AttachmentBuilder } from "discord.js";
 import fs from "fs";
 import { replyTo } from "../utils";
 import fetch from "node-fetch";
@@ -18,7 +18,7 @@ export const DownloadDBCommand = async (message: Discord.Message) => {
     replyTo(
       message,
       "Successfully fetched database.",
-      new Discord.MessageAttachment(data, "database.sqlite")
+      new AttachmentBuilder(data).setName("database.sqlite")
     );
   }
 };

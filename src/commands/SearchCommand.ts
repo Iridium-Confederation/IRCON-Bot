@@ -1,8 +1,4 @@
-import {
-  findShip,
-  getGuildId,
-  replyTo,
-} from "../utils";
+import { findShip, getGuildId, replyTo } from "../utils";
 import { ShipDao } from "../models/Ships";
 import _ from "lodash";
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
@@ -13,6 +9,7 @@ export const SearchCommand: FleetBotCommandInteraction = async (
 ) => {
   const guildId = await getGuildId(message);
   if (guildId == null) return;
+  if (!message.isChatInputCommand()) return;
 
   const shipName = message.options.getString("vehicle", true);
 

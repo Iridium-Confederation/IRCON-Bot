@@ -1,14 +1,12 @@
-import { FleetBotCommand, FleetBotCommandInteraction } from "./FleetBotCommand";
+import { FleetBotCommandInteraction } from "./FleetBotCommand";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
-import { Communication, getCommand, getGuildId, replyTo } from "../utils";
+import { getGuildId, replyTo } from "../utils";
 import { CommandInteraction } from "discord.js";
 
 export const RemoveAllCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
 ) => {
-  const { commandArgs } = await getCommand(message);
-
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 

@@ -13,9 +13,12 @@ import _ from "lodash";
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
 import { User } from "../models/User";
 
-export const StatsCommand: FleetBotCommandInteraction = async (message: CommandInteraction) => {
+export const StatsCommand: FleetBotCommandInteraction = async (
+  message: CommandInteraction
+) => {
   const guildId = await getGuildId(message);
   if (!guildId) return;
+  if (!message.isChatInputCommand()) return;
 
   const commandArgs = message.options.getString("vehicle", false);
 
@@ -30,11 +33,11 @@ export const StatsCommand: FleetBotCommandInteraction = async (message: CommandI
       }. `;
       msg += ship.description ? ship.description : "";
       msg += "\n\n";
-      msg += ship.brochure ? `Brochure: ${ship.brochure}\n` : "";
+      msg += ship.brochure ? `[Brochure](${ship.brochure}) - ` : "";
+      msg += `[RSI Store]( ${ship.storeUrl})\n`;
       msg += ship.price
         ? `Available for in-game purchase for **${ship.price}** UEC.\n`
         : "";
-      msg += `RSI Link: <${ship.storeUrl}>\n`;
       msg += !ship.onSale
         ? `Not currently available for pledge. Last known pledge cost **$${ship.lastPledgePrice}**.\n`
         : "";
@@ -72,12 +75,9 @@ export const StatsCommand: FleetBotCommandInteraction = async (message: CommandI
           member && member.nickname
             ? member.nickname
             : (await User.findById(dbId))[0].lastKnownTag.split("#")[0];
-        console.log(member);
-        console.log(retVal);
         return retVal;
       })
     ).then((values) => {
-      console.log(values);
       reply += "**Contributors**: ";
       reply += values.sort().join(", ");
       if (owners.length == 0) {

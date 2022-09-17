@@ -21,6 +21,7 @@ export const InventoryCommand: FleetBotCommandInteraction = async (
   if (guildId == null) return;
   const guild = await client.guilds.cache.get(guildId);
   if (!guild) return;
+  if (!message.isChatInputCommand()) return;
   const viewAllOrg = message.options.getSubcommand() == "org";
 
   let ships;

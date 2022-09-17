@@ -1,19 +1,12 @@
-import {
-  getCommand,
-  getGuildId,
-  getUserTag,
-  replyTo,
-} from "../utils";
-import {
-  ButtonHandler,
-  FleetBotCommandInteraction,
-} from "./FleetBotCommand";
+import { getCommand, getGuildId, getUserTag, replyTo } from "../utils";
+import { ButtonHandler, FleetBotCommandInteraction } from "./FleetBotCommand";
 import { deleteShips } from "../models/Ships";
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
   ButtonInteraction,
+  ButtonStyle,
   CommandInteraction,
-  MessageActionRow,
-  MessageButton,
 } from "discord.js";
 
 export const ClearConfirmationHandler: ButtonHandler = async (
@@ -34,6 +27,7 @@ export const ClearConfirmationHandler: ButtonHandler = async (
 export const RemoveShipCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
 ) => {
+  if (!message.isChatInputCommand()) return;
   let { command, commandArgs } = await getCommand(message);
 
   const guildId = await getGuildId(message);
@@ -51,11 +45,11 @@ export const RemoveShipCommand: FleetBotCommandInteraction = async (
   }
 
   if (commandArgs === "clear") {
-    const row = new MessageActionRow().addComponents(
-      new MessageButton()
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
         .setCustomId("delete_inventory")
         .setLabel("Clear My Inventory")
-        .setStyle("PRIMARY")
+        .setStyle(ButtonStyle.Primary)
     );
 
     replyTo(
