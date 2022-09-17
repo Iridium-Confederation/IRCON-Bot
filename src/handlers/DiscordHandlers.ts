@@ -291,7 +291,7 @@ export function registerOnReady() {
 
     // Cache guild members (to support PM features)
     await doIntervalActions();
-    setInterval(doIntervalActions, 120_000);
+    setInterval(doIntervalActions, 60_000);
 
     // Schedule daily backups.
     await doBackup();
