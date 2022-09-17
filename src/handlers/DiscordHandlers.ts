@@ -60,9 +60,7 @@ async function doBackup() {
     });
 }
 
-async function cacheGuildMembers() {
-  const guilds = Array.from(client.guilds.cache.values());
-
+async function cacheGuildMembers(guilds: Discord.OAuth2Guild[]) {
   const chunks = _.chunk(guilds, 10);
   let numFailures = 0;
   for (const chunk of chunks) {
@@ -70,37 +68,23 @@ async function cacheGuildMembers() {
 
     await Promise.all(
       chunk.map((g) => {
-        g.members.fetch().catch(() => {
-          numFailures++;
-        });
+        g.fetch().then((guild) =>
+          guild.members.fetch().catch(() => {
+            numFailures++;
+          })
+        );
       })
     );
   }
 
-  // console.log(
-  //   `Failed fetching members for ${numFailures}/${client.guilds.cache.size} servers.`
-  // );
-
-  numFailures = 0;
-  for (const chunk of chunks) {
-    await sleep(1000);
-
-    await Promise.all(
-      chunk.map((g) => {
-        g.commands.fetch().catch(() => {
-          numFailures++;
-        });
-      })
-    );
-  }
-  // console.log(
-  //   `Failed fetching commands for ${numFailures}/${client.guilds.cache.size} servers.`
-  // );
+  console.log(
+    `Failed fetching members for ${numFailures}/${guilds.length} servers.`
+  );
 }
 
-async function setGuildCommands() {
+async function setGuildCommands(guilds: Discord.OAuth2Guild[]) {
   if (client.isReady()) {
-    const chunks = _.chunk(Array.from(client.guilds.cache.values()), 25);
+    const chunks = _.chunk(guilds, 25);
 
     for (const chunk of chunks) {
       await sleep(1000);
@@ -133,10 +117,10 @@ async function doIntervalActions() {
   // Each method here should exceed no more than 25 requests/s (out of global limit of 50).
 
   // Cache all guilds.
-  client.guilds.fetch();
+  const guilds = Array.from((await client.guilds.fetch()).values());
 
-  await cacheGuildMembers();
-  await setGuildCommands();
+  await cacheGuildMembers(guilds);
+  await setGuildCommands(guilds);
 }
 
 async function registerCommands() {
