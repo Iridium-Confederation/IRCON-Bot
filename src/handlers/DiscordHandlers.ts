@@ -2,7 +2,6 @@ import Discord, {
   CommandInteraction,
   DiscordAPIError,
   Partials,
-  Snowflake,
 } from "discord.js";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
@@ -27,7 +26,6 @@ const { Routes } = require("discord-api-types/v9");
 
 const token = require("../../botconfig.json");
 const rest = new REST({ version: "9" }).setToken(token);
-export const guildsIncorrectPermissions = new Set<Snowflake>();
 
 const admins = require("../../admins.json");
 const { GatewayIntentBits } = require("discord.js");
@@ -101,39 +99,7 @@ async function cacheGuildMembers() {
 }
 
 async function setGuildCommands() {
-  const commands = [
-    new SlashCommandBuilder()
-      .setName("admin")
-      .setDefaultMemberPermissions("0")
-      .setDescription("Privileged commands.")
-      .addSubcommand((subcommand) =>
-        subcommand
-          .setName("disconnected")
-          .setDescription("Manager disconnected users (Server Owner)")
-      )
-      .addSubcommand((subcommand) =>
-        subcommand
-          .setName("delete")
-          .setDescription("Delete a connected user (Server Owner)")
-          .addUserOption((option) =>
-            option
-              .setName("user")
-              .setDescription("User to delete")
-              .setRequired(true)
-          )
-      )
-      .addSubcommand((subcommand) =>
-        subcommand
-          .setName("clear")
-          .setDescription(
-            "Clear ALL data owned by your organization (Server Owner)"
-          )
-      ),
-  ].map((command) => command.toJSON());
-
   if (client.isReady()) {
-    guildsIncorrectPermissions.clear();
-
     const chunks = _.chunk(Array.from(client.guilds.cache.values()), 25);
 
     for (const chunk of chunks) {
@@ -143,11 +109,9 @@ async function setGuildCommands() {
         chunk.map((g) => {
           rest
             .put(Routes.applicationGuildCommands(client.user.id, g.id), {
-              body: commands,
+              body: [],
             })
-            .catch(() => {
-              guildsIncorrectPermissions.add(g.id);
-            });
+            .catch(() => {});
         })
       );
     }
@@ -173,6 +137,34 @@ async function doIntervalActions() {
 
 async function registerCommands() {
   const commands = [
+    new SlashCommandBuilder()
+      .setName("admin")
+      .setDMPermission(false)
+      .setDefaultMemberPermissions("0")
+      .setDescription("Privileged commands.")
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("disconnected")
+          .setDescription("Manager disconnected users (Server Owner)")
+      )
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("delete")
+          .setDescription("Delete a connected user (Server Owner)")
+          .addUserOption((option) =>
+            option
+              .setName("user")
+              .setDescription("User to delete")
+              .setRequired(true)
+          )
+      )
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("clear")
+          .setDescription(
+            "Clear ALL data owned by your organization (Server Owner)"
+          )
+      ),
     new SlashCommandBuilder()
       .setName("inventory")
       .setDescription("Manager inventory")
@@ -423,6 +415,19 @@ export function registerInteractionHandlers() {
 }
 
 export function registerOnMessage() {
+  client.on("messageCreate", async (message: Discord.Message) => {
+    if (client.user?.id != message.author.id) {
+      if (client.user?.id && message.mentions.users.has(client.user.id)) {
+        const { command } = await getCommand(message);
+
+        if (command === "db" && User.isAdmin(getUserId(message))) {
+          await Commands.DownloadDBCommand(message);
+        } else if (command === "update" && User.isAdmin(getUserId(message))) {
+          await Commands.UpdateFleetBotCommand(message);
+        }
+      }
+    }
+  });
   client.on("interactionCreate", async (interaction) => {
     try {
       if (interaction.isCommand()) {
