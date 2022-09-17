@@ -64,15 +64,13 @@ async function cacheGuildMembers(guilds: Discord.Guild[]) {
   const chunks = _.chunk(guilds, 10);
   let numFailures = 0;
   for (const chunk of chunks) {
-    await sleep(1000);
+    await sleep(250);
 
     await Promise.all(
       chunk.map((g) => {
-        g.fetch().then((guild) =>
-          guild.members.fetch().catch(() => {
-            numFailures++;
-          })
-        );
+        g.members.fetch().catch(() => {
+          numFailures++;
+        });
       })
     );
   }
@@ -81,7 +79,6 @@ async function cacheGuildMembers(guilds: Discord.Guild[]) {
     `Failed fetching members for ${numFailures}/${guilds.length} servers.`
   );
 }
-
 
 export function registerRateLimit() {
   client.once("rateLimit", async (limitData) => {
