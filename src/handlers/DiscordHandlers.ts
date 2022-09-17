@@ -60,7 +60,7 @@ async function doBackup() {
     });
 }
 
-async function cacheGuildMembers(guilds: Discord.OAuth2Guild[]) {
+async function cacheGuildMembers(guilds: Discord.Guild[]) {
   const chunks = _.chunk(guilds, 10);
   let numFailures = 0;
   for (const chunk of chunks) {
@@ -82,7 +82,7 @@ async function cacheGuildMembers(guilds: Discord.OAuth2Guild[]) {
   );
 }
 
-async function setGuildCommands(guilds: Discord.OAuth2Guild[]) {
+async function setGuildCommands(guilds: Discord.Guild[]) {
   if (client.isReady()) {
     const chunks = _.chunk(guilds, 25);
 
@@ -117,7 +117,7 @@ async function doIntervalActions() {
   // Each method here should exceed no more than 25 requests/s (out of global limit of 50).
 
   // Cache all guilds.
-  const guilds = Array.from((await client.guilds.fetch()).values());
+  const guilds = Array.from((await client.guilds.cache).values());
 
   await cacheGuildMembers(guilds);
   await setGuildCommands(guilds);
