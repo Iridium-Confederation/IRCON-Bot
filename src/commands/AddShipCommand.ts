@@ -7,6 +7,7 @@ export const AddShipCommand: FleetBotCommandInteraction = async (
 ) => {
   const guildId = await getGuildId(message);
   if (guildId == null) return;
+  if (!message.isChatInputCommand()) return;
 
   const shipName = message.options.getString("vehicle", true);
 

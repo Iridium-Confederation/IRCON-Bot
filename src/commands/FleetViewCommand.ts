@@ -1,4 +1,4 @@
-import Discord, { CommandInteraction } from "discord.js";
+import { AttachmentBuilder, CommandInteraction } from "discord.js";
 import { getCommand, getGuildId, getUserTag, replyTo } from "../utils";
 import { ShipDao, Ships } from "../models/Ships";
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
@@ -6,6 +6,7 @@ import { FleetBotCommandInteraction } from "./FleetBotCommand";
 export const FleetViewCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
 ) => {
+  if (!message.isChatInputCommand()) return;
   const { subCommand } = await getCommand(message);
 
   const guildId = await getGuildId(message);
@@ -42,15 +43,15 @@ export const FleetViewCommand: FleetBotCommandInteraction = async (
       "1. Click **Choose File**\n" +
       "2. Click **Upload this attachment**\n" +
       "\n" +
-      "<https://fleet-manager.space>\n" +
+      "<https://fleetyards.net/>\n" +
       "1. Login\n" +
-      "2. Click **Import**\n";
+      "2. Click **My Hangar**\n" +
+      "3. Click **... -> Import** \n";
 
     replyTo(
       message,
       replyStr,
-      new Discord.MessageAttachment(
-        Buffer.from(JSON.stringify(fleetview)),
+      new AttachmentBuilder(Buffer.from(JSON.stringify(fleetview))).setName(
         "fleetview"
       )
     );

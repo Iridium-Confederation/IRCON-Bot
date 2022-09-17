@@ -12,11 +12,12 @@ import {
   SelectHandler,
 } from "./FleetBotCommand";
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
   ButtonInteraction,
+  ButtonStyle,
   CommandInteraction,
-  MessageActionRow,
-  MessageButton,
-  MessageSelectMenu,
+  SelectMenuBuilder,
   SelectMenuInteraction,
 } from "discord.js";
 import { User } from "../models/User";
@@ -66,13 +67,12 @@ export const AdminUsersSelect: SelectHandler = async (
     `Ships Owned: ${ships.length}\n` +
     `Status: ${discordUser ? "Connected" : "Disconnected"}\n`;
 
-  const row = new MessageActionRow().addComponents(
-    new MessageButton()
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
       .setCustomId("delete_user_button#" + userId)
       .setLabel("Delete User")
-      .setStyle("PRIMARY")
+      .setStyle(ButtonStyle.Primary)
   );
-
   update(message, { content: content, components: [row] });
 };
 
@@ -95,11 +95,11 @@ export const AdminClearButton: ButtonHandler = async (
 export const AdminClearCommand: FleetBotCommand = async (
   message: Communication
 ) => {
-  const row = new MessageActionRow().addComponents(
-    new MessageButton()
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
       .setCustomId("delete_guild")
       .setLabel("Delete Everything")
-      .setStyle("DANGER")
+      .setStyle(ButtonStyle.Danger)
   );
 
   const replyStr =
@@ -133,8 +133,8 @@ export const AdminUsersCommand: FleetBotCommandInteraction = async (
     if (results.length == 0)
       return replyTo(message, "No disconnected users to manage.");
 
-    const row = new MessageActionRow();
-    const menu = new MessageSelectMenu().setCustomId("delete_user_select");
+    const row = new ActionRowBuilder<SelectMenuBuilder>();
+    const menu = new SelectMenuBuilder().setCustomId("delete_user_select");
     results.splice(0, 25).forEach((result) => menu.addOptions(result));
     row.addComponents(menu);
     return replyTo(

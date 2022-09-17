@@ -7,6 +7,7 @@ export const ImportCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
 ) => {
   const guildId = await getGuildId(message);
+  if (!message.isChatInputCommand()) return;
   if (guildId == null) return;
 
   const attachment = message.options.getAttachment("file", true);
@@ -65,13 +66,4 @@ export const ImportCommand: FleetBotCommandInteraction = async (
 
     replyTo(message, Array.from(failures).join(", "));
   }
-
-  // else {
-  //   replyTo(
-  //     message,
-  //     `Uplaod a **FleetView** or **Hangar XPLORer** json file here with a description of **${await PREFIX()}import**\n\n` +
-  //       "**FleetView**: Click <https://www.starship42.com/fleetview/> -> (Select your fleet) -> Start -> Download JSON.\n" +
-  //       "**Hangar XPLORer**: Install the Chrome/Firefox plugin -> RSI -> Accounts -> My Hanger -> Download JSON."
-  //   );
-  // }
 };

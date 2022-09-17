@@ -109,6 +109,7 @@ const commands = [
             .setName("vehicle")
             .setDescription("Vehicle to search for")
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
@@ -135,10 +136,6 @@ const rest = new REST({ version: "9" }).setToken(token);
     await rest.put(Routes.applicationCommands(clientId), {
       body: commands,
     });
-
-    // await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
-    //   body: [],
-    // });
 
     console.log("Successfully reloaded application (/) commands.");
   } catch (error) {

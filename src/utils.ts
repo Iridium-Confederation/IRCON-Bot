@@ -1,13 +1,11 @@
 import Discord, {
+  ActionRowBuilder,
+  AttachmentBuilder,
   ButtonInteraction,
-  CommandInteraction,
   DMChannel,
   Interaction,
-  InteractionReplyOptions,
   InteractionUpdateOptions,
-  MessageActionRow,
-  MessageAttachment,
-  MessageSelectMenu,
+  SelectMenuBuilder,
   SelectMenuInteraction,
   Snowflake,
   TextChannel,
@@ -15,11 +13,8 @@ import Discord, {
 import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
-import {
-  client,
-  guildsIncorrectPermissions,
-  PREFIX,
-} from "./handlers/DiscordHandlers";
+import { client } from "./handlers/DiscordHandlers";
+import { MessageActionRowComponentBuilder } from "@discordjs/builders/dist/components/ActionRow";
 
 let allowedShips: FleetViewShip[];
 
@@ -28,33 +23,22 @@ export type Communication = Discord.Message | Discord.CommandInteraction;
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
 function reply(
   message: Communication | ButtonInteraction | SelectMenuInteraction,
   body: string,
-  attachment: MessageAttachment | undefined,
+  attachment: AttachmentBuilder | undefined,
   title?: string,
-  rows?: MessageActionRow[],
+  rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
   ephemeral?: boolean,
   paginated?: boolean
 ) {
   if (message.channel == null) return;
 
-  if (message.guildId && guildsIncorrectPermissions.has(message.guildId)) {
-    body =
-      "**Warning:** FleetBot does not have permission to create or respond to application commands on this server. " +
-      "To fix this, kick the bot and reinvite it to your server using the following link: \n" +
-      "https://discord.com/oauth2/authorize?client_id=744369194140958740&permissions=51200&scope=bot%20applications.commands\n\n" +
-      "Once this is done, you should be able to access FleetBot's new command interface. Simply type / to view all bot commands available to you. \n" +
-      "This message should go away shortly after you have reinvited FleetBot. \n" +
-      "In the near future, FleetBot will stop responding to the !fb command. For more information on why Discord is requiring this change, visit the link below: \n" +
-      "https://dis.gd/mcfaq\n\n" +
-      body;
-  }
+  const embed = new Discord.EmbedBuilder().setColor("#0099ff");
 
-  const embed = new Discord.MessageEmbed()
-    .setColor("#0099ff")
-    .setDescription(body);
+  if (body.length > 0) {
+    embed.setDescription(body);
+  }
 
   if (title) {
     embed.setTitle(title);
@@ -104,30 +88,12 @@ export function update(
     .catch((e) => console.log(e))
     .then(() => {});
 }
-
-export function replyNew(
-  message: CommandInteraction | SelectMenuInteraction | ButtonInteraction,
-  options: InteractionReplyOptions
-) {
-  const embed = new Discord.MessageEmbed()
-    .setColor("#0099ff")
-    .setDescription(options.content ? options.content : "");
-
-  options.content = null;
-  options.embeds = [embed];
-
-  message
-    .reply(options)
-    .catch((e) => console.log(e))
-    .then(() => {});
-}
-
 export function replyTo(
   message: Communication | ButtonInteraction | SelectMenuInteraction,
   contents: string,
-  attachment?: MessageAttachment,
+  attachment?: AttachmentBuilder,
   title?: string,
-  rows?: MessageActionRow[],
+  rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
   ephemeral?: boolean
 ) {
   if (contents.length >= 2000) {
@@ -175,18 +141,18 @@ export async function getCommand(message: Communication) {
 
     return { command, commandArgs };
   } else if (message instanceof Discord.Message) {
-    const input = message.content
-      .substr((await PREFIX()).length)
-      .trimLeft()
-      .split(" ");
-    const command = input.shift();
-    const commandArgs = input.join(" ");
+    const command = "";
+    const commandArgs = "";
     return { command, commandArgs };
-  } else {
+  } else if (message.isChatInputCommand()) {
     const command = message.commandName;
     const subCommand = message.options.getSubcommand(false);
     const commandArgs = "";
     return { command, commandArgs, subCommand };
+  } else {
+    const command = message.commandName;
+    const commandArgs = "";
+    return { command, commandArgs };
   }
 }
 
@@ -342,8 +308,8 @@ export async function getGuildId(
 
     if (guilds.size > 1 && user.defaultGuildId == null) {
       if (reply) {
-        const row = new MessageActionRow();
-        const menu = new MessageSelectMenu().setCustomId(
+        const row = new ActionRowBuilder<SelectMenuBuilder>();
+        const menu = new SelectMenuBuilder().setCustomId(
           "default_guild_select"
         );
         guilds.forEach((g) => {
@@ -425,14 +391,4 @@ export async function updateUser(newUser: Discord.User | Discord.PartialUser) {
   dbUser.discordUserId = newUser.id;
   dbUser.lastKnownTag = newUser.tag ? newUser.tag : "";
   await dbUser.save();
-}
-
-export function hasRole(message: Communication, role: string) {
-  const hasRole = client.guilds.cache
-    .map((g) => g.roles.cache.find((r) => r.name === role))
-    .find(
-      (r) => r && r.members.find((member) => member.id === getUserId(message))
-    );
-
-  return hasRole != null;
 }

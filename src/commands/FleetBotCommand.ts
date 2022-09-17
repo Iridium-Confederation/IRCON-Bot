@@ -1,9 +1,5 @@
 import { Communication } from "../utils";
-import Discord, {
-  CommandInteraction,
-  Interaction,
-  SelectMenuInteraction,
-} from "discord.js";
+import Discord, { CommandInteraction, SelectMenuInteraction } from "discord.js";
 
 export type FleetBotCommand = (message: Communication) => Promise<any>;
 

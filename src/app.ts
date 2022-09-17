@@ -17,9 +17,8 @@ refreshShipList().then(() => {});
 setInterval(refreshShipList, 900_000);
 
 discordHandlers.registerInteractionHandlers();
-discordHandlers.registerOnGuildMemberAdd();
 discordHandlers.registerRateLimit();
 discordHandlers.registerOnReady();
 discordHandlers.registerOnMessage();
 discordHandlers.registerOnUserUpdate();
-discordHandlers.login();
+discordHandlers.login().then(() => {});

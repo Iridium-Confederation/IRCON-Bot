@@ -1,20 +1,19 @@
 import Discord, {
   CommandInteraction,
   DiscordAPIError,
-  Intents,
+  Partials,
   Snowflake,
-  TextChannel,
 } from "discord.js";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
 import * as Utils from "../utils";
 import {
   Communication,
+  findShipAutocomplete,
   getCommand,
   getGuildId,
   getUserId,
   getUserTag,
-  replyTo,
   sleep,
 } from "../utils";
 import * as Commands from "../commands";
@@ -23,7 +22,6 @@ import fs from "fs";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import _ from "lodash";
-import { findShipAutocomplete } from "../utils";
 
 const { Routes } = require("discord-api-types/v9");
 
@@ -32,19 +30,17 @@ const rest = new REST({ version: "9" }).setToken(token);
 export const guildsIncorrectPermissions = new Set<Snowflake>();
 
 const admins = require("../../admins.json");
+const { GatewayIntentBits } = require("discord.js");
 
 export const client = new Discord.Client({
   intents: [
-    Intents.FLAGS.GUILDS,
-    Intents.FLAGS.GUILD_MEMBERS,
-    Intents.FLAGS.DIRECT_MESSAGES,
-    Intents.FLAGS.GUILD_MESSAGES,
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildMessages,
   ],
-  partials: ["CHANNEL"],
+  partials: [Partials.Channel],
 });
-export const PREFIX = async () => {
-  return "!fb ";
-};
 
 export async function login() {
   const output = await client.login(token);
@@ -82,9 +78,10 @@ async function cacheGuildMembers() {
       })
     );
   }
-  console.log(
-    `Failed fetching members for ${numFailures}/${client.guilds.cache.size} servers.`
-  );
+
+  // console.log(
+  //   `Failed fetching members for ${numFailures}/${client.guilds.cache.size} servers.`
+  // );
 
   numFailures = 0;
   for (const chunk of chunks) {
@@ -98,16 +95,16 @@ async function cacheGuildMembers() {
       })
     );
   }
-  console.log(
-    `Failed fetching commands for ${numFailures}/${client.guilds.cache.size} servers.`
-  );
+  // console.log(
+  //   `Failed fetching commands for ${numFailures}/${client.guilds.cache.size} servers.`
+  // );
 }
 
 async function setGuildCommands() {
   const commands = [
     new SlashCommandBuilder()
       .setName("admin")
-      .setDefaultPermission(false)
+      .setDefaultMemberPermissions("0")
       .setDescription("Privileged commands.")
       .addSubcommand((subcommand) =>
         subcommand
@@ -156,39 +153,9 @@ async function setGuildCommands() {
     }
   }
 
-  console.log(
-    `Failed creating commands for ${guildsIncorrectPermissions.size}/${client.guilds.cache.size} servers.`
-  );
-}
-
-async function updateGuildCommandPermissions() {
-  const chunks = _.chunk(Array.from(client.guilds.cache.values()), 10);
-
-  for (const chunk of chunks) {
-    await sleep(1000);
-
-    await Promise.all(
-      chunk.map((guild) => {
-        const command = guild.commands.cache.find(
-          (command) => command.name === "admin"
-        );
-
-        if (command) {
-          command.permissions
-            .set({
-              permissions: [
-                {
-                  id: guild.ownerId,
-                  type: "USER",
-                  permission: true,
-                },
-              ],
-            })
-            .catch(() => {});
-        }
-      })
-    );
-  }
+  // console.log(
+  //   `Failed creating commands for ${guildsIncorrectPermissions.size}/${client.guilds.cache.size} servers.`
+  // );
 }
 
 export function registerRateLimit() {
@@ -202,7 +169,140 @@ async function doIntervalActions() {
   // Each method here should exceed no more than 25 requests/s (out of global limit of 50).
   await cacheGuildMembers();
   await setGuildCommands();
-  await updateGuildCommandPermissions();
+}
+
+async function registerCommands() {
+  const commands = [
+    new SlashCommandBuilder()
+      .setName("inventory")
+      .setDescription("Manager inventory")
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("add")
+          .setDescription("Add a vehicle to your fleet.")
+          .addStringOption((option) =>
+            option
+              .setName("vehicle")
+              .setDescription("Vehicle to add")
+              .setRequired(true)
+              .setAutocomplete(true)
+          )
+      )
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("remove")
+          .setDescription("Remove a vehicle from your fleet.")
+          .addStringOption((option) =>
+            option
+              .setName("vehicle")
+              .setDescription("Vehicle to remove")
+              .setRequired(true)
+              .setAutocomplete(true)
+          )
+      )
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("clear")
+          .setDescription("Remove all vehicles from your inventory.")
+      )
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("view")
+          .setDescription("View an inventory.")
+          .addUserOption((option) =>
+            option
+              .setName("user")
+              .setDescription("User to search for")
+              .setRequired(false)
+          )
+      )
+      .addSubcommand((subcommand) =>
+        subcommand.setName("org").setDescription("View org inventory.")
+      ),
+    new SlashCommandBuilder()
+      .setName("search")
+      .setDescription("Search your organization for a vehicle.")
+      .addStringOption((option) =>
+        option
+          .setName("vehicle")
+          .setRequired(true)
+          .setDescription("Search for a vehicle")
+          .setAutocomplete(true)
+      ),
+    new SlashCommandBuilder()
+      .setName("import")
+      .setDescription("Uplaod a FleetView or Hangar XPLORer JSON file")
+      .addAttachmentOption((option) =>
+        option
+          .setName("file")
+          .setRequired(true)
+          .setDescription("FleetView or Hangar XPLORer JSON file")
+      ),
+    new SlashCommandBuilder()
+      .setName("fleetview")
+      .setDescription("Generates a FleetView export file.")
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("user")
+          .setDescription(
+            "Generates a Fleetview export file for the specified user."
+          )
+          .addUserOption((option) =>
+            option.setName("user").setDescription("Search for a user")
+          )
+      )
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("org")
+          .setDescription(
+            "Generates a Fleetview export file for the entire organization."
+          )
+      ),
+    new SlashCommandBuilder()
+      .setName("stats")
+      .setDescription(
+        "Display org fleet statistics or show detailed info about a single vehicle."
+      )
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("vehicle")
+          .setDescription("Get information about a specific vehicle.")
+          .addStringOption((option) =>
+            option
+              .setName("vehicle")
+              .setDescription("Vehicle to search for")
+              .setRequired(true)
+              .setAutocomplete(true)
+          )
+      )
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("org")
+          .setDescription("Get statistics about this organization.")
+      ),
+    new SlashCommandBuilder()
+      .setName("options")
+      .setDescription("Set application options")
+      .addSubcommand((subcommand) =>
+        subcommand
+          .setName("reset_default_guild")
+          .setDescription("Resets your default guild for PM communication.")
+      ),
+  ].map((command) => command.toJSON());
+
+  const rest = new REST({ version: "9" }).setToken(token);
+
+  if (client.application == null) {
+    throw "Application not initialized";
+  }
+
+  console.log("Started refreshing application (/) commands.");
+
+  await rest.put(Routes.applicationCommands(client.application.id), {
+    body: commands,
+  });
+
+  console.log("Successfully set application (/) commands.");
 }
 
 export function registerOnReady() {
@@ -219,33 +319,8 @@ export function registerOnReady() {
 
     await User.sync();
     ShipDao.sync();
-  });
-}
 
-export function registerOnGuildMemberAdd() {
-  client.on("guildMemberAdd", async (member) => {
-    await cacheGuildMembers();
-
-    // iridium-only feature
-    if (member.guild.id == "226021087996149772") {
-      // Send the message to a designated channel on a server:
-      const channel = member.guild.channels.cache.find(
-        (ch) => ch.name === "recruitment_info"
-      );
-
-      // Do nothing if the channel wasn't found on this server
-      if (!channel) return;
-
-      if (
-        !((channel): channel is TextChannel => channel.type === "GUILD_TEXT")(
-          channel
-        )
-      )
-        return;
-
-      // Send the message, mentioning the member
-      await channel.send(`A user has joined the server: ${member}`);
-    }
+    await registerCommands();
   });
 }
 
@@ -375,41 +450,6 @@ export function registerOnMessage() {
         console.log(e);
       } else {
         throw e;
-      }
-    }
-  });
-
-  client.on("message", async (message: Communication) => {
-    if (
-      message instanceof Discord.Message &&
-      client.user?.id != message.author.id
-    ) {
-      if (
-        message.content.startsWith(await PREFIX()) ||
-        (client.user?.id && message.mentions.users.has(client.user.id))
-      ) {
-        commandsLogger.info(
-          `[${getUserTag(message)}-${getUserId(
-            message
-          )}] executed command [${getMessageContent(message)}]`
-        );
-
-        const { command } = await getCommand(message);
-
-        if (command === "db" && User.isAdmin(getUserId(message))) {
-          await Commands.DownloadDBCommand(message);
-        } else if (command === "update" && User.isAdmin(getUserId(message))) {
-          await Commands.UpdateFleetBotCommand(message);
-        } else {
-          replyTo(
-            message,
-            "The !fb prefix is being retired. Type / to see valid commands.\n\n" +
-              "If you do not see any commands listed after typing /, the bot may need to be kicked and reinvited using this link:\n" +
-              "https://discord.com/oauth2/authorize?client_id=744369194140958740&permissions=51200&scope=bot%20applications.commands\n\n" +
-              "Questions? Join the Fleetbot development Discord server.\n" +
-              "https://discord.gg/Ru8WqyG"
-          );
-        }
       }
     }
   });
