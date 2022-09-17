@@ -16,7 +16,7 @@
     "discord-api-types": "^0.37.10",
     "discord.js": "^14.3.0",
     "lodash": "^4.17.21",
-    "log4js": "^6.3.0",
+    "log4js": "^6.4.0",
     "node-fetch": "^2.6.0",
     "pg": "^8.2.1",
     "reflect-metadata": "^0.1.13",
