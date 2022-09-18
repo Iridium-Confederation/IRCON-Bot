@@ -85,7 +85,7 @@ async function cacheGuildMembers() {
 }
 
 export function registerRateLimit() {
-  client.once("rateLimit", async (limitData) => {
+  client.on("rateLimited", async (limitData) => {
     console.log("Rate limit: " + JSON.stringify(limitData));
   });
 }
