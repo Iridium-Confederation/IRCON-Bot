@@ -21,6 +21,7 @@ import fs from "fs";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import _ from "lodash";
+import fetch from "node-fetch";
 
 const { Routes } = require("discord-api-types/v9");
 
@@ -60,7 +61,9 @@ async function doBackup() {
     });
 }
 
-async function cacheGuildMembers(guilds: Discord.Guild[]) {
+async function cacheGuildMembers() {
+  const guilds = Array.from(client.guilds.cache.values());
+
   const chunks = _.chunk(guilds, 10);
   let numFailures = 0;
   for (const chunk of chunks) {
@@ -68,9 +71,16 @@ async function cacheGuildMembers(guilds: Discord.Guild[]) {
 
     await Promise.all(
       chunk.map((g) => {
-        g.members.fetch().catch(() => {
-          numFailures++;
-        });
+        g.members
+          .fetch()
+          .catch(() => {
+            numFailures++;
+          })
+          .then((users) => {
+            if (users) {
+              console.log(`Fetched ${users.keys.length} users`);
+            }
+          });
       })
     );
   }
@@ -90,10 +100,7 @@ async function doIntervalActions() {
   // TODO: find a more elegant solution to rate limiting.
   // Each method here should exceed no more than 25 requests/s (out of global limit of 50).
 
-  // Cache all guilds.
-  const guilds = Array.from((await client.guilds.cache).values());
-
-  await cacheGuildMembers(guilds);
+  await cacheGuildMembers();
 }
 
 async function registerCommands() {
