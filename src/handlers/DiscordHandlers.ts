@@ -62,7 +62,7 @@ async function doBackup() {
 async function cacheGuildMembers() {
   const guilds = Array.from(client.guilds.cache.values());
 
-  const chunks = _.chunk(guilds, 25);
+  const chunks = _.chunk(guilds, 50);
   let numFailures = 0;
   for (const chunk of chunks) {
     await sleep(250);
@@ -82,10 +82,6 @@ async function cacheGuildMembers() {
       })
     );
   }
-
-  console.log(
-    `Failed fetching members for ${numFailures}/${guilds.length} servers.`
-  );
 }
 
 export function registerRateLimit() {
