@@ -47,7 +47,7 @@ export async function login() {
   }
 }
 
-// Do a database backup over )discord
+// Do a database backup over discord
 async function doBackup() {
   admins
     .map((a: any) => client.users.cache.get(a.discordId))
@@ -59,6 +59,8 @@ async function doBackup() {
     });
 }
 
+export const memberGuildsCache = new Map<string, Set<string>>();
+
 async function cacheGuildMembers() {
   const guilds = Array.from(client.guilds.cache.values());
 
@@ -68,7 +70,17 @@ async function cacheGuildMembers() {
 
     await Promise.all(
       chunk.map((g) => {
-        g.members.fetch().catch(() => {});
+        return g.members.fetch().then((memberList) => {
+          for (const entry of memberList) {
+            const snowflake = entry[0];
+            let guilds = memberGuildsCache.get(snowflake);
+            if (!guilds) {
+              guilds = new Set();
+              memberGuildsCache.set(snowflake, guilds);
+            }
+            guilds.add(g.id);
+          }
+        });
       })
     );
   }
