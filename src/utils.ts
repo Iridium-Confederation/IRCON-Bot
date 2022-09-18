@@ -279,12 +279,13 @@ export async function getUserGuilds(
             (guild) => guild.id == guildId
           );
           if (guild) {
-            const members = await guild.members.fetch();
-            return members.has(userId) ? guild : null;
+            // The fetch will throw if the user doesn't exist.
+            await guild.members.fetch(userId);
+            return guild;
           }
         }
       )
-    )
+    ).catch()
   ).filter((guild) => guild) as Discord.Guild[];
 
   return guilds.reduce((map, guild) => {
@@ -320,10 +321,9 @@ export async function getGuildId(
     return message.guild.id;
   } else {
     const user = (await User.findById(getUserId(message)))[0];
+    const guilds = await getUserGuilds(message);
 
     if (user.defaultGuildId) {
-      const guilds = await getUserGuilds(message, user.defaultGuildId);
-
       if (guilds.get(user.defaultGuildId) == null) {
         if (reply) {
           replyTo(
@@ -337,8 +337,6 @@ export async function getGuildId(
         return user.defaultGuildId;
       }
     }
-
-    const guilds = await getUserGuilds(message);
 
     if (guilds.size > 1 && user.defaultGuildId == null) {
       if (reply) {
