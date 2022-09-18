@@ -62,23 +62,13 @@ async function doBackup() {
 async function cacheGuildMembers() {
   const guilds = Array.from(client.guilds.cache.values());
 
-  const chunks = _.chunk(guilds, 50);
-  let numFailures = 0;
+  const chunks = _.chunk(guilds, 10);
   for (const chunk of chunks) {
     await sleep(250);
 
     await Promise.all(
       chunk.map((g) => {
-        g.members
-          .fetch()
-          .catch(() => {
-            numFailures++;
-          })
-          .then((users) => {
-            if (users) {
-              console.log(`Fetched ${users.size} users`);
-            }
-          });
+        g.members.fetch().catch(() => {});
       })
     );
   }
@@ -265,7 +255,7 @@ export function registerOnReady() {
 
     // Cache guild members (to support PM features)
     await doIntervalActions();
-    setInterval(doIntervalActions, 60_000);
+    setInterval(doIntervalActions, 120_000);
 
     // Schedule daily backups.
     await doBackup();
