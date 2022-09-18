@@ -13,7 +13,7 @@ import Discord, {
 import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
-import { client } from "./handlers/DiscordHandlers";
+import { client, memberGuildsCache } from "./handlers/DiscordHandlers";
 import { MessageActionRowComponentBuilder } from "@discordjs/builders/dist/components/ActionRow";
 
 let allowedShips: FleetViewShip[];
@@ -256,10 +256,41 @@ export function getTotalUec(ships: Ships[]): Number {
   return total ? total : 0;
 }
 
-export async function getUserGuilds(message: Communication | Interaction) {
-  return client.guilds.cache.filter(
-    (g) => g.members.cache.get(getUserId(message)) != null
-  );
+export async function getUserGuilds(
+  message: Communication | Interaction,
+  guildId?: string
+) {
+  const userId = getUserId(message);
+  const memberGuilds = guildId
+    ? new Set([guildId])
+    : memberGuildsCache.get(userId);
+
+  if (message.inGuild() && message.guild) {
+    const value = new Map<string, Discord.Guild>();
+    value.set(message.guildId, message.guild);
+    return value;
+  }
+
+  const guilds = (
+    await Promise.all(
+      Array.from(memberGuilds ? memberGuilds.values() : []).map(
+        async (guildId) => {
+          const guild = await client.guilds.cache.find(
+            (guild) => guild.id == guildId
+          );
+          if (guild) {
+            const members = await guild.members.fetch();
+            return members.has(userId) ? guild : null;
+          }
+        }
+      )
+    )
+  ).filter((guild) => guild) as Discord.Guild[];
+
+  return guilds.reduce((map, guild) => {
+    map.set(guild.id, guild);
+    return map;
+  }, new Map<string, Discord.Guild>());
 }
 
 export function getUserTag(message: Communication | Interaction) {
@@ -288,10 +319,11 @@ export async function getGuildId(
   if (message.guild) {
     return message.guild.id;
   } else {
-    const guilds = await getUserGuilds(message);
     const user = (await User.findById(getUserId(message)))[0];
 
     if (user.defaultGuildId) {
+      const guilds = await getUserGuilds(message, user.defaultGuildId);
+
       if (guilds.get(user.defaultGuildId) == null) {
         if (reply) {
           replyTo(
@@ -305,6 +337,8 @@ export async function getGuildId(
         return user.defaultGuildId;
       }
     }
+
+    const guilds = await getUserGuilds(message);
 
     if (guilds.size > 1 && user.defaultGuildId == null) {
       if (reply) {
