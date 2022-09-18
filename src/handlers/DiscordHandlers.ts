@@ -62,7 +62,7 @@ async function doBackup() {
 async function cacheGuildMembers() {
   const guilds = Array.from(client.guilds.cache.values());
 
-  const chunks = _.chunk(guilds, 10);
+  const chunks = _.chunk(guilds, 25);
   let numFailures = 0;
   for (const chunk of chunks) {
     await sleep(250);
