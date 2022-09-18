@@ -21,13 +21,11 @@ import fs from "fs";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import _ from "lodash";
-import fetch from "node-fetch";
 
 const { Routes } = require("discord-api-types/v9");
 
 const token = require("../../botconfig.json");
-const rest = new REST({ version: "9" }).setToken(token);
-
+new REST({ version: "9" }).setToken(token);
 const admins = require("../../admins.json");
 const { GatewayIntentBits } = require("discord.js");
 
@@ -78,7 +76,7 @@ async function cacheGuildMembers() {
           })
           .then((users) => {
             if (users) {
-              console.log(`Fetched ${users.keys.length} users`);
+              console.log(`Fetched ${users.size} users`);
             }
           });
       })
