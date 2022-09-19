@@ -5,7 +5,6 @@ import Discord, {
   DMChannel,
   Interaction,
   InteractionUpdateOptions,
-  SelectMenuBuilder,
   SelectMenuInteraction,
   Snowflake,
   TextChannel,
@@ -15,6 +14,7 @@ import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
 import { client, memberGuildsCache } from "./handlers/DiscordHandlers";
 import { MessageActionRowComponentBuilder } from "@discordjs/builders/dist/components/ActionRow";
+import { SetDefaultGuild } from "./commands";
 
 let allowedShips: FleetViewShip[];
 
@@ -340,29 +340,7 @@ export async function getGuildId(
 
     if (guilds.size > 1 && user.defaultGuildId == null) {
       if (reply) {
-        const row = new ActionRowBuilder<SelectMenuBuilder>();
-        const menu = new SelectMenuBuilder().setCustomId(
-          "default_guild_select"
-        );
-        guilds.forEach((g) => {
-          menu.addOptions([
-            {
-              label: g.name,
-              value: g.id,
-            },
-          ]);
-        });
-        row.addComponents(menu);
-
-        replyTo(
-          message,
-          "You have joined multiple Discord guilds serviced by FleetBot. " +
-            "Select one as your default for private messaging. You can clear your default guild " +
-            "by typing:\n **/options reset_default_guild**.",
-          undefined,
-          undefined,
-          [row]
-        );
+        SetDefaultGuild(message, guilds);
       }
     } else if (guilds.size == 1) {
       return guilds.values().next()?.value.id;
