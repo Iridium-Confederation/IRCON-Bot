@@ -11,6 +11,7 @@ import {
   findShipAutocomplete,
   getCommand,
   getGuildId,
+  getUserGuilds,
   getUserId,
   getUserTag,
   sleep,
@@ -21,6 +22,7 @@ import fs from "fs";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import _ from "lodash";
+import { SetDefaultGuild } from "../commands";
 
 const { Routes } = require("discord-api-types/v9");
 
@@ -241,8 +243,10 @@ async function registerCommands() {
       .setDescription("Set application options")
       .addSubcommand((subcommand) =>
         subcommand
-          .setName("reset_default_guild")
-          .setDescription("Resets your default guild for PM communication.")
+          .setName("set_default_guild")
+          .setDescription(
+            "Set server to use in DMs. Useful if you are in multiple servers service by FleetBot."
+          )
       ),
   ].map((command) => command.toJSON());
 
@@ -310,7 +314,7 @@ async function processCommand(message: CommandInteraction) {
   const { command, subCommand } = await getCommand(message);
 
   const guildId = await getGuildId(message);
-  if (!guildId && command != "options") {
+  if (!guildId) {
     return;
   }
 
@@ -362,7 +366,8 @@ async function processCommand(message: CommandInteraction) {
       await Commands.StatsCommand(message);
       break;
     case "options":
-      await Commands.ClearDefaultGuild(message);
+      const guilds = await getUserGuilds(message);
+      await SetDefaultGuild(message, guilds);
       break;
   }
 }
