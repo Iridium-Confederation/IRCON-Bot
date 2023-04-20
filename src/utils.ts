@@ -5,6 +5,7 @@ import Discord, {
   DMChannel,
   Interaction,
   InteractionUpdateOptions,
+  MessageActionRowComponentBuilder,
   SelectMenuInteraction,
   Snowflake,
   TextChannel,
@@ -13,7 +14,7 @@ import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
 import { User } from "./models/User";
 import { client, memberGuildsCache } from "./handlers/DiscordHandlers";
-import { MessageActionRowComponentBuilder } from "@discordjs/builders/dist/components/ActionRow";
+
 import { SetDefaultGuild } from "./commands";
 
 let allowedShips: FleetViewShip[];
@@ -340,7 +341,7 @@ export async function getGuildId(
 
     if (guilds.size > 1 && user.defaultGuildId == null) {
       if (reply) {
-        SetDefaultGuild(message, guilds);
+        await SetDefaultGuild(message, guilds);
       }
     } else if (guilds.size == 1) {
       return guilds.values().next()?.value.id;
