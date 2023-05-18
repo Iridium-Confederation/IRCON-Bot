@@ -229,6 +229,7 @@ export async function refreshShipList() {
     );
 
     allowedShips = (await p1.json()).concat(await p2.json());
+    allowedShips = allowedShips.filter((s) => s.rsiName);
     allowedShips = allowedShips.sort((a, b) => {
       return (
         a.rsiName.split(" ")[0].localeCompare(b.rsiName.split(" ")[0]) ||
