@@ -72,17 +72,20 @@ async function cacheGuildMembers() {
 
     await Promise.all(
       chunk.map((g) => {
-        return g.members.fetch().then((memberList) => {
-          for (const entry of memberList) {
-            const snowflake = entry[0];
-            let guilds = memberGuildsCache.get(snowflake);
-            if (!guilds) {
-              guilds = new Set();
-              memberGuildsCache.set(snowflake, guilds);
+        return g.members
+          .fetch({ time: 30_000 })
+          .then((memberList) => {
+            for (const entry of memberList) {
+              const snowflake = entry[0];
+              let guilds = memberGuildsCache.get(snowflake);
+              if (!guilds) {
+                guilds = new Set();
+                memberGuildsCache.set(snowflake, guilds);
+              }
+              guilds.add(g.id);
             }
-            guilds.add(g.id);
-          }
-        });
+          })
+          .catch((e) => console.log(e));
       })
     );
   }
