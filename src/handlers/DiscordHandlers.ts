@@ -73,7 +73,7 @@ async function cacheGuildMembers() {
     await Promise.all(
       chunk.map((g) => {
         return g.members
-          .fetch({ time: 30_000 })
+          .fetch({ time: 60_000 })
           .then((memberList) => {
             for (const entry of memberList) {
               const snowflake = entry[0];
@@ -274,7 +274,7 @@ export function registerOnReady() {
 
     // Cache guild members (to support PM features)
     await doIntervalActions();
-    setInterval(doIntervalActions, 300_000);
+    setInterval(doIntervalActions, 600_000);
 
     // Schedule daily backups.
     await doBackup();
