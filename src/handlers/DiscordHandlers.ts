@@ -66,7 +66,7 @@ export const memberGuildsCache = new Map<string, Set<string>>();
 async function cacheGuildMembers() {
   const guilds = Array.from(client.guilds.cache.values());
 
-  const chunks = _.chunk(guilds, 10);
+  const chunks = _.chunk(guilds, 5);
   for (const chunk of chunks) {
     await sleep(250);
 
@@ -274,7 +274,7 @@ export function registerOnReady() {
 
     // Cache guild members (to support PM features)
     await doIntervalActions();
-    setInterval(doIntervalActions, 120_000);
+    setInterval(doIntervalActions, 300_000);
 
     // Schedule daily backups.
     await doBackup();
