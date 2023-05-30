@@ -66,6 +66,13 @@ export const memberGuildsCache = new Map<string, Set<string>>();
 async function cacheGuildMembers() {
   const guilds = Array.from(client.guilds.cache.values());
 
+  const maxCount = client.guilds.cache
+    .map((guild) => guild.memberCount)
+    .reduce((previousValue, currentValue) =>
+      Math.max(previousValue, currentValue)
+    );
+  console.log(`Maximum guild size [${maxCount}]`);
+
   const chunks = _.chunk(guilds, 5);
   for (const chunk of chunks) {
     await sleep(250);
