@@ -3,13 +3,13 @@ import {
   getGuildId,
   getGuildUser,
   replyTo,
-  update,
+  update
 } from "../utils";
 import {
   ButtonHandler,
   FleetBotCommand,
   FleetBotCommandInteraction,
-  SelectHandler,
+  SelectHandler
 } from "./FleetBotCommand";
 import {
   ActionRowBuilder,
@@ -18,31 +18,33 @@ import {
   ButtonStyle,
   CommandInteraction,
   SelectMenuBuilder,
-  SelectMenuInteraction,
+  SelectMenuInteraction
 } from "discord.js";
 import { User } from "../models/User";
-import { ShipDao } from "../models/Ships";
+import { ShipDao, Ships } from "../models/Ships";
 
 export const AdminUsersDeleteButton: ButtonHandler = async (
-  message: ButtonInteraction
-) => {
-  const guildId = await getGuildId(message);
-  if (!guildId) return;
-  const userId = message.customId.split("#")[1];
+    message: ButtonInteraction
+  ) => {
+    const guildId = await getGuildId(message);
+    if (!guildId) return;
+    const userId = message.customId.split("#")[1];
 
-  const ships = await ShipDao.findShipsByOwnerId(userId, guildId);
+    const ships = await ShipDao.findShipsByOwnerId(userId, guildId);
 
-  let count = 0;
-  ships.map((s) => {
-    count++;
-    s.destroy();
-  });
+    Ships.destroy({
+      where: {
+        guildId: guildId,
+        userId: userId
+      }
+    });
 
-  update(message, {
-    content: `${count} ships deleted.`,
-    components: [],
-  });
-};
+    update(message, {
+      content: `${ships.length} ships deleted.`,
+      components: []
+    });
+  }
+;
 
 export const AdminUsersSelect: SelectHandler = async (
   message: SelectMenuInteraction
@@ -82,11 +84,11 @@ export const AdminClearButton: ButtonHandler = async (
   const guildId = await getGuildId(message);
   if (!guildId) return;
 
-  const ships = await ShipDao.findAll(guildId);
-
-  ships.map((s) => {
-    s.destroy();
-  });
+  Ships.destroy({
+    where: {
+      guildId: guildId
+    }}
+  )
 
   const replyStr = "All guild data cleared.";
   return update(message, { content: replyStr, components: [] });
@@ -124,7 +126,7 @@ export const AdminUsersCommand: FleetBotCommandInteraction = async (
       return {
         label: user.lastKnownTag,
         value: userId,
-        guildId: discordGuildId,
+        guildId: discordGuildId
       };
     })
   ).then((results) => {
