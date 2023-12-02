@@ -277,7 +277,7 @@ export async function getUserGuilds(
     await Promise.all(
       Array.from(memberGuilds ? memberGuilds.values() : []).map(
         async (guildId) => {
-          const guild = await client.guilds.cache.find(
+          const guild = client.guilds.cache.find(
             (guild) => guild.id == guildId
           );
           if (guild) {
@@ -374,6 +374,32 @@ export async function addShipCheck(
     return true;
   }
 }
+
+export function bulkFindShips(
+  ships: string[],
+): FleetViewShip[] {
+  return ships
+    .map((ship) => findShip(ship))
+    .filter((ship) => ship) as FleetViewShip[];
+}
+
+export function bulkCreateShips(
+  foundShips: FleetViewShip[],
+  message: Communication,
+  guildId: Snowflake
+) {
+  ShipDao.bulkCreate(
+    foundShips.map((ship) => {
+      return {
+        shipname: ship.name,
+        discordUserId: getUserId(message),
+        guildId: guildId,
+      };
+    })
+  );
+
+}
+
 
 export function addShip(
   shipName: string,

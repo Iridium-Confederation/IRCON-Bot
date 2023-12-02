@@ -1,6 +1,6 @@
 import { CommandInteraction } from "discord.js";
 import fetch from "node-fetch";
-import { addShip, addShipCheck, getGuildId, replyTo } from "../utils";
+import { addShipCheck, bulkCreateShips, bulkFindShips, getGuildId, replyTo } from "../utils";
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
 
 export const ImportCommand: FleetBotCommandInteraction = async (
@@ -22,10 +22,6 @@ export const ImportCommand: FleetBotCommandInteraction = async (
     return;
   }
 
-  let successCount = 0;
-  let failureCount = 0;
-  let failures = new Set();
-
   const format = body.find((item) => item.type)
     ? "fleetview"
     : "hangar-explorer";
@@ -35,35 +31,20 @@ export const ImportCommand: FleetBotCommandInteraction = async (
     return;
   }
 
-  let result = body
-    .filter(
-      (item: any) =>
-        (format === "fleetview" && item.type && item.type === "ship") ||
-        format === "hangar-explorer"
-    )
-    .map(async (item: any) => {
-      let isSuccess = await addShip(
-        item.name.toLowerCase().trim(),
-        message,
-        guildId
-      );
+  body = body.filter((item) => (format === "fleetview" && item.type && item.type === "ship") || format === "hangar-explorer");
 
-      if (!isSuccess) {
-        failures.add(item.name.trim());
-        failureCount++;
-      } else {
-        successCount++;
-      }
-    });
+  const shipNames = body.map((item) => item.name.toLowerCase().trim());
+  const foundShips = bulkFindShips(shipNames)
+  bulkCreateShips(foundShips, message, guildId)
 
-  await Promise.all(result);
+  const successCount = foundShips.length;
+  const failureCount = shipNames.length - foundShips.length;
 
-  if (successCount) {
-    replyTo(message, `Successfully imported **${successCount}** items.`);
+  let messageText = `Importing **${successCount}** ships.`;
+  if (failureCount > 0) {
+    messageText += ` Failed to handle **${failureCount}** entries.`
   }
-  if (failureCount) {
-    replyTo(message, `Failed to import **${failureCount}** items.`);
 
-    replyTo(message, Array.from(failures).join(", "));
-  }
+  replyTo(message, messageText);
+
 };
