@@ -96,6 +96,14 @@ export class ShipDao {
     });
   }
 
+  static bulkCreate(param: {
+    discordUserId: string;
+    guildId: string;
+    shipname: string;
+  }[]) {
+    Ships.bulkCreate(param);
+  }
+
   static create(param: {
     discordUserId: string;
     guildId: string | undefined;
