@@ -17,7 +17,7 @@ import { client, memberGuildsCache } from "./handlers/DiscordHandlers";
 
 import { SetDefaultGuild } from "./commands";
 
-let allowedShips: FleetViewShip[];
+let allowedShips: FleetViewShip[] = [];
 
 export type Communication = Discord.Message | Discord.CommandInteraction;
 
@@ -98,16 +98,21 @@ export function replyTo(
   ephemeral?: boolean
 ) {
   if (contents.length >= 2000) {
+    // Paginated multi-message workflow
     const msg: string = contents;
 
     let start = 0;
     const chunkSize = 1800;
 
+    // We should provide at least one directly reply
+    reply(message, "", attachment, title);
+
+    // The other replies will go to the channel rather than a directly reply
     while (true) {
       // The remaining chunk can be smaller.
       if (start + chunkSize >= msg.length) {
         const body = msg.substring(start);
-        reply(message, body, attachment, title, undefined, false, true);
+        reply(message, body, attachment, "", undefined, false, true);
         return;
       }
 
@@ -116,13 +121,13 @@ export function replyTo(
         if (msg[index] == "\n") {
           // newline found
           const body = msg.substring(start, index + 1);
-          reply(message, body, attachment, title, undefined, false, true);
+          reply(message, body, attachment, "", undefined, false, true);
           start = index + 1;
           break;
         } else if (index == start) {
           // newline not found. Send whole chunk.
           const body = msg.substr(start, chunkSize);
-          reply(message, body, attachment, title, undefined, false, true);
+          reply(message, body, attachment, "", undefined, false, true);
           start += chunkSize;
           break;
         }
@@ -308,11 +313,20 @@ export function getUserId(message: Communication | Interaction) {
     : message.user.id;
 }
 
-export async function getGuildUser(userid: string, guildId: string) {
-  const guild = client.guilds.cache.get(guildId);
-  return guild
-    ? guild.members.cache.find((member) => member.id === userid)
-    : undefined;
+export async function getGuildUser(userid: string, guildId: string, live?: boolean) {
+  if (live){
+    // fetch live
+    const guild = await client.guilds.fetch(guildId).catch(() => undefined);
+    return guild
+      ? guild.members.fetch(userid).catch(() => undefined)
+      : undefined;
+  }else{
+    const guild = client.guilds.cache.get(guildId);
+    return guild
+      ? guild.members.cache.find((member) => member.id === userid)
+      : undefined;
+  }
+
 }
 
 export async function getGuildId(
@@ -425,8 +439,10 @@ export async function updateUser(newUser: Discord.User | Discord.PartialUser) {
   if (!dbUser) {
     dbUser = new User();
     dbUser.lastKnownTag = newUser.tag ? newUser.tag : "";
+    dbUser.lastKnownDisplayName = newUser.displayName ? newUser.displayName : "";
   }
   dbUser.discordUserId = newUser.id;
   dbUser.lastKnownTag = newUser.tag ? newUser.tag : "";
+  dbUser.lastKnownDisplayName = newUser.displayName ? newUser.displayName : "";
   await dbUser.save();
 }

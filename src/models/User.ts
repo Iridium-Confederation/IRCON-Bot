@@ -22,6 +22,9 @@ export class User extends Model<User> {
   @Column
   lastKnownTag!: string;
 
+  @Column
+  lastKnownDisplayName!: string;
+
   @AllowNull
   @Column("VARCHAR")
   defaultGuildId!: string | null;

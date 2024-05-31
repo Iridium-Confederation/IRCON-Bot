@@ -116,28 +116,41 @@ export const AdminUsersCommand: FleetBotCommandInteraction = async (
   const guildId = await getGuildId(message);
   if (!guildId) return;
 
-  const users = await User.findByGuild(guildId);
+  const ships = await ShipDao.findAll(guildId);
+  let users = await User.findByGuild(guildId);
 
+  // filter users to ones that have ships in this guild
+  users = users.filter((user) => {
+    return ships.some((ship) => ship.discordUserId == user.discordUserId);
+  });
+
+  let current = 0;
   Promise.all(
     users.map(async (user) => {
       const userId = user.discordUserId;
-      const discordGuildId = await getGuildUser(user.discordUserId, guildId);
+      const discordGuildId = await getGuildUser(user.discordUserId, guildId, true);
 
-      return {
-        label: user.lastKnownTag,
-        value: userId,
-        guildId: discordGuildId
-      };
+      if (current < 25 && !discordGuildId){
+        current++;
+        const label = "Tag: " + user.lastKnownTag + (user.lastKnownDisplayName ? ` (Display Name: ${user.lastKnownDisplayName})` : "");
+        return {
+          label: label,
+          value: userId,
+          guildId: discordGuildId
+        };
+      }else{
+        return null;
+      }
     })
   ).then((results) => {
-    results = results.filter((result) => !result.guildId);
+    results = results.filter((result) => result && !result.guildId);
 
     if (results.length == 0)
       return replyTo(message, "No disconnected users to manage.");
 
     const row = new ActionRowBuilder<SelectMenuBuilder>();
     const menu = new SelectMenuBuilder().setCustomId("delete_user_select");
-    results.splice(0, 25).forEach((result) => menu.addOptions(result));
+    results.splice(0, 25).forEach((result) => result ? menu.addOptions(result) : null);
     row.addComponents(menu);
     return replyTo(
       message,
