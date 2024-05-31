@@ -8,10 +8,15 @@ export const RemoveAllCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
 ) => {
   const guildId = await getGuildId(message);
-  if (guildId == null) return;
+  if (guildId == null)  return;
 
-  const discordUser = message.options.getUser("user", true);
-  const user = (await User.findById(discordUser.id))[0];
+
+  const discordUser = message.isChatInputCommand() ? message.options.getUser("user", true) : null;
+
+  let user;
+  if (discordUser){
+    user = (await User.findById(discordUser.id))[0];
+  }
 
   if (user) {
     const ships = await ShipDao.findShipsByOwnerId(user.discordUserId, guildId);

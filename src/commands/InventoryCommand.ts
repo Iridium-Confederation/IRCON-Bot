@@ -24,6 +24,8 @@ export const InventoryCommand: FleetBotCommandInteraction = async (
   if (!message.isChatInputCommand()) return;
   const viewAllOrg = message.options.getSubcommand() == "org";
 
+  const showLoaners = message.options.getBoolean("loaners", false);
+
   let ships;
   if (viewAllOrg) {
     ships = await ShipDao.findAll(guildId);
@@ -54,12 +56,14 @@ export const InventoryCommand: FleetBotCommandInteraction = async (
         firstUserFound === group[1][0].owner.discordUserId || viewAllOrg;
 
       const loanerStr =
+      showLoaners ?
         loaners && loaners.length > 0
-          ? `\nLoaner: *${loaners
-              .map((l) => findShip(l.slug)?.name)
-              .filter((s) => s)
-              .join(", ")}*`
-          : "";
+            ? `\nLoaner: *${loaners
+                .map((l) => findShip(l.slug)?.name)
+                .filter((s) => s)
+                .join(", ")}*`
+            : ""
+        : "";
 
       const line =
         `**${ship?.rsiName} ${shipCount > 1 ? " x " + shipCount : ""}** ` +
@@ -73,7 +77,7 @@ export const InventoryCommand: FleetBotCommandInteraction = async (
 
   const currentGuild = (await getUserGuilds(message)).get(guildId);
   let header;
-  let subHeader = "**Ship x Quantity** *(Loaners)*\n\n";
+  let subHeader = `**Ship x Quantity** ${showLoaners ? "*(Loaners)*" : ""}\n\n`;
 
   if (message.options.getSubcommand() == "org") {
     header = `${currentGuild?.name}'s inventory:\n`;

@@ -1,7 +1,7 @@
 import Discord, {
   CommandInteraction,
   DiscordAPIError,
-  Partials,
+  Partials
 } from "discord.js";
 import { User } from "../models/User";
 import { ShipDao } from "../models/Ships";
@@ -14,7 +14,7 @@ import {
   getUserGuilds,
   getUserId,
   getUserTag,
-  sleep,
+  sleep
 } from "../utils";
 import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
@@ -36,9 +36,9 @@ export const client = new Discord.Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessages
   ],
-  partials: [Partials.Channel],
+  partials: [Partials.Channel]
 });
 
 export async function login() {
@@ -182,10 +182,21 @@ async function registerCommands() {
               .setName("user")
               .setDescription("User to search for")
               .setRequired(false)
-          )
+          ).addBooleanOption((option) =>
+          option
+            .setName("loaners")
+            .setDescription("Show loaners for pledge ships (if available)")
+            .setRequired(false)
+        )
       )
       .addSubcommand((subcommand) =>
         subcommand.setName("org").setDescription("View org inventory.")
+          .addBooleanOption((option) =>
+            option
+              .setName("loaners")
+              .setDescription("Show loaners for pledge ships (if available)")
+              .setRequired(false)
+          )
       ),
     new SlashCommandBuilder()
       .setName("search")
@@ -257,7 +268,7 @@ async function registerCommands() {
           .setDescription(
             "Set server to use in DMs. Useful if you are in multiple servers service by FleetBot."
           )
-      ),
+      )
   ].map((command) => command.toJSON());
 
   const rest = new REST({ version: "9" }).setToken(token);
@@ -269,7 +280,7 @@ async function registerCommands() {
   console.log("Started refreshing application (/) commands.");
 
   await rest.put(Routes.applicationCommands(client.application.id), {
-    body: commands,
+    body: commands
   });
 
   console.log("Successfully set application (/) commands.");
@@ -423,7 +434,7 @@ export function registerOnMessage() {
         const options = findShipAutocomplete(value).map((s) => {
           return {
             name: s.name,
-            value: s.name,
+            value: s.name
           };
         });
 
