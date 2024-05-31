@@ -35,7 +35,7 @@ export const AdminUsersDeleteButton: ButtonHandler = async (
     Ships.destroy({
       where: {
         guildId: guildId,
-        userId: userId
+        discordUserId: userId
       }
     });
 
@@ -66,6 +66,7 @@ export const AdminUsersSelect: SelectHandler = async (
     `Tag: ${
       discordUser?.user.tag ? discordUser?.user.tag : user.lastKnownTag
     }\n` +
+    `ID: ${userId}\n` +
     `Ships Owned: ${ships.length}\n` +
     `Status: ${discordUser ? "Connected" : "Disconnected"}\n`;
 
@@ -132,7 +133,7 @@ export const AdminUsersCommand: FleetBotCommandInteraction = async (
 
       if (current < 25 && !discordGuildId){
         current++;
-        const label = "Tag: " + user.lastKnownTag + (user.lastKnownDisplayName ? ` (Display Name: ${user.lastKnownDisplayName})` : "");
+        const label = "Tag: " + user.lastKnownTag + " (ID: " + userId + ")";
         return {
           label: label,
           value: userId,
