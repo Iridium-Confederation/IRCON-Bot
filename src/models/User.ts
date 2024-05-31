@@ -22,6 +22,7 @@ export class User extends Model<User> {
   @Column
   lastKnownTag!: string;
 
+  // Currently bugged. Needs to be specified per guild.
   @Column
   lastKnownDisplayName!: string;
 
