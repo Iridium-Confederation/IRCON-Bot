@@ -13,6 +13,8 @@ import { Snowflake } from "discord.js";
 import { findShip } from "../utils";
 
 export class ShipDao {
+  static sequelize: Sequelize;
+
   static async findShipsByName(
     name: string,
     guildId: Snowflake
@@ -87,7 +89,7 @@ export class ShipDao {
     });
   }
   static initialize() {
-    new Sequelize("database", "user", "password", {
+    this.sequelize = new Sequelize("database", "user", "password", {
       host: "localhost",
       dialect: "sqlite",
       logging: false,
