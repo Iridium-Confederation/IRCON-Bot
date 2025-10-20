@@ -12,6 +12,15 @@ logger.info("Starting Iridium FleetBot...");
 // Initialize DB
 ShipDao.initialize();
 
+// Keep SQLite connection warm to prevent slow first requests
+setInterval(() => {
+  try {
+    ShipDao.sequelize.query('SELECT 1').catch(() => {}); // Lightest possible keep-alive query
+  } catch (error) {
+    logger.error('DB keep-alive failed:', error);
+  }
+}, 10000);
+
 // Background job for ship list
 refreshShipList().then(() => {});
 setInterval(refreshShipList, 900_000);
