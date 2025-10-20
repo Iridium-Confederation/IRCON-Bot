@@ -39,6 +39,7 @@ export const FleetViewCommand: FleetBotCommandInteraction = async (
   } else {
     const replyStr =
       "Export options:\n\n" +
+      "As of October 2025, Starship42 has been retired and is no longer maintained.\n\n" +
       "<https://www.starship42.com/fleetview/>\n" +
       "1. Click **Choose File**\n" +
       "2. Click **Upload this attachment**\n" +
