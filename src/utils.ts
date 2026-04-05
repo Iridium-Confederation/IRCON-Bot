@@ -233,7 +233,9 @@ export async function refreshShipList() {
       "https://api.fleetyards.net/v1/models?perPage=240&page=2"
     );
 
-    allowedShips = (await p1.json()).concat(await p2.json());
+    const p1Json = await p1.json();
+    const p2Json = await p2.json();
+    allowedShips = p1Json.items.concat(p2Json.items);
     allowedShips = allowedShips.filter((s) => s.rsiName);
     allowedShips = allowedShips.sort((a, b) => {
       return (
