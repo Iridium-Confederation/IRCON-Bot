@@ -1,4 +1,5 @@
 import Discord, {
+  AttachmentBuilder,
   CommandInteraction,
   DiscordAPIError,
   Partials
@@ -19,9 +20,10 @@ import {
 import * as Commands from "../commands";
 import { commandsLogger } from "../logging/logging";
 import fs from "fs";
+import { gzipSync } from "zlib";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
-import _ from "lodash";
+import _, { set } from "lodash";
 import { SetDefaultGuild } from "../commands";
 
 const { Routes } = require("discord-api-types/v9");
@@ -51,12 +53,16 @@ export async function login() {
 
 // Do a database backup over discord
 async function doBackup() {
+  const compressedDb = gzipSync(fs.readFileSync("database.sqlite"));
+  const backupAttachment = new AttachmentBuilder(compressedDb, {
+    name: "database.sqlite.gz"
+  });
+
   admins
     .map((a: any) => client.users.cache.get(a.discordId))
     .forEach((backupUser: Discord.User) => {
       if (backupUser) {
-        fs.readFileSync("database.sqlite");
-        backupUser.send({ files: ["database.sqlite"] });
+        backupUser.send({ files: [backupAttachment] }).catch(console.log);
       }
     });
 }
@@ -290,13 +296,20 @@ export function registerOnReady() {
   client.once("ready", async () => {
     console.log("Discord client reports ready.");
 
+    // Send a startup message to admins
+    const users = await Promise.all(
+      admins.map((a: any) => client.users.fetch(a.discordId))
+    );
+    users.forEach((user) => {
+      user.send("FleetBot is starting up.").catch(console.log);
+    });
+
+    await doBackup();
+    setInterval(doBackup, 86_400_000);
+
     // Cache guild members (to support PM features)
     await doIntervalActions();
     setInterval(doIntervalActions, 900_000);
-
-    // Schedule daily backups.
-    await doBackup();
-    setInterval(doBackup, 86_400_000);
 
     await User.sync();
     ShipDao.sync();
