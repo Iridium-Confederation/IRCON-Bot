@@ -53,7 +53,16 @@ export async function login() {
 
 // Do a database backup over discord
 async function doBackup() {
-  const compressedDb = gzipSync(fs.readFileSync("database.sqlite"));
+  const database = fs.readFileSync("database.sqlite");
+  let databaseSize = database.length / (1024 * 1024);
+  databaseSize = Math.round(databaseSize * 10) / 10;
+
+  const compressedDb = gzipSync(database);
+  let compressedDatabaseSize = compressedDb.length / (1024 * 1024);
+  compressedDatabaseSize = Math.round(compressedDatabaseSize * 10) / 10;
+
+  console.log("Compressing database: " + databaseSize + " MB -> " + compressedDatabaseSize + " MB");
+
   const backupAttachment = new AttachmentBuilder(compressedDb, {
     name: "database.sqlite.gz"
   });
