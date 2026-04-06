@@ -71,6 +71,7 @@ async function doBackup() {
     .map((a: any) => client.users.cache.get(a.discordId))
     .forEach((backupUser: Discord.User) => {
       if (backupUser) {
+        console.log("Sending backup to " + backupUser.tag);
         backupUser.send({ files: [backupAttachment] }).catch(console.log);
       }
     });
