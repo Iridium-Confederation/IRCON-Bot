@@ -15,7 +15,8 @@ ShipDao.initialize();
 // Keep SQLite connection warm to prevent slow first requests
 setInterval(() => {
   try {
-    ShipDao.sequelize.query('SELECT 1').catch(() => {}); // Lightest possible keep-alive query
+    ShipDao.sequelize.query('SELECT * FROM Ships').catch(() => {});
+    ShipDao.sequelize.query('SELECT * FROM Users').catch(() => {});
   } catch (error) {
     logger.error('DB keep-alive failed:', error);
   }
