@@ -353,6 +353,9 @@ async function updateCache(message: Communication) {
 }
 
 async function processCommand(message: CommandInteraction) {
+  // Acknowledge the interaction immediately so slow commands don't time out (3 s → 15 min)
+  await message.deferReply();
+
   await updateCache(message);
 
   const { command, subCommand } = await getCommand(message);

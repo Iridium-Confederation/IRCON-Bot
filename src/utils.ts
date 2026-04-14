@@ -67,6 +67,25 @@ function reply(
       })
       .catch((e) => console.log(e))
       .then(() => {});
+  } else if (message.deferred || message.replied) {
+    // Interaction was already acknowledged (e.g. via deferReply).
+    // Use editReply for the first content update, followUp for subsequent ones.
+    const payload = {
+      embeds: [embed],
+      files: attachment ? [attachment] : [],
+      components: rows ? rows : [],
+    };
+    if (message.deferred && !message.replied) {
+      message
+        .editReply(payload)
+        .catch((e) => console.log(e))
+        .then(() => {});
+    } else {
+      message
+        .followUp({ ...payload, ephemeral: ephemeral })
+        .catch((e) => console.log(e))
+        .then(() => {});
+    }
   } else {
     message
       .reply({
