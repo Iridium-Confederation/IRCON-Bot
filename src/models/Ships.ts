@@ -7,10 +7,17 @@ import {
   Sequelize,
   Table,
 } from "sequelize-typescript";
-import { Op } from "sequelize";
+import { Op, Transaction } from "sequelize";
 import { User } from "./User";
 import { Snowflake } from "discord.js";
 import { findShip } from "../utils";
+import { MAX_SHIPS_PER_GUILD } from "../shipLimits";
+
+type ShipCreateAttributes = {
+  discordUserId: string;
+  guildId: string;
+  shipname: string;
+};
 
 export class ShipDao {
   static sequelize: Sequelize;
@@ -98,20 +105,42 @@ export class ShipDao {
     });
   }
 
-  static bulkCreate(param: {
-    discordUserId: string;
-    guildId: string;
-    shipname: string;
-  }[]) {
-    Ships.bulkCreate(param);
+  private static async createWithinLimit(
+    param: ShipCreateAttributes[]
+  ): Promise<boolean> {
+    if (param.length === 0) {
+      return true;
+    }
+
+    const guildId = param[0].guildId;
+    if (param.some((ship) => ship.guildId !== guildId)) {
+      throw new Error("Cannot create ships for multiple guilds in one batch.");
+    }
+
+    return this.sequelize.transaction(
+      { type: Transaction.TYPES.IMMEDIATE },
+      async (transaction) => {
+        const orgCount = await Ships.count({
+          where: { guildId: guildId },
+          transaction: transaction,
+        });
+
+        if (orgCount + param.length > MAX_SHIPS_PER_GUILD) {
+          return false;
+        }
+
+        await Ships.bulkCreate(param, { transaction: transaction });
+        return true;
+      }
+    );
   }
 
-  static create(param: {
-    discordUserId: string;
-    guildId: string | undefined;
-    shipname: string;
-  }) {
-    Ships.create(param);
+  static bulkCreate(param: ShipCreateAttributes[]): Promise<boolean> {
+    return this.createWithinLimit(param);
+  }
+
+  static create(param: ShipCreateAttributes): Promise<boolean> {
+    return this.createWithinLimit([param]);
   }
 
   static async findAll(guildId: Snowflake) {
@@ -162,28 +191,28 @@ export class Ships extends Model {
 
 export async function deleteShips(
   shipName: string,
-  owner: string,
+  discordUserId: Snowflake,
   guildId: Snowflake,
   deleteAll: boolean
 ) {
   const searchedShip = findShip(shipName);
   const removed = new Set<FleetViewShip>();
-  const matches = await ShipDao.findShipsByOwner(owner, guildId);
-  matches.find((m: Ships) => {
+  const matches = await ShipDao.findShipsByOwnerId(discordUserId, guildId);
+  for (const m of matches) {
     const dbShip = findShip(m.shipname);
 
     if (
       dbShip &&
       (deleteAll || (searchedShip && searchedShip.slug === dbShip.slug))
     ) {
-      m.destroy();
+      await m.destroy();
       removed.add(dbShip);
 
       if (!deleteAll) {
-        return removed;
+        break;
       }
     }
-  });
+  }
 
   return removed;
 }

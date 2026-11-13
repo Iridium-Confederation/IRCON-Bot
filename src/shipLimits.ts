@@ -1,0 +1,6 @@
+export const MAX_SHIPS_PER_GUILD = 3_000;
+
+export const MAX_IMPORT_BYTES = 8 * 1024 * 1024;
+export const MAX_IMPORT_ENTRIES = MAX_SHIPS_PER_GUILD;
+export const MAX_IMPORT_NAME_LENGTH = 100;
+export const MAX_IMPORT_NAME_TOKENS = 6;

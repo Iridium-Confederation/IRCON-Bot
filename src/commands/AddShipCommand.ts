@@ -19,7 +19,12 @@ export const AddShipCommand: FleetBotCommandInteraction = async (
   if (verify) {
     const addedShip = await addShip(shipName, message, guildId);
 
-    if (addedShip) {
+    if (addedShip === null) {
+      replyTo(
+        message,
+        "Org limit reached. Contact developers to increase limit."
+      );
+    } else if (addedShip) {
       replyTo(message, `added **${addedShip.name}** to your fleet.`);
     } else {
       replyTo(message, `Unknown ship.`);
