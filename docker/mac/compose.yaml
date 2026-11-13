@@ -9,6 +9,8 @@ services:
     container_name: iridium-bot-production
     init: true
     restart: unless-stopped
+    environment:
+      BOT_REPOSITORY: https://github.com/triesmon/IRCON-Bot.git
     volumes:
       - iridium-bot-data:/bot
       - ../../runtime/production/secrets:/etc/botconfig:ro
