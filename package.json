@@ -8,10 +8,13 @@
     "dev": "ts-node src/app.ts",
     "debug": "node --inspect=9229 -r ts-node/register src/app.ts",
     "debug:compiled": "tsc && node --inspect=9229 built/app.js",
-    "start": "npx sequelize-cli db:migrate --migrations-path built/migrations --config src/config/config.json && node built/app.js"
+    "start": "npx sequelize-cli db:migrate --migrations-path built/migrations --config src/config/config.json && node --env-file-if-exists=.env built/app.js"
   },
   "author": "Brady Spencer",
   "license": "ISC",
+  "engines": {
+    "node": ">=22.9.0"
+  },
   "dependencies": {
     "@discordjs/rest": "^2.6.1",
     "@types/table": "^6.0.0",

@@ -1,4 +1,7 @@
 node_modules/
+.env
+.env.*
+runtime/
 botconfig.json
 .idea/
 built/
@@ -10,3 +13,4 @@ admins.json
 *.secret
 *botconfig*
 id_rsa*
+/AGENTS.md

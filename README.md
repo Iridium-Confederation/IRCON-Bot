@@ -19,6 +19,8 @@ Create a file in the project root called `botconfig.json`.
 
 ## Dependencies
 
+[Node.js](https://nodejs.org/) 22.9 or later is required.
+
 [Python](https://www.python.org/) is needed to automatically fetch the sqlite binaries.
 
 ```

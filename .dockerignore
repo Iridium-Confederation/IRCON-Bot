@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+node_modules
+built
+runtime
+logs
+*.sqlite
+*.sqlite-*
+*.log
+botconfig.json
+admins.json
+*.secret
+id_rsa*

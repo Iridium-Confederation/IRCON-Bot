@@ -1,0 +1,19 @@
+name: iridium-bot
+
+services:
+  iridium-bot:
+    build:
+      context: ../..
+      dockerfile: docker/mac/Dockerfile
+    image: iridium-bot-mac:local
+    container_name: iridium-bot-production
+    init: true
+    restart: unless-stopped
+    volumes:
+      - iridium-bot-data:/bot
+      - ../../runtime/production/secrets:/etc/botconfig:ro
+
+volumes:
+  iridium-bot-data:
+    external: true
+    name: iridium-bot-production-data
