@@ -28,7 +28,7 @@ import { SetDefaultGuild } from "../commands";
 
 const { Routes } = require("discord-api-types/v9");
 
-const token = require("../../botconfig.json");
+const token = process.env.BOT_TOKEN || process.env.SECRET || require("../../botconfig.json");
 new REST({ version: "9" }).setToken(token);
 const admins = require("../../admins.json");
 const { GatewayIntentBits } = require("discord.js");

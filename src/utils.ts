@@ -226,6 +226,10 @@ export function findShip(
   if (success) {
     return success;
   } else if (/\s/g.test(shipName)) {
+    const normalizedName = shipName.trim().replace(/\s+/g, " ");
+    if (normalizedName !== shipName) {
+      return findShip(normalizedName);
+    }
     return (
       // Everything except the first word
       findShip(shipName.substring(shipName.indexOf(" ") + 1)) ||
@@ -238,7 +242,8 @@ export function findShip(
         .find((t) => t)
     );
   } else {
-    const re = new RegExp(`\\b${shipName}\\b`, "i");
+    const literalName = shipName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`\\b${literalName}\\b`, "i");
     return allowedShips.find((s) => s.name.match(re));
   }
 }
