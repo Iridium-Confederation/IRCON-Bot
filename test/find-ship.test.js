@@ -34,7 +34,15 @@ test("ship lookup retains ordinary name and partial-word matching", async () => 
   await refreshShipList();
   assert.equal(findShip("AEGIS AVENGER TITAN").name, "Aegis Avenger Titan");
   assert.equal(findShip("avenger").name, "Aegis Avenger Titan");
+  assert.equal(findShip("  avenger\t").name, "Aegis Avenger Titan");
   assert.equal(findShip("unknown avenger").name, "Aegis Avenger Titan");
   assert.equal(findShip("avenger\ttitan").name, "Aegis Avenger Titan");
   assert.deepEqual(bulkFindShips(["avenger\ttitan"]).map((s) => s.name), ["Aegis Avenger Titan"]);
+});
+
+test("ship lookup bounds unknown multi-word searches", { timeout: 2000 }, async () => {
+  await refreshShipList();
+  const unknownName = Array.from({ length: 30 }, (_, index) => `z${index}`).join(" ");
+  assert.equal(findShip(unknownName), undefined);
+  assert.equal(findShip(Array.from({ length: 20 }, (_, index) => `z${index}`).join(" ")), undefined);
 });

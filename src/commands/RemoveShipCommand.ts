@@ -1,4 +1,4 @@
-import { getCommand, getGuildId, getUserTag, replyTo } from "../utils";
+import { getCommand, getGuildId, getUserId, replyTo } from "../utils";
 import { ButtonHandler, FleetBotCommandInteraction } from "./FleetBotCommand";
 import { deleteShips } from "../models/Ships";
 import {
@@ -16,7 +16,7 @@ export const ClearConfirmationHandler: ButtonHandler = async (
 
   if (guildId == null) return;
 
-  await deleteShips("", getUserTag(interaction), guildId, true);
+  await deleteShips("", getUserId(interaction), guildId, true);
 
   await interaction.update({
     embeds: [],
@@ -61,13 +61,13 @@ export const RemoveShipCommand: FleetBotCommandInteraction = async (
       true
     );
   } else if (command === "delete_inventory") {
-    await deleteShips(shipName, getUserTag(message), guildId, true);
+    await deleteShips(shipName, getUserId(message), guildId, true);
   } else if (shipName.length <= 1) {
     replyTo(message, "Could you be more specific?");
   } else {
     const removedShips = await deleteShips(
       shipName,
-      getUserTag(message),
+      getUserId(message),
       guildId,
       commandArgs === "-all"
     );

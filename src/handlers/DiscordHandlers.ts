@@ -354,7 +354,11 @@ async function updateCache(message: Communication) {
 
 async function processCommand(message: CommandInteraction) {
   // Acknowledge the interaction immediately so slow commands don't time out (3 s → 15 min)
-  await message.deferReply();
+  if (message.commandName === "admin") {
+    await message.deferReply({ flags: Discord.MessageFlags.Ephemeral });
+  } else {
+    await message.deferReply();
+  }
 
   await updateCache(message);
 
