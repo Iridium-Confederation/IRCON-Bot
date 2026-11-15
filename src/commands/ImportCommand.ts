@@ -7,7 +7,6 @@ import {
   MAX_IMPORT_NAME_TOKENS,
 } from "../shipLimits";
 import {
-  addShipCheck,
   bulkCreateShips,
   bulkFindShips,
   getGuildId,
@@ -83,11 +82,6 @@ export const ImportCommand: FleetBotCommandInteraction = async (
   const format = body.find((item) => item.type)
     ? "fleetview"
     : "hangar-explorer";
-
-  const valid = await addShipCheck(message, guildId);
-  if (!valid) {
-    return;
-  }
 
   body = body.filter(
     (item) =>

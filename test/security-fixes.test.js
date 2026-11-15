@@ -23,6 +23,33 @@ function loadModule(name, stubs) {
   }
 }
 
+test("admin deletion waits for a guild-and-owner-scoped write and reports no false success", async () => {
+  const replies = [];
+  let resolveDelete;
+  let rejectDelete;
+  let deletedArgs;
+  let deletePending = new Promise((resolve, reject) => { resolveDelete = resolve; rejectDelete = reject; });
+  const { RemoveAllCommand } = loadModule("../built/commands/RemoveAllCommand", {
+    "../models/Ships": { ShipDao: { clearInventory: (...args) => { deletedArgs = args; return deletePending; } } },
+    "../utils": { getGuildId: async () => "guild", replyTo: (_, text) => replies.push(text) },
+  });
+  const message = { isChatInputCommand: () => true, options: { getUser: () => ({ id: "target" }) } };
+  const pending = RemoveAllCommand(message);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(deletedArgs, ["target", "guild"]);
+  assert.deepEqual(replies, []);
+  resolveDelete(2);
+  await pending;
+  assert.deepEqual(replies, ["2 ships deleted."]);
+
+  deletePending = new Promise((resolve, reject) => { resolveDelete = resolve; rejectDelete = reject; });
+  const failure = RemoveAllCommand(message);
+  const rejection = assert.rejects(failure, /fixture write failure/);
+  rejectDelete(new Error("fixture write failure"));
+  await rejection;
+  assert.deepEqual(replies, ["2 ships deleted."]);
+});
+
 test("database administration rejects shared channels and nonoperators before IO", async () => {
   let reads = 0;
   const delivered = [];
@@ -88,7 +115,52 @@ test("admin continuations reject other actors and legacy controls, preserving th
   assert.deepEqual(deletes, [{ guildId: "guild", discordUserId: "target" }, { guildId: "guild" }]);
 });
 
-test("Discord dispatch keeps admin confirmations private from the initial acknowledgement", async () => {
+test("Discord dispatch contains command failures and gives a recoverable error response", async () => {
+  const discord = require("discord.js");
+  let listener;
+  class FixtureClient { on(event, callback) { if (event === "interactionCreate") listener = callback; return this; } }
+  const handlers = loadModule("../built/handlers/DiscordHandlers", {
+    "discord.js": { ...discord, Client: FixtureClient },
+    "../utils": { updateUser: async () => {}, getGuildId: async () => "guild",
+      getCommand: async () => ({ command: "inventory", subCommand: "org" }), getUserTag: () => "fixture", getUserId: () => "owner" },
+    "../models/User": {}, "../models/Ships": {},
+    "../commands/fleet-browser": { FleetBrowserHandler: async () => {} },
+    "../commands": { InventoryCommand: async () => { throw new Error("fixture database failure"); } },
+    "../logging/logging": { commandsLogger: { info: () => {}, error: () => {} } },
+    "../../botconfig.json": "fixture-token", "../../admins.json": [],
+    "@discordjs/rest": { REST: class { setToken() { return this; } } },
+  });
+  handlers.registerOnMessage();
+  const responses = [];
+  const interaction = {
+    commandName: "inventory", user: { id: "owner" },
+    isCommand: () => true, isChatInputCommand: () => true, isRepliable: () => true,
+    options: { getSubcommand: () => "org" },
+    async deferReply() { this.deferred = true; },
+    editReply: async (payload) => responses.push(payload),
+  };
+  await assert.doesNotReject(listener(interaction));
+  assert.match(responses[0].content, /try again/i);
+  assert.doesNotMatch(responses[0].content, /fixture database failure/);
+  handlers.handlers.fixture = async () => { throw new Error("fixture component failure"); };
+  await assert.doesNotReject(listener({
+    customId: "fixture", isCommand: () => false, isButton: () => true,
+    isRepliable: () => true, isChatInputCommand: () => false,
+    reply: async (payload) => responses.push(payload),
+  }));
+  assert.equal(responses[1].flags, discord.MessageFlags.Ephemeral);
+  interaction.editReply = async () => { throw new Error("fixture delivery failure"); };
+  await assert.doesNotReject(listener(interaction));
+  let modalCalls = 0;
+  handlers.handlers.fixture = async () => { modalCalls++; };
+  await listener({
+    customId: "fixture", isCommand: () => false, isButton: () => false,
+    isSelectMenu: () => false, isModalSubmit: () => true, isAutocomplete: () => false,
+  });
+  assert.equal(modalCalls, 1, "modal submissions must reach their registered handler");
+});
+
+test("Discord dispatch keeps destructive confirmations private from the initial acknowledgement", async () => {
   const discord = require("discord.js");
   const listeners = new Map();
   class FixtureClient {
@@ -107,6 +179,7 @@ test("Discord dispatch keeps admin confirmations private from the initial acknow
     "../models/User": {},
     "../models/Ships": {},
   });
+  const clear = loadModule("../built/commands/RemoveShipCommand", { "../utils": utils, "../models/Ships": {} });
   const handlers = loadModule("../built/handlers/DiscordHandlers", {
     "discord.js": { ...discord, Client: FixtureClient },
     "../utils": utils,
@@ -114,6 +187,7 @@ test("Discord dispatch keeps admin confirmations private from the initial acknow
     "../models/Ships": {},
     "../commands": {
       AdminClearCommand: admin.AdminClearCommand,
+      RemoveShipCommand: clear.RemoveShipCommand,
       InventoryCommand: (message) => utils.replyTo(message, "Fixture inventory"),
     },
     "../logging/logging": { commandsLogger: { info: () => {} } },
@@ -122,12 +196,12 @@ test("Discord dispatch keeps admin confirmations private from the initial acknow
     "@discordjs/rest": { REST: class { setToken() { return this; } } },
   });
   handlers.registerOnMessage();
-  for (const commandName of ["admin", "inventory"]) {
+  for (const [commandName, subCommand] of [["admin", "clear"], ["inventory", "view"], ["inventory", "clear"]]) {
     const calls = [];
     const message = {
       commandName, user: { id: "initiator", tag: "fixture" }, channel: {},
       isCommand: () => true, isChatInputCommand: () => true,
-      options: { getSubcommand: () => commandName === "admin" ? "clear" : "view" },
+      options: { getSubcommand: () => subCommand, getString: () => null },
       deferReply: async function (options) { calls.push(["defer", options]); this.deferred = true; },
       editReply: async (payload) => { calls.push(["edit", payload]); },
       reply: () => assert.fail("the command must edit its acknowledged response"),
@@ -135,9 +209,10 @@ test("Discord dispatch keeps admin confirmations private from the initial acknow
     };
     await listeners.get("interactionCreate")(message);
     assert.deepEqual(calls.map(([name]) => name), ["defer", "edit"]);
-    if (commandName === "admin") {
+    if (subCommand === "clear") {
       assert.equal(calls[0][1].flags, discord.MessageFlags.Ephemeral);
-      assert.equal(calls[1][1].components[0].components[0].data.custom_id, "delete_guild#initiator");
+      assert.equal(calls[1][1].components[0].components[0].data.custom_id,
+        commandName === "admin" ? "delete_guild#initiator" : "delete_inventory#initiator#fixture-guild");
     } else {
       assert.equal(calls[0][1], undefined);
       assert.equal(calls[1][1].embeds[0].data.description, "Fixture inventory");
@@ -159,7 +234,6 @@ test("imports bound downloaded bytes and entries while preserving duplicates and
   const { ImportCommand } = loadModule("../built/commands/ImportCommand", {
     "../utils": {
       getGuildId: async () => "guild",
-      addShipCheck: async () => true,
       replyTo: (_, text) => replies.push(text),
       bulkFindShips: (names) => names.filter((name) => name === "avenger").map((name) => ({ name })),
       bulkCreateShips: async (ships) => {
@@ -235,7 +309,7 @@ test("SQLite quota is atomic and deletion isolates immutable owners and guilds",
   } finally {
     Module._load = original;
   }
-  const { Ships, ShipDao, deleteShips } = models;
+  const { Ships, ShipDao } = models;
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "iridium-security-test-"));
   const sequelize = new Sequelize({ dialect: "sqlite", storage: path.join(directory, "fixture.sqlite"), models: [Ships, User], logging: false });
   ShipDao.sequelize = sequelize;
@@ -256,17 +330,16 @@ test("SQLite quota is atomic and deletion isolates immutable owners and guilds",
     assert.equal(await ShipDao.count("other"), 2);
     await assert.rejects(ShipDao.bulkCreate([ship("other"), ship("other", "missing-owner")]));
     assert.equal(await ShipDao.count("other"), 2);
-    await Ships.destroy({ where: { guildId: "quota" } });
     await Ships.bulkCreate([ship("fleet"), ship("fleet", "victim"), ship("another")]);
     // Use an in-memory catalog; no network, bot session, or personal database.
     // The catalog reader uses fixed upstream URLs; stub that module at load time for the isolated lookup.
     const catalogUtils = loadModule("../built/utils", {
-      "node-fetch": async () => ({ json: async () => ({ items: [{ name: "Aegis Avenger Titan", rsiName: "Aegis Avenger Titan", slug: "aegis-avenger-titan", rsiSlug: "aegis-avenger-titan" }] }) }),
+      "node-fetch": async () => ({ ok: true, json: async () => ({ items: [{ name: "Aegis Avenger Titan", rsiName: "Aegis Avenger Titan", slug: "aegis-avenger-titan", rsiSlug: "aegis-avenger-titan" }] }) }),
       "./handlers/DiscordHandlers": { memberGuildsCache: new Map() },
       "./commands": {},
     });
     await catalogUtils.refreshShipList();
-    // deleteShips retains the original utils module; update that module's exported lookup for this fixture.
+    // deleteShip retains the original utils module; update that module's exported lookup for this fixture.
     utils.findShip = catalogUtils.findShip;
     const replies = [];
     catalogUtils.getGuildId = async (message) => message.guildId;
@@ -278,8 +351,14 @@ test("SQLite quota is atomic and deletion isolates immutable owners and guilds",
       guildId: "command-test", user: { id: "owner", tag: "reused" }, commandName: "inventory",
       isChatInputCommand: () => true,
       options: { getString: () => "Avenger", getSubcommand: () => subcommand },
+      customId: "delete_inventory#owner#command-test",
+      deferUpdate: async () => {},
+      editReply: async () => {},
       update: async () => {},
     };
+    await AddShipCommand({ ...interaction, guildId: "quota" });
+    assert.match(replies.at(-1), /Org limit reached/);
+    assert.equal(await ShipDao.count("quota"), 3000);
     await AddShipCommand(interaction);
     await AddShipCommand(interaction);
     assert.equal(await ShipDao.count("command-test"), 2);
@@ -292,17 +371,32 @@ test("SQLite quota is atomic and deletion isolates immutable owners and guilds",
     await ClearConfirmationHandler(interaction);
     assert.equal(await Ships.count({ where: { guildId: "command-test", discordUserId: "owner" } }), 0);
     assert.equal(await Ships.count({ where: { guildId: "command-test", discordUserId: "victim" } }), 1);
-    await deleteShips("", "owner", "fleet", true);
+    await ShipDao.clearInventory("owner", "fleet");
     assert.equal(await Ships.count({ where: { guildId: "fleet", discordUserId: "victim" } }), 1);
     assert.equal(await Ships.count({ where: { guildId: "another", discordUserId: "owner" } }), 1);
     assert.equal(await Ships.count({ where: { guildId: "fleet", discordUserId: "owner" } }), 0);
-    const destroy = Ships.prototype.destroy;
-    Ships.prototype.destroy = async () => { throw new Error("fixture write failure"); };
-    try {
-      await assert.rejects(deleteShips("", "victim", "fleet", true), /fixture write failure/);
-    } finally {
-      Ships.prototype.destroy = destroy;
-    }
+    await Ships.bulkCreate([ship("atomic-clear"), { ...ship("atomic-clear"), shipname: "Blocked ship" }]);
+    await sequelize.query("CREATE TRIGGER fail_clear BEFORE DELETE ON Ships WHEN OLD.guildId = 'atomic-clear' AND OLD.shipname = 'Blocked ship' BEGIN SELECT RAISE(ABORT, 'fixture write failure'); END");
+    await assert.rejects(ShipDao.clearInventory("owner", "atomic-clear"));
+    assert.equal(await Ships.count({ where: { guildId: "atomic-clear", discordUserId: "owner" } }), 2,
+      "a failed clear must not leave part of the inventory deleted");
+    await sequelize.query("DROP TRIGGER fail_clear");
+    assert.equal(await ShipDao.clearInventory("owner", "atomic-clear"), 2);
+
+    const { RemoveAllCommand } = loadModule("../built/commands/RemoveAllCommand", {
+      "../models/Ships": { ShipDao },
+      "../utils": { getGuildId: async () => "admin-test", replyTo: (_, text) => replies.push(text) },
+    });
+    await Ships.bulkCreate([ship("admin-test"), ship("admin-test", "victim"), ship("admin-other", "victim")]);
+    await RemoveAllCommand({ isChatInputCommand: () => true, options: { getUser: () => ({ id: "victim" }) } });
+    assert.equal(await Ships.count({ where: { guildId: "admin-test", discordUserId: "victim" } }), 0);
+    assert.equal(await Ships.count({ where: { guildId: "admin-test", discordUserId: "owner" } }), 1);
+    assert.equal(await Ships.count({ where: { guildId: "admin-other", discordUserId: "victim" } }), 1);
+    assert.equal(replies.at(-1), "1 ships deleted.");
+
+    await ShipDao.create({ ...ship("retired-fleet"), shipname: "Retired uncatalogued ship" });
+    await ShipDao.clearInventory("owner", "retired-fleet");
+    assert.equal(await ShipDao.count("retired-fleet"), 0, "clear must remove ships even when the catalog no longer contains them");
   } finally {
     await sequelize.close();
     await fs.rm(directory, { recursive: true, force: true });

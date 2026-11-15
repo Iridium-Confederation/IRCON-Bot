@@ -10,7 +10,7 @@ const utilsPath = require.resolve("../built/utils");
 const load = Module._load;
 Module._load = function (request, parent, isMain) {
   if (request === "node-fetch") {
-    return async () => ({ json: async () => ({ items: catalog }) });
+    return async () => ({ ok: true, json: async () => ({ items: catalog }) });
   }
   if (parent.filename === utilsPath) {
     if (request === "./handlers/DiscordHandlers") return { memberGuildsCache: new Map() };

@@ -152,7 +152,7 @@ export const AdminUsersCommand: FleetBotCommandInteraction = async (
   });
 
   let current = 0;
-  Promise.all(
+  let results = await Promise.all(
     users.map(async (user) => {
       const userId = user.discordUserId;
       const discordGuildId = await getGuildUser(user.discordUserId, guildId, true);
@@ -169,25 +169,24 @@ export const AdminUsersCommand: FleetBotCommandInteraction = async (
         return null;
       }
     })
-  ).then((results) => {
-    results = results.filter((result) => result && !result.guildId);
+  );
+  results = results.filter((result) => result && !result.guildId);
 
-    if (results.length == 0)
-      return replyTo(message, "No disconnected users to manage.");
+  if (results.length == 0)
+    return replyTo(message, "No disconnected users to manage.");
 
-    const row = new ActionRowBuilder<SelectMenuBuilder>();
-    const menu = new SelectMenuBuilder().setCustomId(
-      `delete_user_select#${getUserId(message)}`
-    );
-    results.splice(0, 25).forEach((result) => result ? menu.addOptions(result) : null);
-    row.addComponents(menu);
-    return replyTo(
-      message,
-      "List of disconnected users.",
-      undefined,
-      undefined,
-      [row],
-      true
-    );
-  });
+  const row = new ActionRowBuilder<SelectMenuBuilder>();
+  const menu = new SelectMenuBuilder().setCustomId(
+    `delete_user_select#${getUserId(message)}`
+  );
+  results.splice(0, 25).forEach((result) => result ? menu.addOptions(result) : null);
+  row.addComponents(menu);
+  return replyTo(
+    message,
+    "List of disconnected users.",
+    undefined,
+    undefined,
+    [row],
+    true
+  );
 };

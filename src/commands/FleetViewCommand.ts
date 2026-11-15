@@ -1,5 +1,5 @@
 import { AttachmentBuilder, CommandInteraction } from "discord.js";
-import { getCommand, getGuildId, getUserTag, replyTo } from "../utils";
+import { getCommand, getGuildId, replyTo } from "../utils";
 import { ShipDao, Ships } from "../models/Ships";
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
 
@@ -12,20 +12,10 @@ export const FleetViewCommand: FleetBotCommandInteraction = async (
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
-  let username;
-
-  if (subCommand === "user") {
-    const user = message.options.getUser("user");
-    if (user) {
-      username = user.tag;
-    } else {
-      username = getUserTag(message);
-    }
-  } else {
-    username = "%";
-  }
-
-  const fleetview = (await ShipDao.findShipsByOwnerLike(username, guildId)).map(
+  const ships = subCommand === "user"
+    ? await ShipDao.findShipsByOwnerId((message.options.getUser("user") || message.user).id, guildId)
+    : await ShipDao.findAll(guildId);
+  const fleetview = ships.map(
     (t: Ships) => {
       return {
         name: t.shipname,

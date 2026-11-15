@@ -7,6 +7,8 @@ interface FleetViewShip {
   rsiName: string;
   focus: string;
   classification: string;
+  classificationLabel?: string;
+  metrics?: { size?: string; sizeLabel?: string };
   rsiSlug: string;
   slug: string;
   type: string;

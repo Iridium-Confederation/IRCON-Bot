@@ -37,46 +37,6 @@ export class ShipDao {
     });
   }
 
-  static async findShipsByOwnerLike(
-    owner: string,
-    guildId: Snowflake
-  ): Promise<Ships[]> {
-    return Ships.findAll({
-      where: {
-        guildId: guildId,
-      },
-      include: [
-        {
-          model: User,
-          where: {
-            lastKnownTag: {
-              [Op.like]: owner,
-            },
-          },
-        },
-      ],
-    });
-  }
-
-  static async findShipsByOwner(
-    owner: string,
-    guildId: Snowflake
-  ): Promise<Ships[]> {
-    return Ships.findAll({
-      where: {
-        guildId: guildId,
-      },
-      include: [
-        {
-          model: User,
-          where: {
-            lastKnownTag: owner,
-          },
-        },
-      ],
-    });
-  }
-
   static async findShipsByOwnerId(
     owner: string,
     guildId: Snowflake | undefined
@@ -143,6 +103,10 @@ export class ShipDao {
     return this.createWithinLimit([param]);
   }
 
+  static clearInventory(discordUserId: Snowflake, guildId: Snowflake): Promise<number> {
+    return Ships.destroy({ where: { discordUserId, guildId } });
+  }
+
   static async findAll(guildId: Snowflake) {
     return Ships.findAll({
       include: [User],
@@ -189,30 +153,20 @@ export class Ships extends Model {
   fleetyardsId!: string | null;
 }
 
-export async function deleteShips(
+export async function deleteShip(
   shipName: string,
   discordUserId: Snowflake,
   guildId: Snowflake,
-  deleteAll: boolean
-) {
+): Promise<FleetViewShip | undefined> {
   const searchedShip = findShip(shipName);
-  const removed = new Set<FleetViewShip>();
+  if (!searchedShip) return;
   const matches = await ShipDao.findShipsByOwnerId(discordUserId, guildId);
   for (const m of matches) {
     const dbShip = findShip(m.shipname);
 
-    if (
-      dbShip &&
-      (deleteAll || (searchedShip && searchedShip.slug === dbShip.slug))
-    ) {
+    if (dbShip && searchedShip.slug === dbShip.slug) {
       await m.destroy();
-      removed.add(dbShip);
-
-      if (!deleteAll) {
-        break;
-      }
+      return dbShip;
     }
   }
-
-  return removed;
 }

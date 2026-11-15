@@ -1,7 +1,6 @@
 import Discord, {
   AttachmentBuilder,
   CommandInteraction,
-  DiscordAPIError,
   Partials
 } from "discord.js";
 import { User } from "../models/User";
@@ -23,8 +22,9 @@ import fs from "fs";
 import { gzipSync } from "zlib";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
-import _, { set } from "lodash";
+import _ from "lodash";
 import { SetDefaultGuild } from "../commands";
+import { FleetBrowserHandler } from "../commands/fleet-browser";
 
 const { Routes } = require("discord-api-types/v9");
 
@@ -310,9 +310,7 @@ export function registerOnReady() {
     const users = await Promise.all(
       admins.map((a: any) => client.users.fetch(a.discordId))
     );
-    users.forEach((user) => {
-      user.send("FleetBot is starting up.").catch(console.log);
-    });
+    await Promise.all(users.map((user) => user.send("FleetBot is starting up.").catch(console.log)));
 
     await doBackup();
     setInterval(doBackup, 86_400_000);
@@ -332,7 +330,7 @@ export function registerOnUserUpdate() {
   client.on(
     "userUpdate",
     async (
-      oldUser: Discord.User | Discord.PartialUser,
+      _oldUser: Discord.User | Discord.PartialUser,
       newUser: Discord.User | Discord.PartialUser
     ) => {
       await Utils.updateUser(newUser);
@@ -354,7 +352,9 @@ async function updateCache(message: Communication) {
 
 async function processCommand(message: CommandInteraction) {
   // Acknowledge the interaction immediately so slow commands don't time out (3 s → 15 min)
-  if (message.commandName === "admin") {
+  const privateClear = message.commandName === "inventory" &&
+    message.isChatInputCommand() && message.options.getSubcommand(false) === "clear";
+  if (message.commandName === "admin" || privateClear) {
     await message.deferReply({ flags: Discord.MessageFlags.Ephemeral });
   } else {
     await message.deferReply();
@@ -426,6 +426,7 @@ async function processCommand(message: CommandInteraction) {
 export const handlers: { [key: string]: Function } = {};
 
 export function registerInteractionHandlers() {
+  handlers["fleet_browser"] = FleetBrowserHandler;
   handlers["default_guild_select"] = Commands.DefaultGuildSelect;
   handlers["delete_inventory"] = Commands.ClearConfirmationHandler;
   handlers["delete_user_select"] = Commands.AdminUsersSelect;
@@ -452,11 +453,11 @@ export function registerOnMessage() {
     try {
       if (interaction.isCommand()) {
         await processCommand(interaction);
-      } else if (interaction.isButton() || interaction.isSelectMenu()) {
+      } else if (interaction.isButton() || interaction.isSelectMenu() || interaction.isModalSubmit()) {
         const id = interaction.customId.split("#")[0];
         const handler = handlers[id];
         if (handler) {
-          handler(interaction);
+          await handler(interaction);
         }
       } else if (interaction.isAutocomplete()) {
         const value = interaction.options.getFocused(true).value.toString();
@@ -471,10 +472,19 @@ export function registerOnMessage() {
         await interaction.respond(options);
       }
     } catch (e) {
-      if (e instanceof DiscordAPIError) {
-        console.log(e);
-      } else {
-        throw e;
+      commandsLogger.error("Interaction failed:", e instanceof Error ? e.message : String(e));
+      if (!interaction.isRepliable()) return;
+      try {
+        const payload = { content: "Something went wrong while handling that command. Please try again.", allowedMentions: { parse: [] as never[] } };
+        if (interaction.isChatInputCommand() && interaction.deferred && !interaction.replied) {
+          await interaction.editReply({ ...payload, embeds: [], components: [] });
+        } else if (interaction.deferred || interaction.replied) {
+          await interaction.followUp({ ...payload, flags: Discord.MessageFlags.Ephemeral });
+        } else {
+          await interaction.reply({ ...payload, flags: Discord.MessageFlags.Ephemeral });
+        }
+      } catch {
+        // A failed error response must not reject the EventEmitter callback.
       }
     }
   });

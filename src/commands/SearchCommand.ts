@@ -16,20 +16,19 @@ export const SearchCommand: FleetBotCommandInteraction = async (
   const matches = await ShipDao.findShipsByName(`%${shipName}%`, guildId);
 
   const reply = Object.entries(
-    _.groupBy(matches, (ship) => findShip(ship.shipname)?.rsiName)
+    _.groupBy(matches, (ship) => findShip(ship.shipname)?.rsiName || ship.shipname)
   )
     .map((group) => {
       const shipNameDb = group[0];
       const ships = group[1];
-      const userCount = _.groupBy(ships, (ship) => ship.owner.lastKnownTag);
-      const ship = findShip(shipNameDb);
+      const userCount = _.groupBy(ships, (ship) => ship.owner.discordUserId);
 
       return (
-        `**${ship?.rsiName}**` +
+        `**${shipNameDb}**` +
         ": " +
         Object.entries(userCount)
           .map((user) => {
-            const username = user[0].split("#")[0];
+            const username = user[1][0].owner.lastKnownTag.split("#")[0];
             const count = user[1].length;
             return username + (count > 1 ? " x " + user[1].length : "");
           })

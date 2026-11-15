@@ -1,6 +1,6 @@
-import { getCommand, getGuildId, getUserId, replyTo } from "../utils";
+import { getGuildId, getUserId, replyTo } from "../utils";
 import { ButtonHandler, FleetBotCommandInteraction } from "./FleetBotCommand";
-import { deleteShips } from "../models/Ships";
+import { deleteShip, ShipDao } from "../models/Ships";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -12,13 +12,19 @@ import {
 export const ClearConfirmationHandler: ButtonHandler = async (
   interaction: ButtonInteraction
 ) => {
-  const guildId = await getGuildId(interaction);
+  const [, initiatorId, expectedGuildId] = interaction.customId.split("#");
+  if (!initiatorId || !expectedGuildId || initiatorId !== getUserId(interaction)) {
+    return replyTo(interaction, "This clear confirmation is no longer valid for you. Run /inventory clear again.", undefined, undefined, undefined, true);
+  }
+  await interaction.deferUpdate();
+  const guildId = await getGuildId(interaction, false);
+  if (guildId !== expectedGuildId) {
+    return replyTo(interaction, "Your server selection has changed. Run /inventory clear again.", undefined, undefined, undefined, true);
+  }
 
-  if (guildId == null) return;
+  await ShipDao.clearInventory(getUserId(interaction), guildId);
 
-  await deleteShips("", getUserId(interaction), guildId, true);
-
-  await interaction.update({
+  await interaction.editReply({
     embeds: [],
     content: "Your inventory has been cleared",
     components: [],
@@ -28,31 +34,18 @@ export const RemoveShipCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
 ) => {
   if (!message.isChatInputCommand()) return;
-  let { command, commandArgs } = await getCommand(message);
-
   const guildId = await getGuildId(message);
   if (guildId == null) return;
 
-  const clear = message.options.getSubcommand(false) === "clear";
-  if (clear) {
-    commandArgs = "clear";
-  }
-
-  let shipName = message.options.getString("vehicle", false);
-
-  if (!shipName) {
-    shipName = "";
-  }
-
-  if (commandArgs === "clear") {
+  if (message.options.getSubcommand() === "clear") {
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setCustomId("delete_inventory")
+        .setCustomId(`delete_inventory#${getUserId(message)}#${guildId}`)
         .setLabel("Clear My Inventory")
         .setStyle(ButtonStyle.Primary)
     );
 
-    replyTo(
+    return replyTo(
       message,
       `Are you sure you want to do this?`,
       undefined,
@@ -60,23 +53,16 @@ export const RemoveShipCommand: FleetBotCommandInteraction = async (
       [row],
       true
     );
-  } else if (command === "delete_inventory") {
-    await deleteShips(shipName, getUserId(message), guildId, true);
-  } else if (shipName.length <= 1) {
-    replyTo(message, "Could you be more specific?");
-  } else {
-    const removedShips = await deleteShips(
-      shipName,
-      getUserId(message),
-      guildId,
-      commandArgs === "-all"
-    );
-    const deletedShip = removedShips.values().next().value;
-    replyTo(
-      message,
-      deletedShip
-        ? `Removed **${deletedShip.rsiName}** from your inventory.`
-        : "You do not own that ship."
-    );
   }
+
+  const shipName = message.options.getString("vehicle", true);
+  if (shipName.length <= 1) return replyTo(message, "Could you be more specific?");
+
+  const deletedShip = await deleteShip(shipName, getUserId(message), guildId);
+  return replyTo(
+    message,
+    deletedShip
+      ? `Removed **${deletedShip.rsiName}** from your inventory.`
+      : "You do not own that ship."
+  );
 };

@@ -2,13 +2,11 @@ import Discord, {
   ActionRowBuilder,
   AttachmentBuilder,
   ButtonInteraction,
-  DMChannel,
   Interaction,
   InteractionUpdateOptions,
   MessageActionRowComponentBuilder,
   SelectMenuInteraction,
   Snowflake,
-  TextChannel,
 } from "discord.js";
 import fetch from "node-fetch";
 import { ShipDao, Ships } from "./models/Ships";
@@ -16,7 +14,6 @@ import { User } from "./models/User";
 import { client, memberGuildsCache } from "./handlers/DiscordHandlers";
 
 import { SetDefaultGuild } from "./commands";
-import { MAX_SHIPS_PER_GUILD } from "./shipLimits";
 
 let allowedShips: FleetViewShip[] = [];
 
@@ -28,78 +25,30 @@ export type Communication = Discord.Message | Discord.CommandInteraction;
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-function reply(
+async function reply(
   message: Communication | ButtonInteraction | SelectMenuInteraction,
   body: string,
   attachment: AttachmentBuilder | undefined,
-  title?: string,
-  rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
-  ephemeral?: boolean,
-  paginated?: boolean
+  title: string | undefined,
+  rows: ActionRowBuilder<MessageActionRowComponentBuilder>[] | undefined,
+  ephemeral: boolean,
+  followUp: boolean
 ) {
-  if (message.channel == null) return;
-
   const embed = new Discord.EmbedBuilder().setColor("#0099ff");
-
-  if (body.length > 0) {
-    embed.setDescription(body);
-  }
-
-  if (title) {
-    embed.setTitle(title);
-  }
-
-  if (
-    paginated &&
-    (message.channel instanceof TextChannel ||
-      message.channel instanceof DMChannel)
-  ) {
-    message.channel
-      .send({
-        embeds: [embed],
-        files: attachment ? [attachment] : [],
-        components: rows ? rows : [],
-      })
-      .catch((e) => console.log(e))
-      .then(() => {});
-  } else if (message instanceof Discord.Message) {
-    message
-      .reply({
-        embeds: [embed],
-        files: attachment ? [attachment] : [],
-        components: rows ? rows : [],
-      })
-      .catch((e) => console.log(e))
-      .then(() => {});
-  } else if (message.deferred || message.replied) {
-    // Interaction was already acknowledged (e.g. via deferReply).
-    // Use editReply for the first content update, followUp for subsequent ones.
-    const payload = {
-      embeds: [embed],
-      files: attachment ? [attachment] : [],
-      components: rows ? rows : [],
-    };
-    if (message.deferred && !message.replied) {
-      message
-        .editReply(payload)
-        .catch((e) => console.log(e))
-        .then(() => {});
-    } else {
-      message
-        .followUp({ ...payload, ephemeral: ephemeral })
-        .catch((e) => console.log(e))
-        .then(() => {});
-    }
+  if (body) embed.setDescription(body);
+  if (title) embed.setTitle(title);
+  const payload = {
+    embeds: [embed], files: attachment ? [attachment] : [],
+    components: rows || [], allowedMentions: { parse: [] as never[] },
+  };
+  if (message instanceof Discord.Message) {
+    await message.reply(payload);
+  } else if (followUp || message.replied) {
+    await message.followUp({ ...payload, flags: ephemeral ? Discord.MessageFlags.Ephemeral : undefined });
+  } else if (message.deferred) {
+    await message.editReply(payload);
   } else {
-    message
-      .reply({
-        embeds: [embed],
-        files: attachment ? [attachment] : [],
-        components: rows ? rows : [],
-        ephemeral: ephemeral,
-      })
-      .catch((e) => console.log(e))
-      .then(() => {});
+    await message.reply({ ...payload, flags: ephemeral ? Discord.MessageFlags.Ephemeral : undefined });
   }
 }
 
@@ -112,7 +61,7 @@ export function update(
     .catch((e) => console.log(e))
     .then(() => {});
 }
-export function replyTo(
+export async function replyTo(
   message: Communication | ButtonInteraction | SelectMenuInteraction,
   contents: string,
   attachment?: AttachmentBuilder,
@@ -120,44 +69,31 @@ export function replyTo(
   rows?: ActionRowBuilder<MessageActionRowComponentBuilder>[],
   ephemeral?: boolean
 ) {
-  if (contents.length >= 2000) {
-    // Paginated multi-message workflow
-    const msg: string = contents;
-
-    let start = 0;
-    const chunkSize = 1800;
-
-    // We should provide at least one directly reply
-    reply(message, "", attachment, title);
-
-    // The other replies will go to the channel rather than a directly reply
-    while (true) {
-      // The remaining chunk can be smaller.
-      if (start + chunkSize >= msg.length) {
-        const body = msg.substring(start);
-        reply(message, body, attachment, "", undefined, false, true);
-        return;
-      }
-
-      // Create a chunkSize chunk, reducing it to find a newline.
-      for (let index = start + chunkSize - 1; index >= start; index--) {
-        if (msg[index] == "\n") {
-          // newline found
-          const body = msg.substring(start, index + 1);
-          reply(message, body, attachment, "", undefined, false, true);
-          start = index + 1;
-          break;
-        } else if (index == start) {
-          // newline not found. Send whole chunk.
-          const body = msg.substr(start, chunkSize);
-          reply(message, body, attachment, "", undefined, false, true);
-          start += chunkSize;
-          break;
-        }
-      }
-    }
+  const privateReply = ephemeral === true || (!(message instanceof Discord.Message) && message.ephemeral === true);
+  const chunks: string[] = [];
+  if (contents.length < 2000) {
+    chunks.push(contents);
   } else {
-    reply(message, contents, attachment, title, rows, ephemeral);
+    for (let start = 0; start < contents.length;) {
+      let end = Math.min(start + 1800, contents.length);
+      if (end < contents.length) {
+        const newline = contents.lastIndexOf("\n", end - 1);
+        if (newline >= start) end = newline + 1;
+        // Do not split a UTF-16 surrogate pair across Discord messages.
+        else if (contents.charCodeAt(end - 1) >= 0xd800 && contents.charCodeAt(end - 1) <= 0xdbff) end--;
+      }
+      chunks.push(contents.slice(start, end));
+      start = end;
+    }
+  }
+  try {
+    for (let index = 0; index < chunks.length; index++) {
+      await reply(message, chunks[index], index === 0 ? attachment : undefined,
+        index === 0 ? title : undefined, index === 0 ? rows : undefined,
+        privateReply, index > 0);
+    }
+  } catch (error) {
+    console.log(error);
   }
 }
 
@@ -313,40 +249,32 @@ export function findShip(
 
 export async function refreshShipList() {
   try {
-    const p1 = await fetch(
-      "https://api.fleetyards.net/v1/models?perPage=240&page=1"
-    );
-    const p2 = await fetch(
-      "https://api.fleetyards.net/v1/models?perPage=240&page=2"
-    );
-
-    const p1Json = await p1.json();
-    const p2Json = await p2.json();
-    allowedShips = p1Json.items.concat(p2Json.items);
-    allowedShips = allowedShips.filter((s) => s.rsiName);
-    allowedShips = allowedShips.sort((a, b) => {
-      return (
-        a.rsiName.split(" ")[0].localeCompare(b.rsiName.split(" ")[0]) ||
-        a.rsiName.length - b.rsiName.length
+    const readPage = async (page: number): Promise<FleetViewShip[]> => {
+      const response = await fetch(
+        `https://api.fleetyards.net/v1/models?perPage=240&page=${page}`
       );
-    });
-  } catch (e) {
-    console.log(`Failed to fetch ship list: ${e}`);
-    process.exit(1);
+      if (!response.ok) throw new Error(`Catalog request failed (status ${response.status}).`);
+      const body = await response.json();
+      if (!Array.isArray(body?.items)) throw new Error("Invalid catalog response.");
+      return body.items;
+    };
+    const first = await readPage(1);
+    const second = await readPage(2);
+    const nextShips = first.concat(second)
+      .filter((ship) => typeof ship?.rsiName === "string" && ship.rsiName.length > 0 && typeof ship.name === "string")
+      .sort((a, b) => a.rsiName.split(" ")[0].localeCompare(b.rsiName.split(" ")[0]) || a.rsiName.length - b.rsiName.length);
+    if (!nextShips.length) throw new Error("Catalog contains no ship records.");
+    allowedShips = nextShips;
+  } catch (error) {
+    console.log(`Failed to fetch ship list: ${error}`);
+    // A transient refresh failure must not replace a working catalog or restart the bot.
+    if (!allowedShips.length) throw error;
   }
 }
 
 export function getTotalUsd(ships: Ships[]): Number {
   const total = ships
     .map((ship) => findShip(ship.shipname)?.lastPledgePrice)
-    .reduce((a, b) => (a ? a : 0) + (b ? b : 0), 0);
-
-  return total ? total : 0;
-}
-
-export function getTotalUec(ships: Ships[]): Number {
-  const total = ships
-    .map((ship) => findShip(ship.shipname)?.price)
     .reduce((a, b) => (a ? a : 0) + (b ? b : 0), 0);
 
   return total ? total : 0;
@@ -359,7 +287,7 @@ export async function getUserGuilds(
   const userId = getUserId(message);
   const memberGuilds = guildId
     ? new Set([guildId])
-    : memberGuildsCache.get(userId);
+    : new Set(memberGuildsCache.get(userId));
 
   if (message.inGuild() && message.guild) {
     const value = new Map<string, Discord.Guild>();
@@ -367,21 +295,31 @@ export async function getUserGuilds(
     return value;
   }
 
+  if (!guildId) {
+    for (const guild of client.guilds.cache.values()) {
+      if (guild.members.cache?.has(userId)) memberGuilds.add(guild.id);
+    }
+  }
+
   const guilds = (
     await Promise.all(
-      Array.from(memberGuilds ? memberGuilds.values() : []).map(
+      Array.from(memberGuilds.values()).map(
         async (guildId) => {
           const guild = client.guilds.cache.find(
             (guild) => guild.id == guildId
           );
           if (guild) {
-            // The fetch will throw if the user doesn't exist.
-            await guild.members.fetch(userId);
-            return guild;
+            try {
+              await guild.members.fetch(userId);
+              return guild;
+            } catch (error) {
+              if (error && typeof error === "object" && "code" in error && error.code === Discord.RESTJSONErrorCodes.UnknownMember) return;
+              throw error;
+            }
           }
         }
       )
-    ).catch()
+    )
   ).filter((guild) => guild) as Discord.Guild[];
 
   return guilds.reduce((map, guild) => {
@@ -431,7 +369,7 @@ export async function getGuildId(
     if (user.defaultGuildId) {
       if (guilds.get(user.defaultGuildId) == null) {
         if (reply) {
-          replyTo(
+          await replyTo(
             message,
             "You are no longer connected to your default guild. Please set a new one.\n"
           );
@@ -448,10 +386,10 @@ export async function getGuildId(
         await SetDefaultGuild(message, guilds);
       }
     } else if (guilds.size == 1) {
-      return guilds.values().next()?.value.id;
+      return guilds.values().next().value?.id ?? null;
     } else {
       if (reply) {
-        replyTo(
+        await replyTo(
           message,
           "You are not part of any Discord guilds serviced by FleetBot."
         );
@@ -459,22 +397,6 @@ export async function getGuildId(
     }
 
     return null;
-  }
-}
-
-export async function addShipCheck(
-  message: Communication,
-  guildId: Snowflake
-): Promise<boolean> {
-  let orgCount = await ShipDao.count(guildId);
-  if (orgCount >= MAX_SHIPS_PER_GUILD) {
-    replyTo(
-      message,
-      "Org limit reached. Contact developers to increase limit."
-    );
-    return false;
-  } else {
-    return true;
   }
 }
 

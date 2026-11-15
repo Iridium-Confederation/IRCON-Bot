@@ -2,9 +2,11 @@ node_modules/
 .env
 .env.*
 runtime/
+/docker/production/
 botconfig.json
 .idea/
 built/
+logs/
 *.sqlite
 .vscode/
 shipList.txt

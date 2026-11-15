@@ -2,9 +2,10 @@
   "name": "ircon",
   "version": "1.0.0",
   "description": "Ship Database for the Iridium Confederation",
-  "main": "built/index.js",
+  "main": "built/app.js",
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node --test test/*.test.js",
     "dev": "ts-node src/app.ts",
     "debug": "node --inspect=9229 -r ts-node/register src/app.ts",
     "debug:compiled": "tsc && node --inspect=9229 built/app.js",
@@ -16,28 +17,40 @@
     "node": ">=22.9.0"
   },
   "dependencies": {
-    "@discordjs/rest": "^2.6.1",
-    "@types/table": "^6.0.0",
+    "@discordjs/rest": "^2.6.3",
     "discord-api-types": "^0.37.65",
-    "discord.js": "^14.26.2",
+    "discord.js": "^14.28.1",
     "lodash": "^4.17.21",
-    "log4js": "6.4.0",
-    "node-fetch": "2.6.7",
+    "log4js": "6.9.1",
+    "node-fetch": "2.7.0",
     "pg": "^8.2.1",
     "reflect-metadata": "^0.1.13",
     "sequelize": "6.37.8",
-    "sequelize-cli": "^6.2.0",
+    "sequelize-cli": "^6.6.5",
     "sequelize-typescript": "2.1.6",
-    "sqlite3": "^6.0.1",
-    "table": "^6.0.7"
+    "sqlite3": "^6.0.1"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.185",
-    "@types/node": "^16.11.59",
-    "@types/node-fetch": "^2.5.7",
-    "@types/validator": "^13.6.3",
+    "@types/lodash": "^4.17.27",
+    "@types/node": "^22.20.5",
+    "@types/node-fetch": "^2.6.13",
+    "@types/validator": "^13.15.10",
     "prettier": "2.0.5",
-    "ts-node": "^8.10.1",
-    "typescript": "^5.3.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "sequelize": {
+      "uuid": "^11.1.1"
+    },
+    "cacache": {
+      "glob": "^14.0.6"
+    },
+    "js-beautify": {
+      "glob": "^14.0.6"
+    },
+    "editorconfig": {
+      "minimatch": "^11.0.8"
+    }
   }
 }
