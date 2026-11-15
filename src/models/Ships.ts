@@ -11,7 +11,7 @@ import { Op, Transaction } from "sequelize";
 import { User } from "./User";
 import { Snowflake } from "discord.js";
 import { findShip } from "../utils";
-import { MAX_SHIPS_PER_GUILD } from "../shipLimits";
+import { MAX_SHIPS_PER_GUILD, MAX_SHIPS_PER_MEMBER, MemberShipLimitError } from "../shipLimits";
 
 type ShipCreateAttributes = {
   discordUserId: string;
@@ -87,6 +87,15 @@ export class ShipDao {
 
         if (orgCount + param.length > MAX_SHIPS_PER_GUILD) {
           return false;
+        }
+
+        const additions = new Map<string, number>();
+        for (const ship of param) {
+          additions.set(ship.discordUserId, (additions.get(ship.discordUserId) || 0) + 1);
+        }
+        for (const [discordUserId, count] of additions) {
+          const memberCount = await Ships.count({ where: { guildId, discordUserId }, transaction });
+          if (memberCount + count > MAX_SHIPS_PER_MEMBER) throw new MemberShipLimitError();
         }
 
         await Ships.bulkCreate(param, { transaction: transaction });

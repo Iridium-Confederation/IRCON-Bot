@@ -239,7 +239,7 @@ test("disconnected-user administration awaits its membership lookups before comp
   const lookup = new Promise((resolve) => { release = resolve; });
   const replies = [];
   const { AdminUsersCommand } = loadModule("../built/commands/AdminUsers", {
-    "../utils": { getGuildId: async () => "guild", getGuildUser: () => lookup,
+    "../utils": { authorizeGuildOwner: async () => "guild", getGuildUser: () => lookup,
       getUserId: () => "owner", replyTo: (_, text) => replies.push(text) },
     "../models/Ships": { ShipDao: { findAll: async () => [{ discordUserId: "owner" }] } },
     "../models/User": { User: { findByGuild: async () => [{ discordUserId: "owner", lastKnownTag: "Fixture" }] } },
@@ -261,16 +261,16 @@ test("catalog refresh failures retain a healthy catalog and initial failure reje
   });
   const utils = loadUtils({ "node-fetch": fetch });
   await utils.refreshShipList();
-  assert.equal(utils.findShip("Fixture ship"), ship);
+  assert.equal(utils.findShip("Fixture ship").name, ship.name);
   const exit = process.exit;
   process.exit = () => { throw new Error("catalog refresh must not terminate the bot"); };
   try {
     mode = "unavailable";
     await utils.refreshShipList();
-    assert.equal(utils.findShip("Fixture ship"), ship);
+    assert.equal(utils.findShip("Fixture ship").name, ship.name);
     mode = "malformed";
     await utils.refreshShipList();
-    assert.equal(utils.findShip("Fixture ship"), ship);
+    assert.equal(utils.findShip("Fixture ship").name, ship.name);
     const cold = loadUtils({ "node-fetch": fetch });
     await assert.rejects(cold.refreshShipList());
   } finally { process.exit = exit; }

@@ -1,6 +1,6 @@
 import {
   Communication,
-  getGuildId,
+  authorizeGuildOwner,
   getGuildUser,
   getUserId,
   replyTo,
@@ -24,13 +24,16 @@ import {
 import { User } from "../models/User";
 import { ShipDao, Ships } from "../models/Ships";
 
-function authorizeAdminComponent(
+async function authorizeAdminComponent(
   message: ButtonInteraction | SelectMenuInteraction,
-  initiatorId: string | undefined
-): initiatorId is string {
-  if (initiatorId && getUserId(message) === initiatorId) return true;
+  initiatorId: string | undefined,
+  guildId: string | undefined
+): Promise<string | null> {
+  if (initiatorId && getUserId(message) === initiatorId && guildId && message.guildId === guildId) {
+    return authorizeGuildOwner(message);
+  }
 
-  replyTo(
+  await replyTo(
     message,
     "This admin control can only be used by the administrator who opened it.",
     undefined,
@@ -38,21 +41,17 @@ function authorizeAdminComponent(
     undefined,
     true
   );
-  return false;
+  return null;
 }
 
 export const AdminUsersDeleteButton: ButtonHandler = async (
     message: ButtonInteraction
   ) => {
-    const [, userId, initiatorId] = message.customId.split("#");
-    if (!authorizeAdminComponent(message, initiatorId) || !userId) return;
+    const [, userId, initiatorId, expectedGuildId] = message.customId.split("#");
+    const guildId = await authorizeAdminComponent(message, initiatorId, expectedGuildId);
+    if (!guildId || !userId) return;
 
-    const guildId = await getGuildId(message);
-    if (!guildId) return;
-
-    const ships = await ShipDao.findShipsByOwnerId(userId, guildId);
-
-    await Ships.destroy({
+    const count = await Ships.destroy({
       where: {
         guildId: guildId,
         discordUserId: userId
@@ -60,7 +59,7 @@ export const AdminUsersDeleteButton: ButtonHandler = async (
     });
 
     update(message, {
-      content: `${ships.length} ships deleted.`,
+      content: `${count} ships deleted.`,
       components: []
     });
   }
@@ -69,13 +68,12 @@ export const AdminUsersDeleteButton: ButtonHandler = async (
 export const AdminUsersSelect: SelectHandler = async (
   message: SelectMenuInteraction
 ) => {
-  const [, initiatorId] = message.customId.split("#");
-  if (!authorizeAdminComponent(message, initiatorId)) return;
+  const [, initiatorId, expectedGuildId] = message.customId.split("#");
+  const guildId = await authorizeAdminComponent(message, initiatorId, expectedGuildId);
+  if (!guildId) return;
 
   const userId: string = message.values[0];
   const matches = await User.findById(userId);
-  const guildId = await getGuildId(message);
-  if (!guildId) return;
   if (matches.length != 1) return;
   const ships = await ShipDao.findShipsByOwnerId(userId, guildId);
   const user = matches[0];
@@ -95,7 +93,7 @@ export const AdminUsersSelect: SelectHandler = async (
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId(`delete_user_button#${userId}#${initiatorId}`)
+      .setCustomId(`delete_user_button#${userId}#${initiatorId}#${guildId}`)
       .setLabel("Delete User")
       .setStyle(ButtonStyle.Primary)
   );
@@ -105,10 +103,8 @@ export const AdminUsersSelect: SelectHandler = async (
 export const AdminClearButton: ButtonHandler = async (
   message: ButtonInteraction
 ) => {
-  const [, initiatorId] = message.customId.split("#");
-  if (!authorizeAdminComponent(message, initiatorId)) return;
-
-  const guildId = await getGuildId(message);
+  const [, initiatorId, expectedGuildId] = message.customId.split("#");
+  const guildId = await authorizeAdminComponent(message, initiatorId, expectedGuildId);
   if (!guildId) return;
 
   await Ships.destroy({
@@ -124,9 +120,11 @@ export const AdminClearButton: ButtonHandler = async (
 export const AdminClearCommand: FleetBotCommand = async (
   message: Communication
 ) => {
+  const guildId = await authorizeGuildOwner(message);
+  if (!guildId) return;
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId(`delete_guild#${getUserId(message)}`)
+      .setCustomId(`delete_guild#${getUserId(message)}#${guildId}`)
       .setLabel("Delete Everything")
       .setStyle(ButtonStyle.Danger)
   );
@@ -140,7 +138,7 @@ export const AdminClearCommand: FleetBotCommand = async (
 export const AdminUsersCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
 ) => {
-  const guildId = await getGuildId(message);
+  const guildId = await authorizeGuildOwner(message);
   if (!guildId) return;
 
   const ships = await ShipDao.findAll(guildId);
@@ -177,7 +175,7 @@ export const AdminUsersCommand: FleetBotCommandInteraction = async (
 
   const row = new ActionRowBuilder<SelectMenuBuilder>();
   const menu = new SelectMenuBuilder().setCustomId(
-    `delete_user_select#${getUserId(message)}`
+    `delete_user_select#${getUserId(message)}#${guildId}`
   );
   results.splice(0, 25).forEach((result) => result ? menu.addOptions(result) : null);
   row.addComponents(menu);

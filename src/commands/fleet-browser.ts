@@ -1,6 +1,6 @@
 import {
   ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle,
-  CommandInteraction, ComponentType, ContainerBuilder, escapeMarkdown, LabelBuilder, Message, MessageFlags,
+  CommandInteraction, ComponentType, ContainerBuilder, LabelBuilder, Message, MessageFlags,
   ModalBuilder, ModalSubmitInteraction,
   SectionBuilder, SeparatorBuilder, StringSelectMenuBuilder,
   StringSelectMenuInteraction, TextDisplayBuilder, TextInputBuilder, TextInputStyle,
@@ -8,6 +8,7 @@ import {
 import { createHash } from "crypto";
 import { ShipDao, Ships } from "../models/Ships";
 import { findShip, getGuildUser, getUserGuilds } from "../utils";
+import { escapeDiscordText, unescapeDiscordText } from "../discord-text";
 
 const PAGE_SIZE = 9;
 const INVENTORY_PAGE_SIZE = 20;
@@ -42,8 +43,8 @@ type InventoryOwner = { id: string; username?: string; globalName?: string | nul
 // Stable keys prevent an inventory change from shifting a size/ship index to a
 // different selection. They also keep controls within Discord's 100-character limit.
 const key = (value: string) => createHash("sha256").update(value.toLowerCase()).digest("base64url").slice(0, 11);
-const searchLabel = (value: string) => value.replace(/[\\`*_~|]/g, "\\$&");
-const unlabel = (value: string) => value.replace(/\\([\\`*_~|])/g, "$1");
+const searchLabel = escapeDiscordText;
+const unlabel = unescapeDiscordText;
 
 function currentCard(message: Message) {
   const card = message.components[0]?.toJSON();
@@ -77,7 +78,7 @@ function currentQuery(message: Message) {
 }
 
 const text = (content: string) => new TextDisplayBuilder().setContent(content);
-const label = (value: string) => escapeMarkdown(value.slice(0, 120));
+const label = (value: string) => escapeDiscordText(value.slice(0, 120));
 
 function inventoryTable(groups: FleetGroup[]) {
   // Keep catalog text inside the code block and bound wide names on narrow clients.

@@ -11,6 +11,7 @@ import { ShipDao, Ships } from "../models/Ships";
 import _ from "lodash";
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
 import { User } from "../models/User";
+import { escapeDiscordText } from "../discord-text";
 
 export const StatsCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
@@ -25,15 +26,15 @@ export const StatsCommand: FleetBotCommandInteraction = async (
     const ship = findShip(commandArgs);
     if (ship) {
       let msg = "";
-      msg += `The **${ship.rsiName}** is a **${ship.metrics?.sizeLabel || ship.metrics?.size || ship.size || "Unknown size"}** vessel${
+      msg += `The **${escapeDiscordText(ship.rsiName)}** is a **${escapeDiscordText(ship.metrics?.sizeLabel || ship.metrics?.size || ship.size || "Unknown size")}** vessel${
         ship.classification
-          ? `, with a **${ship.classification.toLowerCase()}** specialization`
+          ? `, with a **${escapeDiscordText(ship.classification.toLowerCase())}** specialization`
           : ""
       }. `;
-      msg += ship.description ? ship.description : "";
+      msg += ship.description ? escapeDiscordText(ship.description) : "";
       msg += "\n\n";
       msg += ship.brochure ? `[Brochure](${ship.brochure}) - ` : "";
-      msg += `[RSI Store]( ${ship.storeUrl})\n`;
+      msg += ship.storeUrl ? `[RSI Store](${ship.storeUrl})\n` : "";
       msg += !ship.onSale
         ? `Not currently available for pledge. Last known pledge cost **$${ship.lastPledgePrice}**.\n`
         : "";
@@ -58,7 +59,7 @@ export const StatsCommand: FleetBotCommandInteraction = async (
     const currentGuild = (await getUserGuilds(message)).get(guildId);
 
     let reply =
-      `**${currentGuild?.name}** currently has **${totalShips}** ships contributed by **${owners.length}** owners ` +
+      `**${escapeDiscordText(currentGuild?.name || "Unknown server")}** currently has **${totalShips}** ships contributed by **${owners.length}** owners ` +
       `with a total ship value of **$${totalUsd}**.\n\n`;
 
     const values = await Promise.all(
@@ -69,7 +70,7 @@ export const StatsCommand: FleetBotCommandInteraction = async (
           member && member.nickname
             ? member.nickname
             : (await User.findById(dbId))[0].lastKnownTag.split("#")[0];
-        return retVal;
+        return escapeDiscordText(retVal);
       })
     );
     reply += "**Contributors**: ";

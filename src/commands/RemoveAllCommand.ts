@@ -1,13 +1,13 @@
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
 import { ShipDao } from "../models/Ships";
-import { getGuildId, replyTo } from "../utils";
+import { authorizeGuildOwner, replyTo } from "../utils";
 import { CommandInteraction } from "discord.js";
 
 export const RemoveAllCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
 ) => {
   if (!message.isChatInputCommand()) return;
-  const guildId = await getGuildId(message);
+  const guildId = await authorizeGuildOwner(message);
   if (guildId == null) return;
 
   const user = message.options.getUser("user", true);

@@ -615,6 +615,7 @@ test("stateless controls fit Discord limits and retain literal search text after
   const query = String.raw`some **ship** _name_ ~~old~~ ||hidden|| \ path \* [link](x) ` + "🚀".repeat(12);
   await f.click(button(f.rendered.at(-1), "Search"));
   await f.submit(f.modals.at(-1), query);
+  assert.ok(contents(f.rendered.at(-1)).includes(String.raw`\[link\]\(x\)`), "search links must render as literal text");
   f.restart();
   await f.click(button(f.rendered.at(-1), "Search"));
   assert.equal(f.modals.at(-1).components[0].component.value, query.trim());

@@ -5,6 +5,7 @@ import {
   MAX_IMPORT_ENTRIES,
   MAX_IMPORT_NAME_LENGTH,
   MAX_IMPORT_NAME_TOKENS,
+  MemberShipLimitError,
 } from "../shipLimits";
 import {
   bulkCreateShips,
@@ -90,7 +91,7 @@ export const ImportCommand: FleetBotCommandInteraction = async (
   );
 
   if (body.length > MAX_IMPORT_ENTRIES) {
-    replyTo(message, "Error: Import contains too many entries.");
+    replyTo(message, `Error: Import contains too many entries. Maximum ${MAX_IMPORT_ENTRIES} ships per import.`);
     return;
   }
 
@@ -106,7 +107,13 @@ export const ImportCommand: FleetBotCommandInteraction = async (
 
   const shipNames = body.map((item) => item.name.toLowerCase().trim());
   const foundShips = bulkFindShips(shipNames);
-  const created = await bulkCreateShips(foundShips, message, guildId);
+  let created;
+  try {
+    created = await bulkCreateShips(foundShips, message, guildId);
+  } catch (error) {
+    if (error instanceof MemberShipLimitError) return replyTo(message, error.message);
+    throw error;
+  }
   if (!created) {
     replyTo(
       message,

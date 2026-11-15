@@ -14,8 +14,10 @@ import { User } from "./models/User";
 import { client, memberGuildsCache } from "./handlers/DiscordHandlers";
 
 import { SetDefaultGuild } from "./commands";
+import { parseCatalogPage } from "./catalog";
 
 let allowedShips: FleetViewShip[] = [];
+let catalogRefresh: Promise<void> | undefined;
 
 const MAX_SHIP_SEARCH_LENGTH = 200;
 const MAX_SHIP_SEARCH_TOKENS = 20;
@@ -247,21 +249,23 @@ export function findShip(
   }
 }
 
-export async function refreshShipList() {
+async function downloadShipList() {
+  const controller = new AbortController();
+  // Two large upstream pages can take more than ten seconds under normal load.
+  const deadline = setTimeout(() => controller.abort(), 60_000);
   try {
     const readPage = async (page: number): Promise<FleetViewShip[]> => {
       const response = await fetch(
-        `https://api.fleetyards.net/v1/models?perPage=240&page=${page}`
+        `https://api.fleetyards.net/v1/models?perPage=240&page=${page}`,
+        { signal: controller.signal, size: 32 * 1024 * 1024, redirect: "error" }
       );
       if (!response.ok) throw new Error(`Catalog request failed (status ${response.status}).`);
       const body = await response.json();
-      if (!Array.isArray(body?.items)) throw new Error("Invalid catalog response.");
-      return body.items;
+      return parseCatalogPage(body);
     };
     const first = await readPage(1);
     const second = await readPage(2);
     const nextShips = first.concat(second)
-      .filter((ship) => typeof ship?.rsiName === "string" && ship.rsiName.length > 0 && typeof ship.name === "string")
       .sort((a, b) => a.rsiName.split(" ")[0].localeCompare(b.rsiName.split(" ")[0]) || a.rsiName.length - b.rsiName.length);
     if (!nextShips.length) throw new Error("Catalog contains no ship records.");
     allowedShips = nextShips;
@@ -269,7 +273,16 @@ export async function refreshShipList() {
     console.log(`Failed to fetch ship list: ${error}`);
     // A transient refresh failure must not replace a working catalog or restart the bot.
     if (!allowedShips.length) throw error;
+  } finally {
+    clearTimeout(deadline);
   }
+}
+
+export function refreshShipList(): Promise<void> {
+  if (!catalogRefresh) {
+    catalogRefresh = downloadShipList().finally(() => { catalogRefresh = undefined; });
+  }
+  return catalogRefresh;
 }
 
 export function getTotalUsd(ships: Ships[]): Number {
@@ -354,6 +367,20 @@ export async function getGuildUser(userid: string, guildId: string, live?: boole
       : undefined;
   }
 
+}
+
+// Destructive server administration is owner-only, including old confirmations.
+export async function authorizeGuildOwner(
+  message: Communication | ButtonInteraction | SelectMenuInteraction
+): Promise<string | null> {
+  const guildId = message.guildId;
+  if (guildId) {
+    const guild = await client.guilds.fetch({ guild: guildId, force: true });
+    if (guild.id === guildId && guild.ownerId === getUserId(message)) return guildId;
+  }
+  await replyTo(message, "Only the current server owner can use this admin command in that server.",
+    undefined, undefined, undefined, true);
+  return null;
 }
 
 export async function getGuildId(

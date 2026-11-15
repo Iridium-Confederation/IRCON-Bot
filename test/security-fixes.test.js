@@ -31,7 +31,7 @@ test("admin deletion waits for a guild-and-owner-scoped write and reports no fal
   let deletePending = new Promise((resolve, reject) => { resolveDelete = resolve; rejectDelete = reject; });
   const { RemoveAllCommand } = loadModule("../built/commands/RemoveAllCommand", {
     "../models/Ships": { ShipDao: { clearInventory: (...args) => { deletedArgs = args; return deletePending; } } },
-    "../utils": { getGuildId: async () => "guild", replyTo: (_, text) => replies.push(text) },
+    "../utils": { authorizeGuildOwner: async () => "guild", replyTo: (_, text) => replies.push(text) },
   });
   const message = { isChatInputCommand: () => true, options: { getUser: () => ({ id: "target" }) } };
   const pending = RemoveAllCommand(message);
@@ -83,7 +83,7 @@ test("admin continuations reject other actors and legacy controls, preserving th
   const admin = loadModule("../built/commands/AdminUsers", {
     "../utils": {
       getUserId: (message) => message.user.id,
-      getGuildId: async () => { guildReads++; return "guild"; },
+      authorizeGuildOwner: async () => { guildReads++; return "guild"; },
       getGuildUser: async () => null,
       replyTo: (...args) => replies.push(args),
       update: (_, payload) => updates.push(payload),
@@ -94,7 +94,7 @@ test("admin continuations reject other actors and legacy controls, preserving th
       Ships: { destroy: async (query) => deletes.push(query.where) },
     },
   });
-  const interaction = (customId, actor = "other") => ({ customId, user: { id: actor }, values: ["target"] });
+  const interaction = (customId, actor = "other") => ({ customId, guildId: "guild", user: { id: actor }, values: ["target"] });
   for (const [handler, id] of [
     [admin.AdminClearButton, "delete_guild"],
     [admin.AdminUsersSelect, "delete_user_select"],
@@ -107,11 +107,11 @@ test("admin continuations reject other actors and legacy controls, preserving th
   assert.equal(deletes.length, 0);
   assert.equal(replies.length, 6);
   assert.ok(replies.every((args) => args[5] === true));
-  await admin.AdminUsersSelect(interaction("delete_user_select#initiator", "initiator"));
+  await admin.AdminUsersSelect(interaction("delete_user_select#initiator#guild", "initiator"));
   const button = updates.at(-1).components[0].components[0].data.custom_id;
-  assert.equal(button, "delete_user_button#target#initiator");
+  assert.equal(button, "delete_user_button#target#initiator#guild");
   await admin.AdminUsersDeleteButton(interaction(button, "initiator"));
-  await admin.AdminClearButton(interaction("delete_guild#initiator", "initiator"));
+  await admin.AdminClearButton(interaction("delete_guild#initiator#guild", "initiator"));
   assert.deepEqual(deletes, [{ guildId: "guild", discordUserId: "target" }, { guildId: "guild" }]);
 });
 
@@ -174,6 +174,7 @@ test("Discord dispatch keeps destructive confirmations private from the initial 
   });
   utils.updateUser = async () => {};
   utils.getGuildId = async () => "fixture-guild";
+  utils.authorizeGuildOwner = async () => "fixture-guild";
   const admin = loadModule("../built/commands/AdminUsers", {
     "../utils": utils,
     "../models/User": {},
@@ -212,7 +213,7 @@ test("Discord dispatch keeps destructive confirmations private from the initial 
     if (subCommand === "clear") {
       assert.equal(calls[0][1].flags, discord.MessageFlags.Ephemeral);
       assert.equal(calls[1][1].components[0].components[0].data.custom_id,
-        commandName === "admin" ? "delete_guild#initiator" : "delete_inventory#initiator#fixture-guild");
+        commandName === "admin" ? "delete_guild#initiator#fixture-guild" : "delete_inventory#initiator#fixture-guild");
     } else {
       assert.equal(calls[0][1], undefined);
       assert.equal(calls[1][1].embeds[0].data.description, "Fixture inventory");
@@ -320,7 +321,10 @@ test("SQLite quota is atomic and deletion isolates immutable owners and guilds",
       { discordUserId: "victim", lastKnownTag: "reused", lastKnownDisplayName: "Victim" },
     ]);
     const ship = (guildId = "quota", discordUserId = "owner") => ({ guildId, discordUserId, shipname: "Aegis Avenger Titan" });
-    await Ships.bulkCreate(Array.from({ length: 2999 }, () => ship()));
+    await Ships.bulkCreate([
+      ...Array.from({ length: 2500 }, () => ship("quota", "victim")),
+      ...Array.from({ length: 499 }, () => ship()),
+    ]);
     const results = await Promise.all([ShipDao.create(ship()), ShipDao.bulkCreate([ship()])]);
     assert.deepEqual(results.sort(), [false, true]);
     assert.equal(await ShipDao.count("quota"), 3000);
@@ -330,6 +334,23 @@ test("SQLite quota is atomic and deletion isolates immutable owners and guilds",
     assert.equal(await ShipDao.count("other"), 2);
     await assert.rejects(ShipDao.bulkCreate([ship("other"), ship("other", "missing-owner")]));
     assert.equal(await ShipDao.count("other"), 2);
+
+    await assert.rejects(ShipDao.bulkCreate(Array.from({ length: 3000 }, () => ship("member-quota"))), /Member limit/);
+    assert.equal(await ShipDao.count("member-quota"), 0, "a quota rejection must not insert partial data");
+    assert.equal(await ShipDao.bulkCreate(Array.from({ length: 499 }, () => ship("member-quota"))), true);
+    const personalRace = await Promise.allSettled([
+      ShipDao.create(ship("member-quota")), ShipDao.bulkCreate([ship("member-quota")]),
+    ]);
+    assert.equal(personalRace.filter((result) => result.status === "fulfilled" && result.value === true).length, 1);
+    assert.match(personalRace.find((result) => result.status === "rejected").reason.message, /500 ships per server/);
+    assert.equal(await ShipDao.count("member-quota"), 500);
+    assert.equal(await ShipDao.create(ship("member-quota", "victim")), true,
+      "another member can still add after the first reaches their personal quota");
+    assert.equal(await ShipDao.create(ship("separate-member-guild")), true,
+      "the personal quota must be scoped by guild");
+    await assert.rejects(ShipDao.bulkCreate([ship("member-quota", "victim"), ship("member-quota")]), /Member limit/);
+    assert.equal(await Ships.count({ where: { guildId: "member-quota", discordUserId: "victim" } }), 1,
+      "mixed-owner batches must also be atomic");
     await Ships.bulkCreate([ship("fleet"), ship("fleet", "victim"), ship("another")]);
     // Use an in-memory catalog; no network, bot session, or personal database.
     // The catalog reader uses fixed upstream URLs; stub that module at load time for the isolated lookup.
@@ -359,6 +380,8 @@ test("SQLite quota is atomic and deletion isolates immutable owners and guilds",
     await AddShipCommand({ ...interaction, guildId: "quota" });
     assert.match(replies.at(-1), /Org limit reached/);
     assert.equal(await ShipDao.count("quota"), 3000);
+    await AddShipCommand({ ...interaction, guildId: "member-quota" });
+    assert.match(replies.at(-1), /Member limit reached.*500/);
     await AddShipCommand(interaction);
     await AddShipCommand(interaction);
     assert.equal(await ShipDao.count("command-test"), 2);
@@ -385,7 +408,7 @@ test("SQLite quota is atomic and deletion isolates immutable owners and guilds",
 
     const { RemoveAllCommand } = loadModule("../built/commands/RemoveAllCommand", {
       "../models/Ships": { ShipDao },
-      "../utils": { getGuildId: async () => "admin-test", replyTo: (_, text) => replies.push(text) },
+      "../utils": { authorizeGuildOwner: async () => "admin-test", replyTo: (_, text) => replies.push(text) },
     });
     await Ships.bulkCreate([ship("admin-test"), ship("admin-test", "victim"), ship("admin-other", "victim")]);
     await RemoveAllCommand({ isChatInputCommand: () => true, options: { getUser: () => ({ id: "victim" }) } });

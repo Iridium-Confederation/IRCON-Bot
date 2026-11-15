@@ -12,23 +12,35 @@ logger.info("Starting Iridium FleetBot...");
 // Initialize DB
 ShipDao.initialize();
 
-// Keep SQLite connection warm to prevent slow first requests
-setInterval(() => {
-  try {
-    ShipDao.sequelize.query('SELECT * FROM Ships').catch(() => {});
-    ShipDao.sequelize.query('SELECT * FROM Users').catch(() => {});
-  } catch (error) {
-    logger.error('DB keep-alive failed:', error);
-  }
-}, 10000);
+async function startBot() {
+  // Do not connect to Discord until there is a valid initial catalog.
+  await refreshShipList();
 
-// Background job for ship list
-refreshShipList().then(() => {});
-setInterval(refreshShipList, 900_000);
+  discordHandlers.registerInteractionHandlers();
+  discordHandlers.registerRateLimit();
+  discordHandlers.registerOnReady();
+  discordHandlers.registerOnMessage();
+  discordHandlers.registerOnUserUpdate();
+  await discordHandlers.login();
 
-discordHandlers.registerInteractionHandlers();
-discordHandlers.registerRateLimit();
-discordHandlers.registerOnReady();
-discordHandlers.registerOnMessage();
-discordHandlers.registerOnUserUpdate();
-discordHandlers.login().then(() => {});
+  // Keep SQLite connection warm to prevent slow first requests
+  setInterval(() => {
+    try {
+      ShipDao.sequelize.query('SELECT * FROM Ships').catch(() => {});
+      ShipDao.sequelize.query('SELECT * FROM Users').catch(() => {});
+    } catch (error) {
+      logger.error('DB keep-alive failed:', error);
+    }
+  }, 10000);
+
+  // Background failures retain the healthy catalog and are always consumed.
+  setInterval(() => {
+    refreshShipList().catch((error) => logger.error("Catalog refresh failed:", error));
+  }, 900_000);
+}
+
+startBot().catch(async (error) => {
+  logger.error("Bot startup failed:", error);
+  await ShipDao.sequelize.close().catch((closeError) => logger.error("Database close failed:", closeError));
+  process.exitCode = 1;
+});
