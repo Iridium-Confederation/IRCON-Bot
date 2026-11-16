@@ -323,10 +323,17 @@ export async function getUserGuilds(
           );
           if (guild) {
             try {
-              await guild.members.fetch(userId);
+              // Membership caches discover candidates; only a fresh lookup grants DM access.
+              await guild.members.fetch({ user: userId, force: true });
               return guild;
             } catch (error) {
-              if (error && typeof error === "object" && "code" in error && error.code === Discord.RESTJSONErrorCodes.UnknownMember) return;
+              if (error && typeof error === "object" && "code" in error && error.code === Discord.RESTJSONErrorCodes.UnknownMember) {
+                guild.members.cache?.delete(userId);
+                const cachedGuilds = memberGuildsCache.get(userId);
+                cachedGuilds?.delete(guildId);
+                if (cachedGuilds?.size === 0) memberGuildsCache.delete(userId);
+                return;
+              }
               throw error;
             }
           }

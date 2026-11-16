@@ -1,6 +1,7 @@
 import { getGuildId, getUserId, replyTo } from "../utils";
 import { ButtonHandler, FleetBotCommandInteraction } from "./FleetBotCommand";
 import { deleteShip, ShipDao } from "../models/Ships";
+import { escapeDiscordText } from "../discord-text";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -62,7 +63,7 @@ export const RemoveShipCommand: FleetBotCommandInteraction = async (
   return replyTo(
     message,
     deletedShip
-      ? `Removed **${deletedShip.rsiName}** from your inventory.`
+      ? `Removed **${escapeDiscordText(deletedShip.rsiName)}** from your inventory.`
       : "You do not own that ship."
   );
 };

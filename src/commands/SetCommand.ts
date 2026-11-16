@@ -2,6 +2,7 @@ import { Communication, getUserId, replyTo } from "../utils";
 import { SelectHandler } from "./FleetBotCommand";
 import { User } from "../models/User";
 import { client } from "../handlers/DiscordHandlers";
+import { escapeDiscordText } from "../discord-text";
 import {
   ActionRowBuilder,
   ButtonInteraction,
@@ -23,8 +24,9 @@ export const DefaultGuildSelect: SelectHandler = async (
 
     await message.update({
       embeds: [],
-      content: `Default guild set to **${guildName}**`,
+      content: `Default guild set to **${escapeDiscordText(guildName)}**`,
       components: [],
+      allowedMentions: { parse: [] },
     });
   }
 };

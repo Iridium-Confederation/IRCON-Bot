@@ -3,6 +3,7 @@ import { ShipDao } from "../models/Ships";
 import _ from "lodash";
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
 import { CommandInteraction } from "discord.js";
+import { escapeDiscordText } from "../discord-text";
 
 export const SearchCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
@@ -24,13 +25,13 @@ export const SearchCommand: FleetBotCommandInteraction = async (
       const userCount = _.groupBy(ships, (ship) => ship.owner.discordUserId);
 
       return (
-        `**${shipNameDb}**` +
+        `**${escapeDiscordText(shipNameDb)}**` +
         ": " +
         Object.entries(userCount)
           .map((user) => {
             const username = user[1][0].owner.lastKnownTag.split("#")[0];
             const count = user[1].length;
-            return username + (count > 1 ? " x " + user[1].length : "");
+            return escapeDiscordText(username) + (count > 1 ? " x " + user[1].length : "");
           })
           .join(", ")
       );

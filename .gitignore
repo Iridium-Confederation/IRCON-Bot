@@ -8,6 +8,9 @@ botconfig.json
 built/
 logs/
 *.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
 .vscode/
 shipList.txt
 admins.json

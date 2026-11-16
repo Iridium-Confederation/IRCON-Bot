@@ -2,6 +2,7 @@ import { addShip, getGuildId, replyTo } from "../utils";
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
 import { CommandInteraction } from "discord.js";
 import { MemberShipLimitError } from "../shipLimits";
+import { escapeDiscordText } from "../discord-text";
 
 export const AddShipCommand: FleetBotCommandInteraction = async (
   message: CommandInteraction
@@ -25,5 +26,5 @@ export const AddShipCommand: FleetBotCommandInteraction = async (
   }
   return replyTo(message, addedShip === null
     ? "Org limit reached. Contact developers to increase limit."
-    : addedShip ? `added **${addedShip.name}** to your fleet.` : "Unknown ship.");
+    : addedShip ? `added **${escapeDiscordText(addedShip.name)}** to your fleet.` : "Unknown ship.");
 };

@@ -327,6 +327,11 @@ export function registerOnReady() {
 }
 
 export function registerOnUserUpdate() {
+  client.on("guildMemberRemove", (member) => {
+    const guilds = memberGuildsCache.get(member.id);
+    guilds?.delete(member.guild.id);
+    if (guilds?.size === 0) memberGuildsCache.delete(member.id);
+  });
   client.on(
     "userUpdate",
     async (

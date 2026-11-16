@@ -197,8 +197,7 @@ test("statistics render contributor names, fallback tags and supplier prose as l
       replyTo: (_, text) => { output = text; },
       findShip: () => ({ ...ship, description: injection, classification: injection, onSale: false, lastPledgePrice: 10 }),
     },
-    "../models/Ships": { ShipDao: { findAll: async () => ["nick", "tag"].map((id) => ({ owner: { discordUserId: id } })) } },
-    "../models/User": { User: { findById: async () => [{ lastKnownTag: injection }] } },
+    "../models/Ships": { ShipDao: { findAll: async () => ["nick", "tag"].map((id) => ({ owner: { discordUserId: id, lastKnownTag: injection } })) } },
   });
   const command = { isChatInputCommand: () => true, options: { getString: () => null } };
   await StatsCommand(command);
@@ -214,10 +213,10 @@ test("import reports the personal quota without falsely reporting success", asyn
   const { MemberShipLimitError } = require("../built/shipLimits");
   const replies = [];
   const { ImportCommand } = loadModule("../built/commands/ImportCommand", {
-    "node-fetch": async () => ({ ok: true, json: async () => [{ name: "Fixture ship" }] }),
+    "node-fetch": async () => ({ ok: true, text: async () => JSON.stringify([{ name: "Fixture ship" }]) }),
     "../utils": { getGuildId: async () => "guild", bulkFindShips: () => [ship],
       bulkCreateShips: async () => { throw new MemberShipLimitError(); }, replyTo: (_, text) => replies.push(text) },
   });
-  await ImportCommand({ isChatInputCommand: () => true, options: { getAttachment: () => ({ url: "https://example.invalid/fixture", size: 1 }) } });
+  await ImportCommand({ user: { id: "owner" }, isChatInputCommand: () => true, options: { getAttachment: () => ({ url: "https://example.invalid/fixture", size: 1 }) } });
   assert.deepEqual(replies, [new MemberShipLimitError().message]);
 });

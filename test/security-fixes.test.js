@@ -247,19 +247,21 @@ test("imports bound downloaded bytes and entries while preserving duplicates and
   });
   let metadataSize = 1;
   const message = {
+    user: { id: "owner" },
     isChatInputCommand: () => true,
     options: { getAttachment: () => ({ url: `http://127.0.0.1:${server.address().port}/`, size: metadataSize }) },
   };
   try {
-    metadataSize = limits.MAX_IMPORT_BYTES + 1;
+    const oversizedFileBytes = 2 * 1024 * 1024 + 1;
+    metadataSize = oversizedFileBytes;
     await ImportCommand(message);
     assert.equal(requests, 0);
-    assert.match(replies.at(-1), /too large/);
+    assert.match(replies.at(-1), /too large.*Maximum 2 MiB/);
     metadataSize = 1;
-    body = " ".repeat(limits.MAX_IMPORT_BYTES + 1);
+    body = " ".repeat(oversizedFileBytes);
     await ImportCommand(message);
     assert.equal(writes, 0);
-    assert.match(replies.at(-1), /Error:/);
+    assert.match(replies.at(-1), /too large.*Maximum 2 MiB/);
     body = JSON.stringify(Array.from({ length: 3001 }, () => ({ name: "avenger" })));
     await ImportCommand(message);
     assert.equal(writes, 0);
@@ -280,10 +282,22 @@ test("imports bound downloaded bytes and entries while preserving duplicates and
     accepted = true;
     await ImportCommand(message);
     assert.equal(persisted.length, 1);
-    body = JSON.stringify([{ name: "Avenger", type: "ship" }, ...Array.from({ length: 3000 }, () => ({ name: "Paint", type: "paint" }))]);
+    body = JSON.stringify([{ name: "Avenger", type: "ship" }, ...Array.from({ length: 10000 }, () => ({ name: "Paint", type: "paint" }))]);
     await ImportCommand(message);
     assert.equal(persisted.length, 1);
     assert.match(replies.at(-1), /Importing \*\*1\*\* ships/);
+    body = JSON.stringify(Array.from({ length: 500 }, (_, i) => ({
+      ship_code: "AEGS_Avenger_Titan", ship_name: "Fixture nickname".padEnd(64, "x"),
+      manufacturer_code: "AEGS", manufacturer_name: "Aegis Dynamics",
+      lti: true, name: "Avenger", orig_name: "Aegis Avenger Titan", warbond: false,
+      entity_type: "ship", pledge_id: String(10000000 + i),
+      pledge_name: "Standalone Ship - Avenger Titan".padEnd(200, "x"),
+      pledge_date: "November 16, 2026, 11:59:59 PM", pledge_cost: "$5,000.00 USD", ccud: false,
+    })), null, 2);
+    metadataSize = Buffer.byteLength(body);
+    await ImportCommand(message);
+    assert.equal(persisted.length, 500, "a full Hangar XPLORer-shaped fleet retains duplicate ships and extra metadata");
+    assert.equal(replies.at(-1), "Importing **500** ships.");
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

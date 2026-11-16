@@ -1,6 +1,10 @@
-import { CommandInteraction } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction } from "discord.js";
 import fetch from "node-fetch";
+import type { Response } from "node-fetch";
+import { Readable } from "stream";
 import {
+  IMPORT_DOWNLOAD_TIMEOUT_MS,
+  MAX_CONCURRENT_IMPORTS,
   MAX_IMPORT_BYTES,
   MAX_IMPORT_ENTRIES,
   MAX_IMPORT_NAME_LENGTH,
@@ -14,6 +18,11 @@ import {
   replyTo,
 } from "../utils";
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
+import { ImportJsonLimitError, parseImportJson } from "../import-json";
+
+const importSizeError = `Error: Import file is too large. Maximum ${MAX_IMPORT_BYTES / (1024 * 1024)} MiB.`;
+const importingUsers = new Set<string>();
+const importingGuilds = new Set<string>();
 
 const isImportShip = (
   item: unknown
@@ -38,23 +47,19 @@ const hasBoundedShipName = (item: { name: string }): boolean => {
   );
 };
 
-export const ImportCommand: FleetBotCommandInteraction = async (
-  message: CommandInteraction
-) => {
-  const guildId = await getGuildId(message);
-  if (!message.isChatInputCommand()) return;
-  if (guildId == null) return;
-
+async function importShips(message: ChatInputCommandInteraction, guildId: string) {
   const attachment = message.options.getAttachment("file", true);
   if (attachment.size > MAX_IMPORT_BYTES) {
-    replyTo(message, "Error: Import file is too large.");
+    replyTo(message, importSizeError);
     return;
   }
 
-  let parsedBody: unknown;
-
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), IMPORT_DOWNLOAD_TIMEOUT_MS);
+  let response: Response | undefined;
+  let text: string;
   try {
-    const response = await fetch(attachment.url, { size: MAX_IMPORT_BYTES });
+    response = await fetch(attachment.url, { size: MAX_IMPORT_BYTES, signal: controller.signal });
     if (!response.ok) {
       replyTo(
         message,
@@ -63,10 +68,25 @@ export const ImportCommand: FleetBotCommandInteraction = async (
       return;
     }
 
-    parsedBody = await response.json();
+    text = await response.text();
   } catch (e) {
-    replyTo(message, "Error: Failed to parse attachment as JSON.");
-    return;
+    const tooLarge = e && typeof e === "object" && "type" in e && e.type === "max-size";
+    return replyTo(message, controller.signal.aborted
+      ? "Error: Import download timed out. Please try again."
+      : tooLarge ? importSizeError : "Error: Failed to download attachment. Please try again.");
+  } finally {
+    clearTimeout(deadline);
+    // node-fetch's size rejection alone does not close an unfinished body.
+    controller.abort();
+    if (response?.body instanceof Readable) response.body.destroy();
+  }
+
+  let parsedBody: unknown;
+  try {
+    parsedBody = parseImportJson(text);
+  } catch (error) {
+    return replyTo(message, error instanceof ImportJsonLimitError
+      ? `Error: ${error.message}` : "Error: Failed to parse attachment as JSON.");
   }
 
   if (!Array.isArray(parsedBody)) {
@@ -130,5 +150,35 @@ export const ImportCommand: FleetBotCommandInteraction = async (
     messageText += ` Failed to handle **${failureCount}** entries.`;
   }
 
-  replyTo(message, messageText);
+  return replyTo(message, messageText);
+}
+
+export const ImportCommand: FleetBotCommandInteraction = async (
+  message: CommandInteraction
+) => {
+  if (!message.isChatInputCommand()) return;
+  const userId = message.user.id;
+  if (importingUsers.has(userId)) {
+    return replyTo(message, "You already have an import running. Please wait for it to finish and try again.");
+  }
+  if (importingUsers.size >= MAX_CONCURRENT_IMPORTS) {
+    return replyTo(message, "Imports are busy. Please try again shortly.");
+  }
+
+  // Claim synchronously before awaiting resolution; pending lookups count too.
+  importingUsers.add(userId);
+  let reservedGuild: string | undefined;
+  try {
+    const guildId = await getGuildId(message);
+    if (guildId == null) return;
+    if (importingGuilds.has(guildId)) {
+      return replyTo(message, "This server already has an import running. Please wait for it to finish and try again.");
+    }
+    importingGuilds.add(guildId);
+    reservedGuild = guildId;
+    return await importShips(message, guildId);
+  } finally {
+    importingUsers.delete(userId);
+    if (reservedGuild !== undefined) importingGuilds.delete(reservedGuild);
+  }
 };

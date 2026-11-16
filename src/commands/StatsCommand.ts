@@ -10,7 +10,6 @@ import {
 import { ShipDao, Ships } from "../models/Ships";
 import _ from "lodash";
 import { FleetBotCommandInteraction } from "./FleetBotCommand";
-import { User } from "../models/User";
 import { escapeDiscordText } from "../discord-text";
 
 export const StatsCommand: FleetBotCommandInteraction = async (
@@ -69,7 +68,7 @@ export const StatsCommand: FleetBotCommandInteraction = async (
         const retVal =
           member && member.nickname
             ? member.nickname
-            : (await User.findById(dbId))[0].lastKnownTag.split("#")[0];
+            : o[1][0].owner.lastKnownTag.split("#")[0];
         return escapeDiscordText(retVal);
       })
     );
