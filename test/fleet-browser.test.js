@@ -34,6 +34,8 @@ function fixture(shipDao) {
   let currentShips = [];
   let ownerName;
   let inventoryFailure;
+  const productionStatuses = new Map();
+  const cargoCapacities = new Map();
   const inventoryQueries = [];
   const client = { user: { id: "bot" }, users: { cache: new Map() } };
   const utils = {
@@ -42,9 +44,12 @@ function fixture(shipDao) {
       const index = name === "alias" ? 0 : Number(name.slice(-2));
       return {
         rsiName: `Ship ${String(index).padStart(2, "0")}`,
-        metrics: { sizeLabel: index % 2 ? "Small" : "Large" },
+        metrics: { sizeLabel: index % 2 ? "Small" : "Large",
+          cargo: cargoCapacities.has(index) ? cargoCapacities.get(index) : index * 16 },
         classification: "raw-role",
         classificationLabel: index % 3 ? "Industrial" : "Combat",
+        productionStatus: productionStatuses.has(index) ? productionStatuses.get(index)
+          : index % 2 ? "in-concept" : "flight-ready",
         loaners: index === 0 ? [{ slug: "Ship 01" }] : [],
       };
     },
@@ -124,11 +129,27 @@ function fixture(shipDao) {
     setShips: (ships) => { currentShips = ships; },
     failInventory: (error) => { inventoryFailure = error; },
     setMemberName: (name) => { ownerName = name; },
-    submit: (modal, query, overrides = {}) => click(modal, undefined, {
+    submit: (modal, query, overrides = {}, flightReadyOnly = false, hideOwned = false, minCargo = 0) => click(modal, undefined, {
       isButton: () => false, isModalSubmit: () => true, isFromMessage: () => true,
-      fields: { getTextInputValue: (id) => { assert.equal(id, "ship_name"); return query; } },
+      fields: {
+        fields: new Map([
+          ["flight_ready_only", { value: flightReadyOnly }],
+          ...(modal.components.some((label) => label.component.custom_id === "hide_owned")
+            ? [["hide_owned", { value: hideOwned }]] : []),
+          ...(modal.components.some((label) => label.component.custom_id === "min_cargo")
+            ? [["min_cargo", { values: [String(minCargo)] }]] : []),
+        ]),
+        getTextInputValue: (id) => { assert.equal(id, "ship_name"); return query; },
+        getStringSelectValues: (id) => { assert.equal(id, "min_cargo"); return [String(minCargo)]; },
+        getCheckbox: (id) => {
+          assert.ok(["flight_ready_only", "hide_owned"].includes(id));
+          return id === "flight_ready_only" ? flightReadyOnly : hideOwned;
+        },
+      },
       ...overrides,
     }),
+    setProductionStatus: (name, value) => productionStatuses.set(Number(name.slice(-2)), value),
+    setCargo: (name, value) => cargoCapacities.set(Number(name.slice(-2)), value),
     setAccess: (value) => { access = value; },
     get accessChecks() { return accessChecks; },
   };
@@ -325,6 +346,57 @@ test("paging acknowledges each rapid click before inventory IO and merges identi
   assert.deepEqual(f.replies, []);
 });
 
+test("an older page read cannot reset newer search filters", { timeout: 5000 }, async () => {
+  let ships, pauseNextRead = false, releaseRead, readStarted;
+  const readGate = new Promise((resolve) => { releaseRead = resolve; });
+  const started = new Promise((resolve) => { readStarted = resolve; });
+  const f = fixture({ findAll: async () => {
+    if (pauseNextRead) { pauseNextRead = false; readStarted(); await readGate; }
+    return ships;
+  } });
+  ships = [...f.ships, ...Array.from({ length: 20 }, (_, index) => ({
+    shipname: `Ship ${String(index + 8).padStart(2, "0")}`, owner: { discordUserId: OWNER },
+  }))];
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", ships, false);
+  await f.click(button(f.rendered.at(-1), "Search"));
+  pauseNextRead = true;
+  const olderPage = f.click(button(f.rendered.at(-1), "Next"));
+  await started;
+  let newest;
+  try {
+    await f.submit(f.modals.at(-1), "", {}, true, true, 64);
+    newest = f.rendered.at(-1);
+    assert.match(contents(newest), /Flight ready only · Hide ships I own · Cargo: 64\+ SCU/);
+  } finally { releaseRead(); await olderPage; }
+  assert.equal(f.rendered.at(-1), newest, "the older page must not replace the newer filter result");
+  await f.click(button(newest, "Next"));
+  assert.equal(pageLabel(f.rendered.at(-1)), "Page 2 of 2");
+  assert.match(contents(f.rendered.at(-1)), /Flight ready only · Hide ships I own · Cargo: 64\+ SCU/);
+  assert.deepEqual(f.replies, []);
+});
+
+test("newer filters finish after a page edit that is already in flight", { timeout: 5000 }, async () => {
+  const f = fixture();
+  const ships = [...f.ships, ...Array.from({ length: 20 }, (_, index) => ({
+    shipname: `Ship ${String(index + 8).padStart(2, "0")}`, owner: { discordUserId: OWNER },
+  }))];
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", ships, false);
+  await f.click(button(f.rendered.at(-1), "Search"));
+  let releaseEdit, editStarted;
+  const editGate = new Promise((resolve) => { releaseEdit = resolve; });
+  const started = new Promise((resolve) => { editStarted = resolve; });
+  const olderPage = f.click(button(f.rendered.at(-1), "Next"), undefined, {
+    editReply: async (payload) => { editStarted(); await editGate; f.rendered.push(payload); },
+  });
+  await started;
+  const newerFilters = f.submit(f.modals.at(-1), "", {}, true, true, 64);
+  try { await new Promise((resolve) => setImmediate(resolve)); }
+  finally { releaseEdit(); await Promise.all([olderPage, newerFilters]); }
+  assert.match(contents(f.rendered.at(-1)), /Flight ready only · Hide ships I own · Cargo: 64\+ SCU/);
+  assert.equal(pageLabel(f.rendered.at(-1)), "Page 1 of 2");
+  assert.deepEqual(f.replies, []);
+});
+
 test("fleet controls enforce ownership and access without expiring after restarts", async () => {
   const f = fixture();
   f.ships.push({ ...f.ships.at(-1), shipname: "Ship 08" });
@@ -446,6 +518,302 @@ test("fleet search filters all pages, combines with size, and survives owner nav
   assert.match(contents(payload), /No ships match/);
   assert.ok(button(payload, "Clear search"));
   assert.equal(button(payload, "Next").disabled, true);
+});
+
+test("flight-ready search combines with size and survives paging, owner views, and restarts", async () => {
+  const f = fixture();
+  const ships = [...f.ships, ...Array.from({ length: 20 }, (_, index) => ({
+    shipname: `Ship ${String(index + 8).padStart(2, "0")}`, owner: { discordUserId: OWNER },
+  }))];
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", ships, false);
+  await f.click(button(f.rendered.at(-1), "Search"));
+  const checkbox = (modal) => modal.components.find((label) => label.component.custom_id === "flight_ready_only").component;
+  assert.equal(checkbox(f.modals.at(-1)).default, false);
+  await f.submit(f.modals.at(-1), "", {}, true);
+  let payload = f.rendered.at(-1);
+  assert.match(contents(payload), /Flight ready only/);
+  assert.doesNotMatch(contents(payload), /\*\*Ship 01\*\*|\*\*unknown\*\*/);
+  assert.equal(pageLabel(payload), "Page 1 of 2");
+  assert.deepEqual(menu(payload, "size").options.map((option) => option.label),
+    ["All sizes (31)", "Large (31)", "Small (0)", "Unknown size (0)"]);
+  const next = button(payload, "Next");
+  await f.click(next);
+  assert.equal(pageLabel(f.rendered.at(-1)), "Page 2 of 2");
+  f.restart();
+  await f.click(button(f.rendered.at(-1), "Previous"));
+  assert.equal(button(f.rendered.at(-1), "Next").custom_id, next.custom_id);
+  assert.match(contents(f.rendered.at(-1)), /Flight ready only/);
+  await f.click(button(f.rendered.at(-1), "Owners"));
+  assert.equal(pageLabel(f.rendered.at(-1)), "Page 1 of 2");
+  f.restart();
+  await f.click(button(f.rendered.at(-1), "Next"));
+  assert.equal(pageLabel(f.rendered.at(-1)), "Page 2 of 2");
+  await f.click(button(f.rendered.at(-1), "Back to fleet"));
+  await f.click(button(f.rendered.at(-1), "Search"));
+  assert.equal(checkbox(f.modals.at(-1)).default, true);
+  await f.submit(f.modals.at(-1), "Ship 0", {}, true);
+  payload = f.rendered.at(-1);
+  assert.equal(fleetRows(payload).length, 5);
+  assert.equal(menu(payload, "size").options[0].label, "All sizes (22)");
+  await f.click(menu(payload, "size"), [sizeOption(payload, "Large").value]);
+  await f.click(button(f.rendered.at(-1), "Owners"));
+  f.setProductionStatus("Ship 00", "in-concept");
+  f.restart();
+  await f.click(button(f.rendered.at(-1), "Next"));
+  payload = f.rendered.at(-1);
+  assert.equal(fleetRows(payload).length, 4, "a ship whose status changed must leave the flight-ready owner view");
+  assert.match(contents(payload), /Flight ready only\n-# Search: Ship 0/);
+  assert.doesNotMatch(contents(payload), /Ship 00/);
+  await f.click(button(payload, "Search"));
+  assert.equal(f.modals.at(-1).components[0].component.value, "Ship 0");
+  assert.equal(checkbox(f.modals.at(-1)).default, true);
+  await f.submit(f.modals.at(-1), "Ship 0");
+  payload = f.rendered.at(-1);
+  assert.doesNotMatch(contents(payload), /Flight ready only/);
+  assert.match(contents(payload), /Ship 00/);
+  assert.equal(menu(payload, "size").options.find((option) => option.default).label, "Large (22)");
+  assert.deepEqual(f.replies, []);
+});
+
+test("minimum cargo persists through fleet paging, owner views, and current catalog changes", async () => {
+  const f = fixture();
+  const ships = [...f.ships, ...Array.from({ length: 20 }, (_, index) => ({
+    shipname: `Ship ${String(index + 8).padStart(2, "0")}`, owner: { discordUserId: OWNER },
+  })), { shipname: "Ship 04", owner: { discordUserId: "other" } },
+  { shipname: "Ship 10", owner: { discordUserId: "initiator" } }];
+  f.setCargo("Ship 03", 63.9);
+  f.setCargo("Ship 05", undefined);
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", ships, false);
+  await f.click(button(f.rendered.at(-1), "Search"));
+  const cargoMenu = (modal) => modal.components.find((label) => label.component.custom_id === "min_cargo").component;
+  assert.deepEqual(cargoMenu(f.modals.at(-1)).options.map((option) => option.label),
+    ["Any", "16+ SCU", "32+ SCU", "64+ SCU", "128+ SCU", "256+ SCU", "512+ SCU"]);
+  assert.equal(cargoMenu(f.modals.at(-1)).options.find((option) => option.default).value, "0");
+  await f.submit(f.modals.at(-1), "", {}, false, false, 64);
+  let payload = f.rendered.at(-1);
+  assert.match(contents(payload), /Cargo: 64\+ SCU/);
+  assert.match(contents(payload), /\*\*Ship 04 × 2\*\*/);
+  assert.doesNotMatch(contents(payload), /Ship 00|Ship 03|Ship 05|unknown/);
+  assert.equal(menu(payload, "size").options[0].label, "All sizes (25)");
+  assert.equal(pageLabel(payload), "Page 1 of 3");
+  await f.click(button(payload, "Next"));
+  f.restart();
+  await f.click(button(f.rendered.at(-1), "Previous"));
+  assert.equal(pageLabel(f.rendered.at(-1)), "Page 1 of 3");
+  await f.click(button(f.rendered.at(-1), "Owners"));
+  assert.match(contents(f.rendered.at(-1)), /Ship 04/);
+  f.setCargo("Ship 04", 32);
+  f.restart();
+  await f.click(button(f.rendered.at(-1), "Next"));
+  payload = f.rendered.at(-1);
+  assert.ok(button(payload, "Search"), "a changed capacity must return to the matching fleet results");
+  assert.doesNotMatch(contents(payload), /Ship 04/);
+  await f.click(button(payload, "Search"));
+  assert.equal(cargoMenu(f.modals.at(-1)).options.find((option) => option.default).value, "64");
+  await f.submit(f.modals.at(-1), "Ship 1", {}, true, true, 64);
+  payload = f.rendered.at(-1);
+  assert.match(contents(payload), /Flight ready only · Hide ships I own · Cargo: 64\+ SCU/);
+  assert.equal(fleetRows(payload).length, 4);
+  assert.doesNotMatch(contents(payload), /Ship 10|Ship 11/);
+  await f.click(menu(payload, "size"), [sizeOption(payload, "Large").value]);
+  assert.equal(fleetRows(f.rendered.at(-1)).length, 4);
+  await f.click(button(f.rendered.at(-1), "Clear search"));
+  payload = f.rendered.at(-1);
+  assert.doesNotMatch(contents(payload), /Cargo:|Flight ready only|Hide ships I own|Search:/);
+  assert.match(contents(payload), /Ship 00/);
+  assert.equal(button(payload, "Clear search"), undefined);
+  assert.deepEqual(f.replies, []);
+});
+
+test("personal cargo search uses per-ship capacity, accepts older popups, and validates selections", async () => {
+  const f = fixture();
+  f.setCargo("Ship 00", 16);
+  const ships = f.ships.filter((ship) => ship.owner.discordUserId === OWNER);
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", ships, false, "Member");
+  await f.click(button(f.rendered.at(-1), "Search"));
+  const modal = f.modals.at(-1);
+  const legacy = { ...modal, components: modal.components.filter((label) => label.component.custom_id !== "min_cargo") };
+  f.restart();
+  await f.submit(legacy, "Ship 0");
+  assert.match(contents(f.rendered.at(-1)), /Ship 00/);
+  await f.click(button(f.rendered.at(-1), "Search"));
+  await f.submit(f.modals.at(-1), "", {}, false, false, 32);
+  let payload = f.rendered.at(-1);
+  assert.match(contents(payload), /Ship 02/);
+  assert.doesNotMatch(contents(payload), /Ship 00|Ship 01|unknown/);
+  await f.click(button(payload, "Search"));
+  const renderedCount = f.rendered.length;
+  await f.submit(f.modals.at(-1), "", {}, false, false, "invalid");
+  assert.equal(f.rendered.length, renderedCount);
+  assert.match(f.replies.at(-1).content, /Choose a minimum cargo option/);
+  assert.equal(f.replies.at(-1).flags, MessageFlags.Ephemeral);
+  await f.submit(f.modals.at(-1), "");
+  payload = f.rendered.at(-1);
+  assert.match(contents(payload), /Ship 00/);
+  assert.match(contents(payload), /unknown/);
+  assert.doesNotMatch(contents(payload), /Cargo:/);
+});
+
+test("org search hides owned models across aliases, shared ownership, navigation, and live inventory updates", async () => {
+  const f = fixture();
+  const ships = [
+    ...f.ships,
+    { shipname: "alias", owner: { discordUserId: "initiator" } },
+    { shipname: "Ship 01", owner: { discordUserId: "initiator" } },
+    ...Array.from({ length: 20 }, (_, index) => ({
+      shipname: `Ship ${String(index + 8).padStart(2, "0")}`, owner: { discordUserId: OWNER },
+    })),
+    ...Array.from({ length: 16 }, (_, index) => ({
+      shipname: "Ship 02", owner: { discordUserId: String(BigInt(OWNER) + BigInt(index + 1)) },
+    })),
+  ];
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", ships, false);
+  await f.click(button(f.rendered.at(-1), "Search"));
+  const checkbox = (modal, id) => modal.components.find((label) => label.component.custom_id === id)?.component;
+  assert.equal(checkbox(f.modals.at(-1), "hide_owned").default, false);
+  await f.submit(f.modals.at(-1), "", {}, true, true);
+  let payload = f.rendered.at(-1);
+  assert.match(contents(payload), /Flight ready only · Hide ships I own/);
+  assert.doesNotMatch(contents(payload), /Ship 00|Ship 01|unknown/);
+  assert.equal(pageLabel(payload), "Page 1 of 2");
+  assert.deepEqual(menu(payload, "size").options.map((option) => option.label),
+    ["All sizes (29)", "Large (29)", "Small (0)", "Unknown size (0)"]);
+  assert.ok(components(payload).length <= 40, "filtered org cards must fit Discord's component limit");
+  await f.click(button(payload, "Next"));
+  f.restart();
+  await f.click(button(f.rendered.at(-1), "Previous"));
+  assert.match(contents(f.rendered.at(-1)), /Hide ships I own/);
+  await f.click(button(f.rendered.at(-1), "Owners"));
+  assert.equal(pageLabel(f.rendered.at(-1)), "Page 1 of 2");
+  f.restart();
+  await f.click(button(f.rendered.at(-1), "Next"));
+  assert.equal(pageLabel(f.rendered.at(-1)), "Page 2 of 2");
+  await f.click(button(f.rendered.at(-1), "Back to fleet"));
+  payload = f.rendered.at(-1);
+  await f.click(menu(payload, "size"), [sizeOption(payload, "Large").value]);
+  await f.click(button(f.rendered.at(-1), "Search"));
+  assert.equal(checkbox(f.modals.at(-1), "hide_owned").default, true);
+  assert.equal(checkbox(f.modals.at(-1), "flight_ready_only").default, true);
+  await f.submit(f.modals.at(-1), "Ship 0", {}, true, true);
+  payload = f.rendered.at(-1);
+  assert.equal(fleetRows(payload).length, 4);
+  assert.equal(menu(payload, "size").options[0].label, "All sizes (20)");
+  await f.click(button(payload, "Owners"));
+  f.setShips([...ships, { shipname: "Ship 02", owner: { discordUserId: "initiator" } }]);
+  f.restart();
+  await f.click(button(f.rendered.at(-1), "Next"));
+  payload = f.rendered.at(-1);
+  assert.equal(fleetRows(payload).length, 3, "newly owned models must disappear on the next live read");
+  assert.doesNotMatch(contents(payload), /Ship 00|Ship 02/);
+  assert.match(contents(payload), /Search: Ship 0/);
+  assert.equal(menu(payload, "size").options[0].label, "All sizes (3)");
+  await f.click(button(payload, "Clear search"));
+  payload = f.rendered.at(-1);
+  assert.doesNotMatch(contents(payload), /Flight ready only|Hide ships I own|Search:/);
+  assert.match(contents(payload), /Ship 00/);
+  assert.match(contents(payload), /Ship 02/);
+  assert.equal(menu(payload, "size").options[0].label, "All sizes (65)");
+  assert.equal(menu(payload, "size").options.find((option) => option.default).label, "Large (49)");
+  assert.deepEqual(f.replies, []);
+});
+
+test("org ownership filtering stays in Search and older card buttons refresh to the current layout", async () => {
+  const f = fixture();
+  const ships = [...f.ships, { shipname: "alias", owner: { discordUserId: "initiator" } },
+    ...Array.from({ length: 20 }, (_, index) => ({
+      shipname: `Ship ${String(index + 8).padStart(2, "0")}`, owner: { discordUserId: OWNER },
+    }))];
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", ships, false);
+  let payload = f.rendered.at(-1);
+  assert.equal(button(payload, "Hide ships I own"), undefined);
+  assert.equal(button(payload, "Show ships I own"), undefined);
+  assert.ok(components(payload).length <= 40);
+  await f.click(button(payload, "Search"));
+  assert.ok(f.modals.at(-1).components.some((label) => label.component.custom_id === "hide_owned"));
+  await f.submit(f.modals.at(-1), "Ship 0", {}, false, true);
+  payload = f.rendered.at(-1);
+  assert.equal(fleetRows(payload).length, 9);
+  assert.doesNotMatch(contents(payload), /Ship 00/);
+  assert.equal(button(payload, "Hide ships I own"), undefined);
+  assert.equal(button(payload, "Show ships I own"), undefined);
+  assert.ok(button(payload, "Clear search"));
+  assert.ok(components(payload).length <= 40);
+  const legacy = { custom_id: button(payload, "Clear search").custom_id.replace("#clear_search#", "#toggle_owned#") };
+  f.restart();
+  await f.click(legacy);
+  payload = f.rendered.at(-1);
+  assert.match(contents(payload), /Ship 00/);
+  assert.match(contents(payload), /Search: Ship 0/);
+  assert.equal(pageLabel(payload), "Page 1 of 2");
+  assert.equal(button(payload, "Hide ships I own"), undefined);
+  assert.equal(button(payload, "Show ships I own"), undefined);
+  assert.ok(components(payload).length <= 40);
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", ships, false, "Member");
+  assert.equal(button(f.rendered.at(-1), "Hide ships I own"), undefined);
+  assert.equal(button(f.rendered.at(-1), "Show ships I own"), undefined);
+  assert.deepEqual(f.replies, []);
+});
+
+test("hide-owned search accepts old popups and stays out of personal inventory", async () => {
+  const f = fixture();
+  const ships = [...f.ships, { shipname: "Ship 00", owner: { discordUserId: "initiator" } }];
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", ships, false);
+  await f.click(button(f.rendered.at(-1), "Search"));
+  const modal = f.modals.at(-1);
+  const legacy = { ...modal, components: modal.components.filter((label) => label.component.custom_id !== "hide_owned") };
+  f.restart();
+  await f.submit(legacy, "Ship 0", {}, true);
+  let payload = f.rendered.at(-1);
+  assert.match(contents(payload), /Ship 00/);
+  assert.match(contents(payload), /Flight ready only/);
+  assert.doesNotMatch(contents(payload), /Hide ships I own/);
+  await f.click(button(payload, "Search"));
+  await f.submit(f.modals.at(-1), "", {}, false, true);
+  payload = f.rendered.at(-1);
+  assert.doesNotMatch(contents(payload), /Ship 00/);
+  assert.match(contents(payload), /Ship 01/);
+  assert.match(contents(payload), /unknown/);
+  assert.equal(menu(payload, "size").options[0].label, "All sizes (8)");
+
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", ships, false, "Member");
+  await f.click(button(f.rendered.at(-1), "Search"));
+  assert.ok(f.modals.at(-1).components.every((label) => label.component.custom_id !== "hide_owned"));
+  await f.submit(f.modals.at(-1), "");
+  assert.match(contents(f.rendered.at(-1)), /Ship 00/);
+  assert.doesNotMatch(contents(f.rendered.at(-1)), /Hide ships I own/);
+  assert.deepEqual(f.replies, []);
+});
+
+test("personal flight-ready search excludes missing statuses, clears cleanly, and accepts older popups", async () => {
+  const f = fixture();
+  f.setProductionStatus("Ship 02", undefined);
+  await f.openFleetBrowser(f.command, GUILD, "Fixture org", f.ships, false, "Member");
+  await f.click(button(f.rendered.at(-1), "Search"));
+  f.restart();
+  await f.submit(f.modals.at(-1), "Ship 01", {
+    fields: { fields: new Map(), getTextInputValue: () => "Ship 01" },
+  });
+  assert.match(contents(f.rendered.at(-1)), /Ship 01/);
+  await f.click(button(f.rendered.at(-1), "Search"));
+  await f.submit(f.modals.at(-1), "", {}, true);
+  let payload = f.rendered.at(-1);
+  assert.match(contents(payload), /Flight ready only/);
+  assert.match(contents(payload), /Ship 00/);
+  assert.doesNotMatch(contents(payload), /Ship 01|Ship 02|unknown/);
+  await f.click(menu(payload, "size"), [sizeOption(payload, "Small").value]);
+  payload = f.rendered.at(-1);
+  assert.match(contents(payload), /No ships match these filters/);
+  assert.equal(button(payload, "Next").disabled, true);
+  await f.click(menu(payload, "size"), ["-1"]);
+  f.restart();
+  await f.click(button(f.rendered.at(-1), "Clear search"));
+  payload = f.rendered.at(-1);
+  assert.doesNotMatch(contents(payload), /Flight ready only|Search:/);
+  assert.match(contents(payload), /Ship 01/);
+  assert.match(contents(payload), /Ship 02/);
+  assert.match(contents(payload), /unknown/);
+  assert.equal(button(payload, "Clear search"), undefined);
+  assert.deepEqual(f.replies, []);
 });
 
 test("personal inventory search filters the table and an empty query restores it", async () => {
@@ -614,7 +982,7 @@ test("stateless controls fit Discord limits and retain literal search text after
   await f.click(menu(f.rendered.at(-1), "size"), [sizeOption(f.rendered.at(-1), "Small").value]);
   const query = String.raw`some **ship** _name_ ~~old~~ ||hidden|| \ path \* [link](x) ` + "🚀".repeat(12);
   await f.click(button(f.rendered.at(-1), "Search"));
-  await f.submit(f.modals.at(-1), query);
+  await f.submit(f.modals.at(-1), query, {}, true, false, 512);
   assert.ok(contents(f.rendered.at(-1)).includes(String.raw`\[link\]\(x\)`), "search links must render as literal text");
   f.restart();
   await f.click(button(f.rendered.at(-1), "Search"));

@@ -20,16 +20,19 @@ function loadUtils(stubs = {}) {
   });
 }
 
-const ship = { name: "Fixture ship", rsiName: "Fixture ship", slug: "fixture-ship", rsiSlug: "fixture-ship" };
+const ship = { name: "Fixture ship", rsiName: "Fixture ship", slug: "fixture-ship", rsiSlug: "fixture-ship", productionStatus: "flight-ready" };
 
 test("catalog rejects unsafe consumer fields and links atomically, retaining the healthy catalog", async () => {
-  let records = [ship];
+  let records = [{ ...ship, metrics: { cargo: 64.5 } }];
   const utils = loadUtils({ "node-fetch": async () => ({ ok: true, json: async () => ({ items: records }) }) });
   await utils.refreshShipList();
   const healthy = utils.findShip("Fixture ship");
+  assert.equal(healthy.productionStatus, "flight-ready");
+  assert.equal(healthy.metrics.cargo, 64.5);
   for (const changed of [
     { rsiSlug: null }, { loaners: {} }, { loaners: [{ name: "No slug" }] },
-    { metrics: { sizeLabel: 42 } }, { classification: {} }, { pledgePrice: "100" },
+    { metrics: { sizeLabel: 42 } }, { metrics: { cargo: "64" } }, { metrics: { cargo: -1 } },
+    { metrics: { cargo: Infinity } }, { classification: {} }, { productionStatus: {} }, { pledgePrice: "100" },
     { name: "x".repeat(101) }, { storeUrl: "https://robertsspaceindustries.com.evil.invalid/" },
     { brochure: "javascript:alert(1)" },
   ]) {
@@ -45,6 +48,7 @@ test("catalog rejects unsafe consumer fields and links atomically, retaining the
   await utils.refreshShipList();
   assert.equal(utils.findShip("Fixture ship").brochure, records[0].brochure);
   assert.equal(utils.findShip("Fixture ship").loaners[0].slug, "other");
+  assert.equal(utils.findShip("Fixture ship").metrics.cargo, undefined);
   records = [{ ...ship, storeUrl: "https://robertsspaceindustries.com/ships/test)[link](https://evil.invalid)" }];
   await utils.refreshShipList();
   assert.equal(/[()[\]]/.test(utils.findShip("Fixture ship").storeUrl), false,

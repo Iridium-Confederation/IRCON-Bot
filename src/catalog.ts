@@ -18,6 +18,12 @@ function amount(value: unknown): number {
   return value;
 }
 
+function cargoCapacity(value: unknown): number | undefined {
+  if (value == null) return undefined;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) throw new Error("Invalid catalog cargo.");
+  return value;
+}
+
 function link(value: unknown): string {
   const input = text(value, 2048);
   if (!input) return "";
@@ -48,8 +54,9 @@ export function parseCatalogPage(body: unknown): FleetViewShip[] {
       id: text(source.id), name: text(source.name, 100, true), rsiName: text(source.rsiName, 100, true),
       slug: text(source.slug, 100, true), rsiSlug: text(source.rsiSlug, 100, true),
       description: text(source.description, 16_000), size: text(source.size),
-      metrics: { size: text(metrics.size), sizeLabel: text(metrics.sizeLabel) },
+      metrics: { size: text(metrics.size), sizeLabel: text(metrics.sizeLabel), cargo: cargoCapacity(metrics.cargo) },
       classification: text(source.classification), classificationLabel: text(source.classificationLabel),
+      productionStatus: text(source.productionStatus),
       focus: text(source.focus), type: text(source.type),
       storeUrl: link(source.storeUrl), brochure: link(source.brochure),
       price: amount(source.price), pledgePrice: amount(source.pledgePrice), lastPledgePrice: amount(source.lastPledgePrice),
